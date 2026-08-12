@@ -84,7 +84,7 @@ export function TenantDetailView() {
               { key: 'team', label: 'Team', badge: tenant.memberships.length },
               { key: 'roles', label: 'Roles & Permissions' },
               { key: 'billing', label: 'Subscriptions', badge: tenant.subscriptions.length },
-              { key: 'whatsapp', label: 'WhatsApp' },
+              { key: 'whatsapp', label: 'WhatsApp', badge: whatsappNumbers?.length },
             ]}
             active={activeTab}
             onChange={tabKey => setActiveTab(tabKey as TenantTab)}
