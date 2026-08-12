@@ -2,7 +2,7 @@ import { GlobalSearch } from '@/components/GlobalSearch';
 import { Badge } from '@/components/ui/badge';
 import { useLogout, useMe } from '@/features/auth/auth.hooks';
 import { useEffect, useState } from 'react';
-import { LuLogOut, LuSettings } from 'react-icons/lu';
+import { LuLogOut } from 'react-icons/lu';
 import { TbSearch } from 'react-icons/tb';
 import { useNavigate } from 'react-router';
 import NotificationsDropdown from './NotificationsDropdown';
@@ -69,7 +69,7 @@ const Topbar = () => {
 
           <NotificationsDropdown />
 
-          <div className="topbar-item">
+          {/* <div className="topbar-item">
             <button
               className="btn btn-icon size-8 hover:bg-default-150 rounded-full"
               type="button"
@@ -81,7 +81,7 @@ const Topbar = () => {
             >
               <LuSettings className="size-4.5" />
             </button>
-          </div>
+          </div> */}
 
           <div className="topbar-item hs-dropdown relative inline-flex">
             <button
