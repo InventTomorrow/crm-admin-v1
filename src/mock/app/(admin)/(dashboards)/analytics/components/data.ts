@@ -499,6 +499,7 @@ export const getSubscriptionDistribution = (): ApexOptions => ({
   colors: ['#2b7fff', '#f97316', '#00c951', '#facc15', '#a855f7'],
   legend: {
     formatter: function (val, opts) {
+      if (!opts) return val;
       return val + ' - ' + opts.w.globals.series[opts.seriesIndex];
     },
 

@@ -1,9 +1,9 @@
 import type { ApexOptions } from 'apexcharts';
 import { useMemo } from 'react';
-import ReactApexChart from 'react-apexcharts';
+import ReactApexChart, { type Props as ReactApexChartProps } from 'react-apexcharts';
 
 type PropsType = {
-  type?: ApexChart['type'];
+  type?: ReactApexChartProps['type'];
   height?: number | string;
   width?: number | string;
   getOptions: () => ApexOptions;
