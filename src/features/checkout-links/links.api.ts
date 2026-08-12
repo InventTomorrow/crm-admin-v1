@@ -4,6 +4,9 @@ import type { Paged, PlanDuration, PlanTier } from '@/lib/types';
 export const LINK_STATUSES = ['ACTIVE', 'USED', 'REVOKED', 'EXPIRED'] as const;
 export type CheckoutLinkStatus = (typeof LINK_STATUSES)[number];
 
+export const LINK_SOURCES = ['ADMIN', 'SELF_SERVE'] as const;
+export type CheckoutLinkSource = (typeof LINK_SOURCES)[number];
+
 export interface CheckoutLink {
   id: string;
   token: string;
@@ -11,6 +14,7 @@ export interface CheckoutLink {
   planId: string;
   ownerUserId: string | null;
   status: CheckoutLinkStatus;
+  source: CheckoutLinkSource;
   customerName: string | null;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -32,6 +36,7 @@ export async function listCheckoutLinks(params: {
   page: number;
   limit: number;
   status?: CheckoutLinkStatus;
+  source?: CheckoutLinkSource;
 }): Promise<Paged<CheckoutLink>> {
   const { data } = await apiClient.get<ApiEnvelope<CheckoutLink[]>>('/admin/checkout-links', {
     params,

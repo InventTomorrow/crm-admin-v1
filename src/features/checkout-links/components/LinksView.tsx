@@ -7,12 +7,18 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
+import { Tabs } from '@/components/ui/tabs';
 import { useCanWrite } from '@/features/auth/auth.hooks';
 import { formatDate } from '@/lib/format';
 import { CreateCheckoutLinkDialog } from './CreateCheckoutLinkDialog';
-import type { CheckoutLink, CheckoutLinkStatus } from '../links.api';
+import type { CheckoutLink, CheckoutLinkSource, CheckoutLinkStatus } from '../links.api';
 import { useCheckoutLinks, useRevokeCheckoutLink } from '../links.hooks';
 import { Button } from '@/components/ui/button';
+
+const SOURCE_TABS: { key: CheckoutLinkSource | 'ALL'; label: string }[] = [
+  { key: 'ADMIN', label: 'Admin-generated' },
+  { key: 'ALL', label: 'All links' },
+];
 
 const LINK_STATUS_TONE: Record<CheckoutLinkStatus, BadgeTone> = {
   ACTIVE: 'success',
@@ -25,6 +31,7 @@ export function LinksView() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<CheckoutLinkStatus | 'ALL'>('ALL');
+  const [sourceFilter, setSourceFilter] = useState<CheckoutLinkSource | 'ALL'>('ADMIN');
   const [linkPendingRevocation, setLinkPendingRevocation] = useState<CheckoutLink | null>(null);
   const canWrite = useCanWrite();
 
@@ -32,6 +39,7 @@ export function LinksView() {
     page,
     limit: pageSize,
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
+    ...(sourceFilter === 'ALL' ? {} : { source: sourceFilter }),
   });
   const revokeMutation = useRevokeCheckoutLink();
 
@@ -115,6 +123,15 @@ export function LinksView() {
         title="Checkout links"
         description="Single-use payment links sent to customers"
         action={canWrite ? <CreateCheckoutLinkDialog /> : undefined}
+      />
+
+      <Tabs
+        tabs={SOURCE_TABS}
+        active={sourceFilter}
+        onChange={key => {
+          setSourceFilter(key as CheckoutLinkSource | 'ALL');
+          setPage(1);
+        }}
       />
 
       <DataTable
