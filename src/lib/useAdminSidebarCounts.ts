@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { listSubscriptionRequests } from '@/features/subscription-requests/requests.api';
 import { listCheckoutLinks } from '@/features/checkout-links/links.api';
+import { countNotifications } from '@/features/notifications/notifications.api';
 
 /** Requests still awaiting an admin decision. */
 function usePendingRequestsCount() {
@@ -23,13 +24,24 @@ function useActiveCheckoutLinksCount() {
   });
 }
 
+/** Noteworthy platform events surfaced in the admin notifications feed. */
+function useNotificationsCount() {
+  return useQuery({
+    queryKey: ['notifications', 'count'],
+    queryFn: countNotifications,
+    refetchInterval: 60_000,
+  });
+}
+
 /** Badge counts shown next to sidebar nav items, keyed by menu item key. */
 export function useAdminSidebarCounts(): Record<string, number | undefined> {
   const { data: pendingRequests } = usePendingRequestsCount();
   const { data: activeCheckoutLinks } = useActiveCheckoutLinksCount();
+  const { data: notifications } = useNotificationsCount();
 
   return {
     requests: pendingRequests,
     'checkout-links': activeCheckoutLinks,
+    notifications,
   };
 }
