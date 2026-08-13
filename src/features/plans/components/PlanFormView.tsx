@@ -8,10 +8,11 @@ import { ToggleRow } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import type { Plan } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Controller, useFieldArray, useForm, type Control } from 'react-hook-form';
-import { LuArrowLeft, LuEye, LuLoaderCircle, LuPlus, LuX } from 'react-icons/lu';
+import { LuArrowLeft, LuLoaderCircle, LuPlus, LuRefreshCw, LuX } from 'react-icons/lu';
 import { Link, useNavigate } from 'react-router';
+import { deriveFeatureBullets } from '../plan-features.util';
 import {
   emptyPlanDefaults,
   formValuesToPlanInput,
@@ -21,8 +22,7 @@ import {
   type PlanFormValues,
 } from '../plan-form.schema';
 import { useSavePlan } from '../plans.hooks';
-import { PlanFormProgress } from './PlanFormProgress';
-import { PlanPreviewDialog } from './PlanPreviewDialog';
+import { PlanLivePreview } from './PlanLivePreview';
 
 type NumKey =
   | 'price'
@@ -82,11 +82,14 @@ function ToggleField({
   name,
   label,
   hint,
+  disabled = false,
 }: {
   control: Control<PlanFormValues>;
   name: BoolKey;
   label: string;
   hint?: string;
+  /** For toggles another field drives — shown, but not editable here. */
+  disabled?: boolean;
 }) {
   return (
     <Controller
@@ -97,6 +100,7 @@ function ToggleField({
           label={label}
           description={hint}
           checked={field.value}
+          disabled={disabled}
           onChange={event => field.onChange(event.target.checked)}
         />
       )}
@@ -139,9 +143,42 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
     defaultValues: existingPlan ? planToFormValues(existingPlan) : emptyPlanDefaults(),
   });
   const featuresArray = useFieldArray({ control: form.control, name: 'features' });
+
+  /**
+   * The limit fields are the plan's selling points, so the bullets are written
+   * from them rather than retyped. Auto-sync lasts only while the admin hasn't
+   * touched the list — the moment they edit, add or remove a bullet the list is
+   * theirs and we stop overwriting it. An existing plan's saved bullets are
+   * treated as already-authored for the same reason.
+   */
+  const [featuresAreAuto, setFeaturesAreAuto] = useState(!existingPlan);
+  const watchedValues = form.watch();
+  const derivedFeatures = useMemo(() => deriveFeatureBullets(watchedValues), [watchedValues]);
+  const derivedSignature = derivedFeatures.join('|');
+
+  useEffect(() => {
+    if (!featuresAreAuto) return;
+    const current = form.getValues('features').map(feature => feature.value);
+    if (current.join('|') === derivedSignature) return;
+    form.setValue(
+      'features',
+      derivedFeatures.map(value => ({ value })),
+      { shouldDirty: true }
+    );
+  }, [featuresAreAuto, derivedSignature, derivedFeatures, form]);
+
+  /** Any hands-on change to the list hands ownership to the admin. */
+  const takeOverFeatures = () => setFeaturesAreAuto(false);
+
+  const regenerateFeatures = () => {
+    setFeaturesAreAuto(true);
+    form.setValue(
+      'features',
+      derivedFeatures.map(value => ({ value })),
+      { shouldDirty: true, shouldValidate: true }
+    );
+  };
   const savePlanMutation = useSavePlan();
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewValues, setPreviewValues] = useState<PlanFormValues | null>(null);
   // Offer fields stay out of the way until the plan actually runs an offer.
   const [offerFieldsOpen, setOfferFieldsOpen] = useState(existingPlan?.originalPrice != null);
 
@@ -154,6 +191,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
 
   const vertical = form.watch('businessVertical');
   const duration = form.watch('duration');
+  const tier = form.watch('tier');
   const isTrial = form.watch('isTrial');
   const currency = form.watch('currency');
   const price = form.watch('price');
@@ -169,6 +207,19 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
     form.setValue('originalPrice', null, { shouldDirty: true, shouldValidate: true });
     form.setValue('offerEndsAt', null, { shouldDirty: true, shouldValidate: true });
   };
+
+  // The tier owns the trial flag. Picking TRIAL turns it on (and zeroes the
+  // price, which a trial must have); picking anything else turns it off — so
+  // the pair can never be submitted in the contradictory state both schemas
+  // reject.
+  useEffect(() => {
+    const shouldBeTrial = tier === 'TRIAL';
+    if (form.getValues('isTrial') === shouldBeTrial) return;
+    form.setValue('isTrial', shouldBeTrial, { shouldDirty: true, shouldValidate: true });
+    if (shouldBeTrial && form.getValues('price') !== 0) {
+      form.setValue('price', 0, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [tier, form]);
 
   // Trials can't carry an offer — clear the now-hidden fields so the schema
   // doesn't reject the submit with an error nobody can see.
@@ -189,7 +240,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
   };
 
   return (
-    <div className="mx-auto flex max-w-6xl gap-6">
+    <div className="mx-auto flex max-w-[1400px] gap-6">
       <div className="min-w-0 flex-1">
         <div className="mb-4 flex items-center gap-3">
           <Link
@@ -220,6 +271,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
               </Field>
               <Field label="Tier" error={errors.tier?.message}>
                 <Select {...form.register('tier')}>
+                  <option value="TRIAL">Trial</option>
                   <option value="STARTER">Starter</option>
                   <option value="GROWTH">Growth</option>
                   <option value="AGENCY">Agency</option>
@@ -417,11 +469,13 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 </Button>
               ))}
 
+            {/* Read-only: the Tier select above is what sets this. */}
             <ToggleField
               control={form.control}
               name="isTrial"
               label="Free trial plan"
-              hint="Free plans can use custom day durations."
+              hint="Set by the TRIAL tier. Trial plans are free and can use custom day durations."
+              disabled
             />
           </FormSection>
 
@@ -516,9 +570,20 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
             description="How this plan's card is presented on the public pricing section."
           >
             <div>
-              <span className="form-label mb-2 block text-sm font-medium text-default-700">
-                Feature bullets
-              </span>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="form-label block text-sm font-medium text-default-700">
+                  Feature bullets
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={regenerateFeatures}
+                  disabled={derivedFeatures.length === 0}
+                >
+                  <LuRefreshCw className="size-3.5 me-1" />
+                  {featuresArray.fields.length > 0 ? 'Rewrite from limits' : 'Generate from limits'}
+                </Button>
+              </div>
               <div className="space-y-2">
                 {featuresArray.fields.map((featureField, featureIndex) => (
                   <Controller
@@ -532,13 +597,20 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                             placeholder="Unlimited AI-powered replies"
                             invalid={!!fieldState.error}
                             {...field}
+                            onChange={event => {
+                              takeOverFeatures();
+                              field.onChange(event);
+                            }}
                           />
                           <Button
                             aria-label="Remove feature"
                             variant="soft-danger"
                             size="icon-sm"
                             className="shrink-0 bg-transparent"
-                            onClick={() => featuresArray.remove(featureIndex)}
+                            onClick={() => {
+                              takeOverFeatures();
+                              featuresArray.remove(featureIndex);
+                            }}
                           >
                             <LuX className="size-4" />
                           </Button>
@@ -554,7 +626,11 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 >
                   <LuPlus className="size-4 me-1" /> Add feature
                 </Button>
-                <p className="text-xs text-default-400">Listed on the plan card in this order.</p>
+                <p className="text-xs text-default-400">
+                  {featuresAreAuto
+                    ? 'Written automatically from the limits above, and kept in step until you edit them. Change any bullet to take over.'
+                    : 'Listed on the plan card in this order. “Rewrite from limits” restores the generated set.'}
+                </p>
               </div>
             </div>
 
@@ -607,16 +683,6 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
           </FormSection>
 
           <div className="sticky bottom-0 z-20 -mx-2 flex items-center justify-end gap-3 border-t border-default-200 bg-body-bg/95 px-2 py-4 backdrop-blur">
-            <Button
-              variant="outline"
-              className="me-auto"
-              onClick={() => {
-                setPreviewValues(form.getValues());
-                setPreviewOpen(true);
-              }}
-            >
-              <LuEye className="size-4 me-1.5" /> Preview
-            </Button>
             <Link to="/plans" className={buttonVariants({ variant: 'ghost' })}>
               Cancel
             </Link>
@@ -628,16 +694,13 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
             </Button>
           </div>
         </form>
-
-        <PlanPreviewDialog
-          open={previewOpen}
-          onOpenChange={setPreviewOpen}
-          values={previewValues}
-        />
       </div>
 
-      <aside className="hidden w-64 shrink-0 lg:block">
-        <PlanFormProgress control={form.control} />
+      {/* Sticky rail: the preview stays in view while the form scrolls past it. */}
+      <aside className="hidden w-[380px] shrink-0 xl:block">
+        <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+          <PlanLivePreview values={watchedValues} />
+        </div>
       </aside>
     </div>
   );

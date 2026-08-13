@@ -8,8 +8,10 @@ export interface Paged<T> {
 
 export type SystemRole = 'SYSTEM_ADMIN' | 'SYSTEM_MANAGER';
 export type TenantStatus = 'ACTIVE' | 'SUSPENDED' | 'CHURNED';
-export type PlanTier = 'STARTER' | 'GROWTH' | 'AGENCY' | 'RESELLER';
-export type SubscriptionStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
+// TRIAL is paired with the plan's isTrial flag — the two always agree.
+export type PlanTier = 'TRIAL' | 'STARTER' | 'GROWTH' | 'AGENCY' | 'RESELLER';
+// PENDING is an unpaid gateway checkout handoff — it grants no access.
+export type SubscriptionStatus = 'PENDING' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'CANCELLED';
 
 export interface AdminUser {
   id: string;
@@ -163,7 +165,11 @@ export interface Plan {
   providerPlanId: string | null;
   isPublic: boolean;
   isActive: boolean;
+  // `_count.subscriptions` is active/trialing only — the subscribers the
+  // migrate dialog can move. `totalSubscriberCount` includes cancelled and
+  // expired ones, which still reference the plan and block deletion.
   _count?: { subscriptions: number; activeTenants: number };
+  totalSubscriberCount?: number;
 }
 
 export interface Subscription {

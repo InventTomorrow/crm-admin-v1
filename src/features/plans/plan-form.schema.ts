@@ -13,7 +13,7 @@ export const UNIVERSAL = 'UNIVERSAL' as const;
 export const planFormSchema = z
   .object({
     name: z.string().min(1, 'Required'),
-    tier: z.enum(['STARTER', 'GROWTH', 'AGENCY', 'RESELLER']),
+    tier: z.enum(['TRIAL', 'STARTER', 'GROWTH', 'AGENCY', 'RESELLER']),
     businessVertical: z.enum([UNIVERSAL, 'ECOMMERCE', 'RESTAURANT', 'MARKETING_AGENCY']),
     tagline: z.string().max(200, 'Keep it under 200 characters'),
 
@@ -81,6 +81,14 @@ export const planFormSchema = z
           message: 'Required for a custom duration',
         });
       }
+    }
+    // Mirrors the server rule — the TRIAL tier and the trial flag are one fact.
+    if ((v.tier === 'TRIAL') !== v.isTrial) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['tier'],
+        message: 'The TRIAL tier and the free-trial toggle must agree',
+      });
     }
     if (v.isTrial && v.price !== 0) {
       ctx.addIssue({

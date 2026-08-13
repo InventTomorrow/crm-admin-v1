@@ -1,8 +1,19 @@
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { LuCircleAlert, LuCircleCheck, LuHourglass, LuLayers } from 'react-icons/lu';
+import {
+  LuCircleAlert,
+  LuCircleCheck,
+  LuCalendarOff,
+  LuEllipsisVertical,
+  LuHourglass,
+  LuLayers,
+  LuSettings2,
+  LuTrash2,
+} from 'react-icons/lu';
 import { Select } from '@/components/ui/select';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
+import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -12,14 +23,23 @@ import { formatPlanPrice } from '@/lib/planFormat';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
 import type { Subscription, SubscriptionStatus } from '@/lib/types';
 import { CreateSubscriptionDialog } from './CreateSubscriptionDialog';
+import { ManageSubscriptionDialog } from './ManageSubscriptionDialog';
 import { SubscriptionDetailSheet } from './SubscriptionDetailSheet';
-import { useSubscriptions, useUpdateSubscriptionStatus } from '../subscriptions.hooks';
+import {
+  useCancelSubscriptionAtPeriodEnd,
+  useDeleteSubscription,
+  useSubscriptions,
+  useUpdateSubscriptionStatus,
+} from '../subscriptions.hooks';
 
 export function SubscriptionsView() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'ALL'>('ALL');
   const [subscriptionUnderReview, setSubscriptionUnderReview] = useState<Subscription | null>(null);
+  const [subscriptionBeingManaged, setSubscriptionBeingManaged] = useState<Subscription | null>(null);
+  const [subscriptionPendingDeletion, setSubscriptionPendingDeletion] =
+    useState<Subscription | null>(null);
   const canWrite = useCanWrite();
 
   const { data, isLoading, isError, error, refetch } = useSubscriptions({
@@ -28,6 +48,8 @@ export function SubscriptionsView() {
     limit: pageSize,
   });
   const statusMutation = useUpdateSubscriptionStatus();
+  const cancelMutation = useCancelSubscriptionAtPeriodEnd();
+  const deleteMutation = useDeleteSubscription();
 
   // KPI counts — lightweight parallel queries (limit:1 → meta.total only)
   const { data: totalData, isLoading: kpiLoading } = useSubscriptions({ page: 1, limit: 1 });
@@ -87,31 +109,66 @@ export function SubscriptionsView() {
               id: 'actions',
               header: 'Actions',
               enableHiding: false,
-              cell: ({ row }) => (
-                <span onClick={event => event.stopPropagation()}>
-                  <Select
-                    value={row.original.status}
-                    onChange={event =>
-                      statusMutation.mutate({
-                        id: row.original.id,
-                        status: event.target.value as SubscriptionStatus,
-                      })
-                    }
-                    className="form-input-sm w-32"
-                    aria-label="Change subscription status"
+              cell: ({ row }) => {
+                const subscription = row.original;
+                const isLive =
+                  subscription.status === 'ACTIVE' || subscription.status === 'TRIALING';
+                return (
+                  <span
+                    className="flex items-center gap-1.5"
+                    onClick={event => event.stopPropagation()}
                   >
-                    <option value="TRIALING">Trialing</option>
-                    <option value="ACTIVE">Active</option>
-                    <option value="PAST_DUE">Past due</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </Select>
-                </span>
-              ),
+                    <Select
+                      value={subscription.status}
+                      onChange={event =>
+                        statusMutation.mutate({
+                          id: subscription.id,
+                          status: event.target.value as SubscriptionStatus,
+                        })
+                      }
+                      className="form-input-sm w-32"
+                      aria-label="Change subscription status"
+                    >
+                      <option value="TRIALING">Trialing</option>
+                      <option value="ACTIVE">Active</option>
+                      <option value="PAST_DUE">Past due</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </Select>
+
+                    <Dropdown
+                      trigger={<LuEllipsisVertical className="size-4" />}
+                      triggerLabel="Subscription actions"
+                    >
+                      <DropdownItem
+                        icon={LuSettings2}
+                        onSelect={() => setSubscriptionBeingManaged(subscription)}
+                      >
+                        Change plan / dates
+                      </DropdownItem>
+                      <DropdownItem
+                        icon={LuCalendarOff}
+                        // Only a live subscription has a period left to run out.
+                        disabled={!isLive || !subscription.currentPeriodEnd}
+                        onSelect={() => cancelMutation.mutate(subscription.id)}
+                      >
+                        Cancel at period end
+                      </DropdownItem>
+                      <DropdownItem
+                        icon={LuTrash2}
+                        destructive
+                        onSelect={() => setSubscriptionPendingDeletion(subscription)}
+                      >
+                        Delete
+                      </DropdownItem>
+                    </Dropdown>
+                  </span>
+                );
+              },
             } satisfies ColumnDef<Subscription, unknown>,
           ]
         : []),
     ],
-    [statusMutation, canWrite]
+    [statusMutation, cancelMutation, canWrite]
   );
 
   return (
@@ -196,6 +253,31 @@ export function SubscriptionsView() {
         subscription={subscriptionUnderReview}
         open={subscriptionUnderReview !== null}
         onClose={() => setSubscriptionUnderReview(null)}
+      />
+
+      <ManageSubscriptionDialog
+        subscription={subscriptionBeingManaged}
+        open={subscriptionBeingManaged !== null}
+        onClose={() => setSubscriptionBeingManaged(null)}
+      />
+
+      <ConfirmDialog
+        open={subscriptionPendingDeletion !== null}
+        onOpenChange={isOpen => !isOpen && setSubscriptionPendingDeletion(null)}
+        title="Delete this subscription?"
+        description={
+          subscriptionPendingDeletion
+            ? `${subscriptionPendingDeletion.owner?.email ?? 'This account'} loses access to every workspace immediately, and their WhatsApp bot stops replying. Payments are kept but detached. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete subscription"
+        isLoading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!subscriptionPendingDeletion) return;
+          deleteMutation.mutate(subscriptionPendingDeletion.id, {
+            onSuccess: () => setSubscriptionPendingDeletion(null),
+          });
+        }}
       />
     </>
   );

@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import type { Paged, Subscription, SubscriptionStatus } from '@/lib/types';
-import { createSubscription, listSubscriptions, updateSubscription } from './subscriptions.api';
+import {
+  cancelSubscriptionAtPeriodEnd,
+  createSubscription,
+  deleteSubscription,
+  listSubscriptions,
+  updateSubscription,
+} from './subscriptions.api';
 
 export function useSubscriptions(params: {
   page: number;
@@ -23,6 +29,44 @@ export function useCreateSubscription() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['subscriptions'] });
       toast.success('Subscription created');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+/** Plan move and/or period-end edit from the manage dialog. */
+export function useManageSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...input }: { id: string } & Parameters<typeof updateSubscription>[1]) =>
+      updateSubscription(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      toast.success('Subscription updated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useCancelSubscriptionAtPeriodEnd() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => cancelSubscriptionAtPeriodEnd(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      toast.success('Subscription will end at the close of the current period');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useDeleteSubscription() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteSubscription(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['subscriptions'] });
+      toast.success('Subscription deleted');
     },
     onError: error => toast.error(apiMessage(error)),
   });

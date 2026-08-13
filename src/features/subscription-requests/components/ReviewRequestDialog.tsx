@@ -22,6 +22,49 @@ const rejectSchema = z.object({
 });
 type RejectFormValues = z.infer<typeof rejectSchema>;
 
+/**
+ * What the plan costs, side by side with what the customer says they sent.
+ * The claimed amount is customer-typed, so approving on it alone is how an
+ * underpayment gets activated at full price — the shortfall has to be on
+ * screen at the moment of approval, not buried in the receipt image.
+ */
+function PaymentReconciliation({ request }: { request: SubscriptionRequest }) {
+  const { plan } = request;
+  if (!plan) return null;
+
+  const shortfall = plan.price - request.paymentAmount;
+  const currencyMismatch = plan.currency !== request.currency;
+  const settled = shortfall <= 0 && !currencyMismatch;
+
+  return (
+    <div
+      className={`mb-4 rounded-lg border p-3 ${
+        settled ? 'border-default-200 bg-default-50' : 'border-warning/40 bg-warning/15'
+      }`}
+    >
+      <div className="flex items-center justify-between text-sm">
+        <span className="text-default-500">Plan price</span>
+        <span className="font-medium text-default-800">
+          {formatPlanPrice(plan.price, plan.currency)}
+        </span>
+      </div>
+      <div className="mt-1 flex items-center justify-between text-sm">
+        <span className="text-default-500">Customer paid</span>
+        <span className="font-medium text-default-800">
+          {formatPlanPrice(request.paymentAmount, request.currency)}
+        </span>
+      </div>
+      {!settled && (
+        <p className="mt-2 text-xs font-medium text-warning">
+          {currencyMismatch
+            ? `Currency mismatch — plan is billed in ${plan.currency}, customer paid in ${request.currency}.`
+            : `Short by ${formatPlanPrice(shortfall, plan.currency)} — verify the receipt before approving.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function DetailField({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
@@ -87,6 +130,8 @@ export function ReviewRequestDialog({
         {request.plan?.name ?? 'Plan'} · {formatPlanPrice(request.paymentAmount, request.currency)}{' '}
         claimed via {request.paymentMethod.replace(/_/g, ' ').toLowerCase()}
       </p>
+
+      <PaymentReconciliation request={request} />
 
       <div className="space-y-4">
         <div className="grid grid-cols-1 gap-x-4 gap-y-2.5 sm:grid-cols-2">

@@ -115,7 +115,11 @@ export function MigratePlanDialog({ open, onOpenChange, sourcePlan, plans }: Mig
         {subscribersQuery.isLoading ? (
           <p className="text-sm text-default-500">Loading subscribers…</p>
         ) : subscribers.length === 0 ? (
-          <p className="text-sm text-default-500">No active subscribers on this plan.</p>
+          <p className="text-sm text-default-500">
+            No active subscribers on this plan.
+            {(sourcePlan.totalSubscriberCount ?? 0) > 0 &&
+              ` Its ${sourcePlan.totalSubscriberCount} subscription record(s) are cancelled or expired and stay with the plan.`}
+          </p>
         ) : mode === 'selected' ? (
           <div className="max-h-64 space-y-1 overflow-y-auto rounded-lg border border-default-200 p-2">
             {subscribers.map(sub => (

@@ -15,6 +15,15 @@ import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import { MigratePlanDialog } from './MigratePlanDialog';
 
+/** Plans with historical subscriptions cannot be deleted — say so before the request fails. */
+function deletionWarning(plan: Plan | null): string {
+  const totalSubscriberCount = plan?.totalSubscriberCount ?? 0;
+  if (totalSubscriberCount === 0) return 'This cannot be undone. Tenants on this plan may be affected.';
+  return `This plan has ${totalSubscriberCount} subscription record${
+    totalSubscriberCount === 1 ? '' : 's'
+  } tied to it, including past ones. Deleting will be rejected — deactivate the plan instead.`;
+}
+
 export function PlansView() {
   const { data, isLoading, isError, error, refetch } = usePlans();
   const deleteMutation = useDeletePlan();
@@ -97,7 +106,18 @@ export function PlansView() {
         id: 'subs',
         accessorFn: plan => plan._count?.subscriptions ?? 0,
         header: 'Subs',
-        cell: ({ row }) => row.original._count?.subscriptions ?? 0,
+        cell: ({ row }) => {
+          const activeSubscriberCount = row.original._count?.subscriptions ?? 0;
+          const totalSubscriberCount = row.original.totalSubscriberCount ?? activeSubscriberCount;
+          return (
+            <span>
+              {activeSubscriberCount}
+              {totalSubscriberCount > activeSubscriberCount && (
+                <span className="ms-1 text-xs text-default-500">· {totalSubscriberCount} total</span>
+              )}
+            </span>
+          );
+        },
       },
       ...(canWrite
         ? [
@@ -157,7 +177,7 @@ export function PlansView() {
         open={!!planPendingDeletion}
         onOpenChange={open => !open && setPlanPendingDeletion(null)}
         title={`Delete plan "${planPendingDeletion?.name}"?`}
-        description="This cannot be undone. Tenants on this plan may be affected."
+        description={deletionWarning(planPendingDeletion)}
         onConfirm={() => {
           if (planPendingDeletion) deleteMutation.mutate(planPendingDeletion.id);
           setPlanPendingDeletion(null);

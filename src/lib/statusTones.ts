@@ -9,6 +9,7 @@ export const TENANT_STATUS_TONE: Record<TenantStatus, BadgeTone> = {
 
 export const SUBSCRIPTION_STATUS_TONE: Record<SubscriptionStatus, BadgeTone> = {
   ACTIVE: 'success',
+  PENDING: 'neutral',
   TRIALING: 'info',
   PAST_DUE: 'warning',
   CANCELLED: 'danger',

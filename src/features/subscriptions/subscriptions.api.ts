@@ -46,11 +46,36 @@ export async function createSubscription(input: {
 
 export async function updateSubscription(
   id: string,
-  input: { planId?: string; status?: SubscriptionStatus }
+  input: {
+    planId?: string;
+    status?: SubscriptionStatus;
+    /** ISO strings, or null to clear. Editing these is how a manual plan is renewed. */
+    currentPeriodEnd?: string | null;
+    trialEndsAt?: string | null;
+  }
 ): Promise<Subscription> {
   const { data } = await apiClient.patch<ApiEnvelope<Subscription>>(
     `/admin/subscriptions/${id}`,
     input
+  );
+  return data.data;
+}
+
+/**
+ * Books the subscription to lapse at the end of the period already paid for.
+ * To stop one immediately, set its status to CANCELLED instead.
+ */
+export async function cancelSubscriptionAtPeriodEnd(id: string): Promise<Subscription> {
+  const { data } = await apiClient.post<ApiEnvelope<Subscription>>(
+    `/admin/subscriptions/${id}/cancel`
+  );
+  return data.data;
+}
+
+/** Irreversible. Payments and invoices survive, detached from the subscription. */
+export async function deleteSubscription(id: string): Promise<{ id: string }> {
+  const { data } = await apiClient.delete<ApiEnvelope<{ id: string }>>(
+    `/admin/subscriptions/${id}`
   );
   return data.data;
 }
