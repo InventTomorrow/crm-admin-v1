@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { LuLoaderCircle } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Field } from '@/components/ui/field';
@@ -9,6 +6,9 @@ import { Select } from '@/components/ui/select';
 import { listPlans } from '@/features/plans/plans.api';
 import { formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
 import type { Subscription } from '@/lib/types';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { LuLoaderCircle } from 'react-icons/lu';
 import { useManageSubscription } from '../subscriptions.hooks';
 
 /** Date-only ISO, so a picked day isn't shifted by the browser's timezone. */
@@ -54,9 +54,11 @@ export function ManageSubscriptionDialog({
 
   const planChanged = planId !== subscription.planId;
   const periodChanged =
-    (periodEnd?.toISOString() ?? null) !== (toDate(subscription.currentPeriodEnd)?.toISOString() ?? null);
+    (periodEnd?.toISOString() ?? null) !==
+    (toDate(subscription.currentPeriodEnd)?.toISOString() ?? null);
   const trialChanged =
-    (trialEndsAt?.toISOString() ?? null) !== (toDate(subscription.trialEndsAt)?.toISOString() ?? null);
+    (trialEndsAt?.toISOString() ?? null) !==
+    (toDate(subscription.trialEndsAt)?.toISOString() ?? null);
   const dirty = planChanged || periodChanged || trialChanged;
 
   const handleSave = () => {
@@ -76,7 +78,7 @@ export function ManageSubscriptionDialog({
       open={open}
       onOpenChange={isOpen => !isOpen && onClose()}
       title="Manage subscription"
-      size="md"
+      size="lg"
       footer={
         <>
           <Button variant="outline" onClick={onClose} disabled={manageMutation.isPending}>
@@ -95,10 +97,7 @@ export function ManageSubscriptionDialog({
       </p>
 
       <div className="space-y-4">
-        <Field
-          label="Plan"
-          hint="Moving to another plan changes the account's limits immediately."
-        >
+        <Field label="Plan" hint="Moving to another plan changes the account's limits immediately.">
           <Select
             value={planId}
             onChange={event => setPlanId(event.target.value)}
