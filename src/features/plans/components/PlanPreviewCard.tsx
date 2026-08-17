@@ -1,6 +1,6 @@
 import { LuArrowRight, LuCheck } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
-import { formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
+import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
 import type { PlanFormValues } from '../plan-form.schema';
 
 /**
@@ -299,7 +299,7 @@ function LimitRow({ label, value }: { label: string; value: number }) {
     <li className="flex items-center justify-between gap-2">
       <span>{label}</span>
       <span className="font-medium" style={{ color: APP.ink }}>
-        {value.toLocaleString('en-PK')}
+        {formatPlanLimit(value)}
       </span>
     </li>
   );

@@ -1,11 +1,13 @@
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { ToggleRow } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { isUnlimitedLimit, UNLIMITED_LIMIT } from '@/lib/planFormat';
 import type { Plan } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -44,35 +46,58 @@ function NumberField({
   label,
   hint,
   placeholder = '0',
+  allowUnlimited = false,
 }: {
   control: Control<PlanFormValues>;
   name: NumKey;
   label: string;
   hint?: string;
   placeholder?: string;
+  /**
+   * Adds an Unlimited checkbox for the count fields. The input itself never
+   * accepts a negative number — ticking the box is the only way the sentinel
+   * gets written, so an admin can't type their way into an unlimited plan.
+   */
+  allowUnlimited?: boolean;
 }) {
   return (
     <Controller
       control={control}
       name={name}
-      render={({ field, fieldState }) => (
-        <Field label={label} hint={hint} error={fieldState.error?.message}>
-          <Input
-            type="number"
-            step="any"
-            placeholder={placeholder}
-            invalid={!!fieldState.error}
-            value={field?.value?.toString() ?? ''}
-            // valueAsNumber is NaN for an empty input; coerce to 0 so a
-            // cleared field never submits NaN (which serializes to null).
-            onChange={event =>
-              field.onChange(
-                Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
-              )
-            }
-          />
-        </Field>
-      )}
+      render={({ field, fieldState }) => {
+        const isUnlimited = allowUnlimited && isUnlimitedLimit(field.value);
+        return (
+          <Field label={label} hint={hint} error={fieldState.error?.message}>
+            <Input
+              type="number"
+              step="any"
+              min={0}
+              placeholder={isUnlimited ? 'Unlimited' : placeholder}
+              disabled={isUnlimited}
+              invalid={!!fieldState.error}
+              value={isUnlimited ? '' : (field.value?.toString() ?? '')}
+              // valueAsNumber is NaN for an empty input; coerce to 0 so a
+              // cleared field never submits NaN (which serializes to null).
+              onChange={event =>
+                field.onChange(
+                  Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
+                )
+              }
+            />
+            {allowUnlimited && (
+              <label className="mt-2 flex w-fit cursor-pointer items-center gap-2 text-xs text-default-600">
+                <Checkbox
+                  checked={isUnlimited}
+                  // Clearing the box drops back to 0 — a number the admin
+                  // then types over, rather than a stale count reappearing.
+                  onChange={event => field.onChange(event.target.checked ? UNLIMITED_LIMIT : 0)}
+                />
+                Unlimited
+              </label>
+            )}
+          </Field>
+        );
+      }}
     />
   );
 }
@@ -196,6 +221,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
   const currency = form.watch('currency');
   const price = form.watch('price');
   const originalPrice = form.watch('originalPrice');
+  const messagesAreUnlimited = isUnlimitedLimit(form.watch('maxMonthlyMessages'));
   const { errors } = form.formState;
 
   const hasOffer = !isTrial && originalPrice != null && originalPrice > price;
@@ -231,6 +257,21 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
     form.setValue('originalPrice', null, { shouldDirty: true, shouldValidate: true });
     form.setValue('offerEndsAt', null, { shouldDirty: true, shouldValidate: true });
   }, [isTrial, form]);
+
+  // A capped monthly total can't hold an uncapped carve-out. Capping the
+  // total also takes the sublimits' Unlimited checkbox away, so reset the ones
+  // that were ticked rather than stranding a -1 in a field that no longer
+  // offers any way to clear it.
+  useEffect(() => {
+    if (messagesAreUnlimited) return;
+    const { maxImageMessages, maxVoiceMessages } = form.getValues();
+    if (isUnlimitedLimit(maxImageMessages)) {
+      form.setValue('maxImageMessages', 0, { shouldDirty: true, shouldValidate: true });
+    }
+    if (isUnlimitedLimit(maxVoiceMessages)) {
+      form.setValue('maxVoiceMessages', 0, { shouldDirty: true, shouldValidate: true });
+    }
+  }, [messagesAreUnlimited, form]);
 
   const onSubmit = (values: PlanFormValues) => {
     savePlanMutation.mutate(
@@ -489,18 +530,21 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 name="maxWorkspaces"
                 label="Workspaces"
                 placeholder="e.g. 3"
+                allowUnlimited
               />
               <NumberField
                 control={form.control}
                 name="maxMembersPerWorkspace"
                 label="Team members"
                 placeholder="e.g. 10"
+                allowUnlimited
               />
               <NumberField
                 control={form.control}
                 name="maxChannels"
                 label="Channels"
                 placeholder="e.g. 2"
+                allowUnlimited
               />
             </div>
           </FormSection>
@@ -516,6 +560,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                   name="maxProducts"
                   label="Products"
                   placeholder="e.g. 200"
+                  allowUnlimited
                 />
               )}
               {(vertical === UNIVERSAL || vertical === 'RESTAURANT') && (
@@ -524,6 +569,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                   name="maxMenuItems"
                   label="Menu items"
                   placeholder="e.g. 100"
+                  allowUnlimited
                 />
               )}
               {(vertical === UNIVERSAL || vertical === 'MARKETING_AGENCY') && (
@@ -532,6 +578,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                   name="maxServices"
                   label="Services"
                   placeholder="e.g. 50"
+                  allowUnlimited
                 />
               )}
             </div>
@@ -547,20 +594,31 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 name="maxMonthlyMessages"
                 label="Total / month"
                 placeholder="e.g. 2000"
+                allowUnlimited
               />
               <NumberField
                 control={form.control}
                 name="maxImageMessages"
                 label="Image vision"
-                hint="Carved out of the total"
+                hint={
+                  messagesAreUnlimited
+                    ? 'The total is unlimited, so this can be too'
+                    : 'Carved out of the total'
+                }
                 placeholder="e.g. 500"
+                allowUnlimited={messagesAreUnlimited}
               />
               <NumberField
                 control={form.control}
                 name="maxVoiceMessages"
                 label="Voice messages"
-                hint="Carved out of the total"
+                hint={
+                  messagesAreUnlimited
+                    ? 'The total is unlimited, so this can be too'
+                    : 'Carved out of the total'
+                }
                 placeholder="e.g. 200"
+                allowUnlimited={messagesAreUnlimited}
               />
             </div>
           </FormSection>

@@ -47,6 +47,11 @@ _forms.scss
   .form-checkbox:not([class*='text-']) {
     @apply bg-transparent border-default-300;
     @apply checked:bg-primary checked:border-transparent;
+    /* The forms plugin styles :indeterminate separately from :checked, so the
+       "select all" header box kept the plugin's blue while every row box was
+       already brand green. */
+    @apply indeterminate:bg-primary indeterminate:border-transparent;
+    accent-color: var(--color-primary);
   }
 
   .form-checkbox {
@@ -309,7 +314,45 @@ textarea.form-input {
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-danger) 12%, transparent);
 }
 
+/* Plain :focus, matching .form-input above — the forms plugin rings on :focus
+   with its own blue, which a :focus-visible-only rule loses to on click. */
+/* In dark mode .form-input's bg-card is the same colour as the card it sits on,
+   so fields dissolved into the panel. Lift the control one step and strengthen
+   its border so an input still reads as an input. Covers select and textarea —
+   they share .form-input. */
+[data-theme='dark'] .form-input {
+  background-color: var(--color-default-150);
+  border-color: var(--color-default-300);
+}
+
+[data-theme='dark'] .form-input:hover:not(:disabled):not([readonly]) {
+  border-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
+}
+
+[data-theme='dark'] .form-input::placeholder {
+  color: var(--color-default-500);
+}
+
+[data-theme='dark'] .form-input[readonly],
+[data-theme='dark'] .form-input:disabled {
+  background-color: var(--color-default-100);
+}
+
+/* Native option lists render from the control's own colours in most browsers. */
+[data-theme='dark'] select.form-input option {
+  background-color: var(--color-default-150);
+  color: var(--color-default-700);
+}
+
+[data-theme='dark'] .form-checkbox:not([class*='text-']),
+[data-theme='dark'] .form-radio:not([class*='text-']) {
+  border-color: var(--color-default-300);
+}
+
+.form-checkbox:focus,
 .form-checkbox:focus-visible,
+.form-radio:focus,
+.form-radio:focus-visible,
 .form-switch:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent);

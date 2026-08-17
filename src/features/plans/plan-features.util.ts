@@ -1,3 +1,4 @@
+import { isUnlimitedLimit } from '@/lib/planFormat';
 import { UNIVERSAL } from './plan-form.schema';
 import type { PlanFormValues } from './plan-form.schema';
 
@@ -11,24 +12,29 @@ import type { PlanFormValues } from './plan-form.schema';
  * reorder, remove or add before saving.
  */
 
-const count = (value: number, singular: string, plural = `${singular}s`): string =>
-  `${value.toLocaleString('en-PK')} ${value === 1 ? singular : plural}`;
+const count = (value: number, singular: string, plural = `${singular}s`): string => {
+  if (isUnlimitedLimit(value)) return `Unlimited ${plural}`;
+  return `${value.toLocaleString('en-PK')} ${value === 1 ? singular : plural}`;
+};
+
+/** Zero means the plan doesn't include the resource, so it earns no bullet. */
+const isIncluded = (value: number): boolean => value !== 0;
 
 /** The catalogue line belongs to whichever vertical the plan is scoped to. */
 function catalogBullet(values: PlanFormValues): string | null {
   switch (values.businessVertical) {
     case 'ECOMMERCE':
-      return values.maxProducts > 0 ? count(values.maxProducts, 'product') : null;
+      return isIncluded(values.maxProducts) ? count(values.maxProducts, 'product') : null;
     case 'RESTAURANT':
-      return values.maxMenuItems > 0 ? count(values.maxMenuItems, 'menu item') : null;
+      return isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null;
     case 'MARKETING_AGENCY':
-      return values.maxServices > 0 ? count(values.maxServices, 'service') : null;
+      return isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null;
     default:
       // A universal plan carries all three counts, so name each one.
       return [
-        values.maxProducts > 0 ? count(values.maxProducts, 'product') : null,
-        values.maxMenuItems > 0 ? count(values.maxMenuItems, 'menu item') : null,
-        values.maxServices > 0 ? count(values.maxServices, 'service') : null,
+        isIncluded(values.maxProducts) ? count(values.maxProducts, 'product') : null,
+        isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null,
+        isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null,
       ]
         .filter(Boolean)
         .join(' · ') || null;
@@ -38,18 +44,20 @@ function catalogBullet(values: PlanFormValues): string | null {
 /** Ordered bullets derived from the plan's own numbers. */
 export function deriveFeatureBullets(values: PlanFormValues): string[] {
   const bullets: (string | null)[] = [
-    values.maxWorkspaces > 0 ? count(values.maxWorkspaces, 'workspace') : null,
-    values.maxMembersPerWorkspace > 0
+    isIncluded(values.maxWorkspaces) ? count(values.maxWorkspaces, 'workspace') : null,
+    isIncluded(values.maxMembersPerWorkspace)
       ? `${count(values.maxMembersPerWorkspace, 'team member')} per workspace`
       : 'Single user — no team seats',
-    values.maxChannels > 0 ? `${count(values.maxChannels, 'WhatsApp channel')} connected` : null,
-    values.maxMonthlyMessages > 0
+    isIncluded(values.maxChannels)
+      ? `${count(values.maxChannels, 'WhatsApp channel')} connected`
+      : null,
+    isIncluded(values.maxMonthlyMessages)
       ? `${count(values.maxMonthlyMessages, 'AI message')} per month`
       : null,
-    values.maxImageMessages > 0
+    isIncluded(values.maxImageMessages)
       ? `${count(values.maxImageMessages, 'image')} understood by AI vision`
       : null,
-    values.maxVoiceMessages > 0
+    isIncluded(values.maxVoiceMessages)
       ? `${count(values.maxVoiceMessages, 'voice message')} transcribed`
       : null,
     catalogBullet(values),

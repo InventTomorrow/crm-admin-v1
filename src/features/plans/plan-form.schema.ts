@@ -1,8 +1,15 @@
+import { isUnlimitedLimit, UNLIMITED_LIMIT } from '@/lib/planFormat';
 import type { Plan } from '@/lib/types';
 import { z } from 'zod';
 import type { PlanInput } from './plans.api';
 
 export const UNIVERSAL = 'UNIVERSAL' as const;
+
+/**
+ * Every count an admin can cap. The number inputs themselves stay at min 0 —
+ * only the Unlimited checkbox writes the sentinel.
+ */
+const limitInt = () => z.number().int().min(UNLIMITED_LIMIT, 'Cannot be negative');
 
 /**
  * Mirrors the server's planInputSchema. `businessVertical` uses a sentinel
@@ -36,17 +43,17 @@ export const planFormSchema = z
     customDurationDays: z.number().int().min(1).max(365).nullable(),
     isTrial: z.boolean(),
 
-    maxWorkspaces: z.number().int().min(0),
-    maxMembersPerWorkspace: z.number().int().min(0),
-    maxChannels: z.number().int().min(0),
+    maxWorkspaces: limitInt(),
+    maxMembersPerWorkspace: limitInt(),
+    maxChannels: limitInt(),
 
-    maxProducts: z.number().int().min(0),
-    maxMenuItems: z.number().int().min(0),
-    maxServices: z.number().int().min(0),
+    maxProducts: limitInt(),
+    maxMenuItems: limitInt(),
+    maxServices: limitInt(),
 
-    maxMonthlyMessages: z.number().int().min(0),
-    maxImageMessages: z.number().int().min(0),
-    maxVoiceMessages: z.number().int().min(0),
+    maxMonthlyMessages: limitInt(),
+    maxImageMessages: limitInt(),
+    maxVoiceMessages: limitInt(),
 
     features: z.array(z.object({ value: z.string().min(1, 'Required').max(160) })),
     ctaLabel: z.string().max(60, 'Keep it under 60 characters'),
@@ -59,12 +66,34 @@ export const planFormSchema = z
   // Same rules the server enforces — surfaced here so the user sees them on
   // the offending field instead of as a generic 400.
   .superRefine((v, ctx) => {
-    if (v.maxImageMessages + v.maxVoiceMessages > v.maxMonthlyMessages) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['maxVoiceMessages'],
-        message: 'Image + voice must not exceed total monthly messages',
-      });
+    // An unlimited monthly total leaves both carve-outs unconstrained; a
+    // capped total cannot hold an uncapped one.
+    if (!isUnlimitedLimit(v.maxMonthlyMessages)) {
+      if (isUnlimitedLimit(v.maxImageMessages)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['maxImageMessages'],
+          message: 'Only unlimited when total monthly messages is unlimited',
+        });
+      }
+      if (isUnlimitedLimit(v.maxVoiceMessages)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['maxVoiceMessages'],
+          message: 'Only unlimited when total monthly messages is unlimited',
+        });
+      }
+      if (
+        !isUnlimitedLimit(v.maxImageMessages) &&
+        !isUnlimitedLimit(v.maxVoiceMessages) &&
+        v.maxImageMessages + v.maxVoiceMessages > v.maxMonthlyMessages
+      ) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['maxVoiceMessages'],
+          message: 'Image + voice must not exceed total monthly messages',
+        });
+      }
     }
     if (v.duration === 'CUSTOM_DAYS') {
       if (!v.isTrial) {

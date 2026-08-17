@@ -55,26 +55,36 @@
   color-scheme: light;
 }
 
+/*
+  Dark ramp. The previous values mapped straight onto Tailwind zinc, which put
+  the page at zinc-950 and cards at zinc-900 — only ~5% apart, so panels sank
+  into the background and the UI read as one flat black sheet. It also gave
+  --default-150 and --default-200 the same value, leaving hover states and
+  borders indistinguishable.
+
+  This ramp keeps the same neutral hue but starts lighter and steps evenly, so
+  page < card < field < border each separate visibly.
+*/
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --color-body-bg: var(--color-zinc-950);
-  --color-body-color: var(--color-zinc-400);
+  --color-body-bg: #0e0f12;
+  --color-body-color: #98a0aa;
 
-  --color-card: var(--color-zinc-900);
+  --color-card: #17191d;
 
-  --color-default-50: var(--color-zinc-950);
-  --color-default-100: var(--color-zinc-900);
-  --color-default-150: var(--color-zinc-800);
-  --color-default-200: var(--color-zinc-800);
-  --color-default-300: var(--color-zinc-700);
-  --color-default-400: var(--color-zinc-600);
-  --color-default-500: var(--color-zinc-500);
-  --color-default-600: var(--color-zinc-400);
-  --color-default-700: var(--color-zinc-300);
-  --color-default-800: var(--color-zinc-200);
-  --color-default-900: var(--color-zinc-100);
-  --color-default-950: var(--color-zinc-50);
+  --color-default-50: #0e0f12;
+  --color-default-100: #17191d;
+  --color-default-150: #1e2126; /* hover surface */
+  --color-default-200: #272b31; /* borders */
+  --color-default-300: #343941;
+  --color-default-400: #4a5058;
+  --color-default-500: #6b727c;
+  --color-default-600: #98a0aa; /* body text */
+  --color-default-700: #b9c0c9;
+  --color-default-800: #d4dae1;
+  --color-default-900: #e9edf1;
+  --color-default-950: #f7f9fb;
 
   --topbar-background: var(--color-default-100);
 }

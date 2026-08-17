@@ -7,7 +7,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { useCanWrite } from '@/features/auth/auth.hooks';
-import { formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
+import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
 import type { Plan } from '@/lib/types';
 import { useDebounce } from '@/lib/useDebounce';
 import { useDeletePlan, usePlans } from '../plans.hooks';
@@ -87,8 +87,10 @@ export function PlansView() {
         header: 'Limits',
         cell: ({ row }) => (
           <span className="text-xs text-default-500">
-            {row.original.maxWorkspaces} ws · {row.original.maxMembersPerWorkspace} members ·{' '}
-            {row.original.maxChannels} ch
+            {/* The column is narrow — an unlimited cap reads as ∞ here. */}
+            {formatPlanLimit(row.original.maxWorkspaces, '∞')} ws ·{' '}
+            {formatPlanLimit(row.original.maxMembersPerWorkspace, '∞')} members ·{' '}
+            {formatPlanLimit(row.original.maxChannels, '∞')} ch
           </span>
         ),
       },

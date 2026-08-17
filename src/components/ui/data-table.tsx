@@ -196,6 +196,7 @@ export function DataTable<TData>({
 
   const selectedIds = Object.keys(rowSelection);
   const selectedCount = selectedIds.length;
+  const showBulkActions = Boolean(enableSelection && renderBulkActions && selectedCount > 0);
   const clearSelection = () => setRowSelection({});
 
   const hideableColumns = table.getAllColumns().filter(column => column.getCanHide());
@@ -206,41 +207,46 @@ export function DataTable<TData>({
 
   return (
     <div className="card">
-      {/* Bulk-action bar — appears when rows are selected */}
-      {enableSelection && renderBulkActions && selectedCount > 0 && (
-        <div className="card-header flex flex-wrap items-center justify-between gap-2 bg-primary/10">
+      {/*
+        A single toolbar row whose contents swap on selection. Rendering the
+        bulk actions as their own bar above the toolbar pushed the whole table
+        down the moment a row was ticked, so every selection jerked the layout.
+        min-h keeps the row the same height in both states.
+      */}
+      <div className="card-header flex min-h-15 flex-wrap items-center justify-between gap-3">
+        {showBulkActions ? (
           <span className="text-sm font-medium text-primary">{selectedCount} selected</span>
-          <div className="flex flex-wrap items-center gap-2">
-            {renderBulkActions(selectedIds, clearSelection)}
-            <Button variant="ghost" size="sm" onClick={clearSelection}>
-              Clear
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="card-header flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {onSearchChange && (
-            <div className="relative">
-              <input
-                type="text"
-                value={search ?? ''}
-                onChange={event => onSearchChange(event.target.value)}
-                placeholder={searchPlaceholder}
-                className="form-input form-input-sm ps-9 min-w-56"
-              />
-              <div className="absolute inset-y-0 start-0 flex items-center ps-3">
-                <LuSearch className="size-3.5 text-default-500" />
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            {onSearchChange && (
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search ?? ''}
+                  onChange={event => onSearchChange(event.target.value)}
+                  placeholder={searchPlaceholder}
+                  className="form-input form-input-sm ps-9 min-w-56"
+                />
+                <div className="absolute inset-y-0 start-0 flex items-center ps-3">
+                  <LuSearch className="size-3.5 text-default-500" />
+                </div>
               </div>
-            </div>
-          )}
-          {toolbarFilters}
-        </div>
+            )}
+            {toolbarFilters}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {toolbarAction}
+          {showBulkActions && renderBulkActions ? (
+            <>
+              {renderBulkActions(selectedIds, clearSelection)}
+              <Button variant="ghost" size="sm" onClick={clearSelection}>
+                Clear
+              </Button>
+            </>
+          ) : (
+            toolbarAction
+          )}
           <Dropdown
             trigger={<LuSlidersHorizontal className="size-4" />}
             triggerLabel="Toggle columns"
