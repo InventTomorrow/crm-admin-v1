@@ -6,6 +6,7 @@ import {
   LuInbox,
   LuLayoutDashboard,
   LuLink,
+  LuNewspaper,
   LuReceiptText,
   LuSettings,
   LuUsers,
@@ -42,6 +43,12 @@ export const menuItemsData: MenuItemType[] = [
   { key: 'subscriptions', label: 'Subscriptions', href: '/subscriptions', icon: LuReceiptText },
   { key: 'requests', label: 'Requests', href: '/subscription-requests', icon: LuInbox },
   { key: 'checkout-links', label: 'Checkout links', href: '/checkout-links', icon: LuLink },
+  {
+    key: 'content',
+    label: 'Content',
+    isTitle: true,
+  },
+  { key: 'blog', label: 'Blog', href: '/blog', icon: LuNewspaper },
   {
     key: 'system',
     label: 'System',

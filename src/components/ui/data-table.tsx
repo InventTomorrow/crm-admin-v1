@@ -11,6 +11,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from '@tanstack/react-table';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, buttonVariants } from './button';
 import {
@@ -22,11 +23,28 @@ import {
   LuChevronsLeft,
   LuChevronsRight,
   LuChevronsUpDown,
+  LuLayoutGrid,
+  LuRows3,
   LuSearch,
   LuSlidersHorizontal,
 } from 'react-icons/lu';
 
 const PAGE_SIZES = [10, 20, 30, 50, 100];
+
+export type DataTableView = 'table' | 'grid';
+
+const VIEW_OPTIONS = [
+  { value: 'table', label: 'Table view', icon: LuRows3 },
+  { value: 'grid', label: 'Grid view', icon: LuLayoutGrid },
+] as const satisfies readonly { value: DataTableView; label: string; icon: typeof LuRows3 }[];
+
+/** Both views cross-fade in place, so switching never jumps the page. */
+const VIEW_TRANSITION = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.18, ease: 'easeOut' },
+} as const;
 
 /** Native checkbox that supports the indeterminate visual state. */
 function IndeterminateCheckbox({
@@ -76,6 +94,12 @@ export interface DataTableProps<TData> {
   alternatingRows?: boolean;
   /** Optional extra className per row (e.g. for special-case highlighting). */
   getRowClassName?: (row: TData) => string;
+  /** Supplying this turns on the table/grid switch and renders each card. */
+  renderGridItem?: (row: TData) => ReactNode;
+  /** Grid track overrides; defaults to 1/2/3 columns. */
+  gridClassName?: string;
+  /** Which view the switch starts on. */
+  defaultView?: DataTableView;
 }
 
 export function DataTable<TData>({
@@ -104,7 +128,11 @@ export function DataTable<TData>({
   expandOnRowClick = false,
   alternatingRows = false,
   getRowClassName,
+  renderGridItem,
+  gridClassName,
+  defaultView = 'table',
 }: DataTableProps<TData>) {
+  const [view, setView] = useState<DataTableView>(defaultView);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
@@ -247,10 +275,49 @@ export function DataTable<TData>({
           ) : (
             toolbarAction
           )}
+          {renderGridItem && (
+            <div
+              role="group"
+              aria-label="Switch view"
+              className="relative flex items-center gap-0.5 rounded-lg bg-default-100 p-0.5"
+            >
+              {VIEW_OPTIONS.map(option => {
+                const isActive = view === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    title={option.label}
+                    aria-label={option.label}
+                    aria-pressed={isActive}
+                    onClick={() => setView(option.value)}
+                    className={cn(
+                      'relative inline-flex size-7 items-center justify-center rounded-md transition-colors',
+                      isActive ? 'text-primary' : 'text-default-500 hover:text-default-700'
+                    )}
+                  >
+                    {/* The pill slides between the two buttons rather than cutting. */}
+                    {isActive && (
+                      <motion.span
+                        layoutId="data-table-view-pill"
+                        className="absolute inset-0 rounded-md bg-card shadow-sm"
+                        transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                      />
+                    )}
+                    <option.icon className="relative size-4" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           <Dropdown
             trigger={<LuSlidersHorizontal className="size-4" />}
             triggerLabel="Toggle columns"
-            triggerClassName="btn size-7.5 bg-default-100 text-default-500 hover:bg-default-200"
+            triggerClassName={cn(
+              'btn size-7.5 bg-default-100 text-default-500 hover:bg-default-200',
+              view === 'grid' && 'hidden'
+            )}
             menuClassName="w-44"
           >
             <DropdownLabel>Toggle columns</DropdownLabel>
@@ -282,112 +349,133 @@ export function DataTable<TData>({
       ) : data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
-        <div className="overflow-x-auto">
-          <div className="min-w-full inline-block align-middle">
-            <table className="min-w-full divide-y divide-default-200">
-              <thead className="bg-default-150">
-                {table.getHeaderGroups().map(headerGroup => (
-                  <tr
-                    key={headerGroup.id}
-                    className="text-sm font-normal text-default-700 whitespace-nowrap"
+        <AnimatePresence mode="wait" initial={false}>
+          {view === 'grid' && renderGridItem ? (
+            <motion.div key="grid" {...VIEW_TRANSITION}>
+              <div className={cn('grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3', gridClassName)}>
+                {data.map((row, index) => (
+                  <motion.div
+                    key={getRowId ? getRowId(row) : index}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.22, delay: Math.min(index, 8) * 0.035 }}
                   >
-                    {headerGroup.headers.map(header => {
-                      const canSort = header.column.getCanSort();
-                      const sortDirection = header.column.getIsSorted();
-                      return (
-                        <th
-                          key={header.id}
-                          className={cn(
-                            'text-start',
-                            header.column.id === 'select' ? 'ps-4' : 'px-3.5 py-3'
-                          )}
-                          aria-sort={
-                            sortDirection === 'asc'
-                              ? 'ascending'
-                              : sortDirection === 'desc'
-                                ? 'descending'
-                                : undefined
-                          }
-                        >
-                          {header.isPlaceholder ? null : canSort ? (
-                            <button
-                              type="button"
-                              className="group inline-flex items-center gap-1.5 hover:text-default-900"
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {flexRender(header.column.columnDef.header, header.getContext())}
-                              {sortDirection === 'asc' ? (
-                                <LuArrowUp className="size-3.5 text-primary" />
-                              ) : sortDirection === 'desc' ? (
-                                <LuArrowDown className="size-3.5 text-primary" />
-                              ) : (
-                                <LuChevronsUpDown className="size-3.5 text-default-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                    {renderGridItem(row)}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div key="table" {...VIEW_TRANSITION} className="overflow-x-auto">
+              <div className="min-w-full inline-block align-middle">
+                <table className="min-w-full divide-y divide-default-200">
+                  <thead className="bg-default-150">
+                    {table.getHeaderGroups().map(headerGroup => (
+                      <tr
+                        key={headerGroup.id}
+                        className="text-sm font-normal text-default-700 whitespace-nowrap"
+                      >
+                        {headerGroup.headers.map(header => {
+                          const canSort = header.column.getCanSort();
+                          const sortDirection = header.column.getIsSorted();
+                          return (
+                            <th
+                              key={header.id}
+                              className={cn(
+                                'text-start',
+                                header.column.id === 'select' ? 'ps-4' : 'px-3.5 py-3'
                               )}
-                            </button>
-                          ) : (
-                            flexRender(header.column.columnDef.header, header.getContext())
+                              aria-sort={
+                                sortDirection === 'asc'
+                                  ? 'ascending'
+                                  : sortDirection === 'desc'
+                                    ? 'descending'
+                                    : undefined
+                              }
+                            >
+                              {header.isPlaceholder ? null : canSort ? (
+                                <button
+                                  type="button"
+                                  className="group inline-flex items-center gap-1.5 hover:text-default-900"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  {flexRender(header.column.columnDef.header, header.getContext())}
+                                  {sortDirection === 'asc' ? (
+                                    <LuArrowUp className="size-3.5 text-primary" />
+                                  ) : sortDirection === 'desc' ? (
+                                    <LuArrowDown className="size-3.5 text-primary" />
+                                  ) : (
+                                    <LuChevronsUpDown className="size-3.5 text-default-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                                  )}
+                                </button>
+                              ) : (
+                                flexRender(header.column.columnDef.header, header.getContext())
+                              )}
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </thead>
+                  <tbody className="divide-y divide-default-200">
+                    {table.getRowModel().rows.map((row, rowIndex) => {
+                      const rowId = getRowId
+                        ? getRowId(row.original)
+                        : (row.id ?? String(row.index));
+                      const isExpanded = !!expandedRows[rowId];
+                      const isEven = alternatingRows && rowIndex % 2 === 1;
+
+                      const handleRowClick = () => {
+                        if (expandOnRowClick && renderExpandedRow) {
+                          setExpandedRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
+                        } else if (onRowClick) {
+                          onRowClick(row.original);
+                        }
+                      };
+
+                      return (
+                        <Fragment key={row.id}>
+                          <tr
+                            className={cn(
+                              'text-sm font-normal text-default-800 whitespace-nowrap',
+                              ((expandOnRowClick && renderExpandedRow) || onRowClick) &&
+                                'cursor-pointer hover:bg-default-50',
+                              isExpanded
+                                ? 'bg-primary/5 border-s-2 border-s-primary'
+                                : isEven && 'bg-default-50',
+                              getRowClassName?.(row.original)
+                            )}
+                            onClick={handleRowClick}
+                          >
+                            {row.getVisibleCells().map(cell => (
+                              <td
+                                key={cell.id}
+                                className={cn(
+                                  cell.column.id === 'select' ? 'py-3 ps-4' : 'px-3.5 py-3'
+                                )}
+                              >
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </td>
+                            ))}
+                          </tr>
+                          {isExpanded && renderExpandedRow && (
+                            <tr>
+                              <td colSpan={table.getVisibleFlatColumns().length} className="p-0">
+                                <div className="border-b border-default-200 bg-default-50 p-4">
+                                  {renderExpandedRow(row.original)}
+                                </div>
+                              </td>
+                            </tr>
                           )}
-                        </th>
+                        </Fragment>
                       );
                     })}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-default-200">
-                {table.getRowModel().rows.map((row, rowIndex) => {
-                  const rowId = getRowId ? getRowId(row.original) : (row.id ?? String(row.index));
-                  const isExpanded = !!expandedRows[rowId];
-                  const isEven = alternatingRows && rowIndex % 2 === 1;
-
-                  const handleRowClick = () => {
-                    if (expandOnRowClick && renderExpandedRow) {
-                      setExpandedRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
-                    } else if (onRowClick) {
-                      onRowClick(row.original);
-                    }
-                  };
-
-                  return (
-                    <Fragment key={row.id}>
-                      <tr
-                        className={cn(
-                          'text-sm font-normal text-default-800 whitespace-nowrap',
-                          ((expandOnRowClick && renderExpandedRow) || onRowClick) &&
-                            'cursor-pointer hover:bg-default-50',
-                          isExpanded
-                            ? 'bg-primary/5 border-s-2 border-s-primary'
-                            : isEven && 'bg-default-50',
-                          getRowClassName?.(row.original)
-                        )}
-                        onClick={handleRowClick}
-                      >
-                        {row.getVisibleCells().map(cell => (
-                          <td
-                            key={cell.id}
-                            className={cn(
-                              cell.column.id === 'select' ? 'py-3 ps-4' : 'px-3.5 py-3'
-                            )}
-                          >
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </td>
-                        ))}
-                      </tr>
-                      {isExpanded && renderExpandedRow && (
-                        <tr>
-                          <td colSpan={table.getVisibleFlatColumns().length} className="p-0">
-                            <div className="border-b border-default-200 bg-default-50 p-4">
-                              {renderExpandedRow(row.original)}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       )}
 
       {/* Footer / pagination */}

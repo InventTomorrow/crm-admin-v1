@@ -200,3 +200,42 @@ export interface Metrics {
   newSubscriptions: number;
   series: { date: string; tenants: number; users: number }[];
 }
+
+export type BlogPostStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface BlogCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  postCount: number;
+}
+
+/** Row shape of GET /admin/blog/posts — no body, the table never renders one. */
+export interface BlogPostListItem {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  coverImageUrl: string | null;
+  tags: string[];
+  status: BlogPostStatus;
+  isFeatured: boolean;
+  readingMinutes: number;
+  publishedAt: string | null;
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  category: { id: string; name: string; slug: string };
+}
+
+export interface BlogPostDetail extends BlogPostListItem {
+  bodyHtml: string;
+  bodyJson: unknown | null;
+  coverImageAlt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  categoryId: string;
+}

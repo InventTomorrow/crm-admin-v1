@@ -11,6 +11,11 @@ const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
 const Subscriptions = lazy(() => import('@/app/(admin)/subscriptions'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
+const Blog = lazy(() => import('@/app/(admin)/blog'));
+const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
+const BlogPostEdit = lazy(() => import('@/app/(admin)/blog/edit'));
+const BlogPostPreview = lazy(() => import('@/app/(admin)/blog/preview'));
+const BlogCategories = lazy(() => import('@/app/(admin)/blog/categories'));
 const Notifications = lazy(() => import('@/app/(admin)/notifications'));
 const Settings = lazy(() => import('@/app/(admin)/settings'));
 
@@ -43,6 +48,11 @@ export const appRoutes: AppRoute[] = [
     element: <SubscriptionRequests />,
   },
   { path: '/checkout-links', name: 'CheckoutLinks', element: <CheckoutLinks /> },
+  { path: '/blog', name: 'Blog', element: <Blog /> },
+  { path: '/blog/new', name: 'BlogPostCreate', element: <BlogPostCreate /> },
+  { path: '/blog/categories', name: 'BlogCategories', element: <BlogCategories /> },
+  { path: '/blog/:postId/edit', name: 'BlogPostEdit', element: <BlogPostEdit /> },
+  { path: '/blog/:postId/preview', name: 'BlogPostPreview', element: <BlogPostPreview /> },
   { path: '/notifications', name: 'Notifications', element: <Notifications /> },
   { path: '/settings', name: 'Settings', element: <Settings /> },
 ];

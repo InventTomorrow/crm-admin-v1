@@ -1,0 +1,178 @@
+/*
+
+_editor.css — Tiptap surface and the article preview that mirrors the public site.
+
+*/
+
+@layer base {
+  /* ── Editor canvas ─────────────────────────────────────────────────────── */
+  .article-editor {
+    @apply text-default-700;
+  }
+
+  /* Placeholder only shows on a genuinely empty document. */
+  .article-editor p.is-editor-empty:first-child::before {
+    @apply pointer-events-none float-left h-0 text-default-400;
+    content: attr(data-placeholder);
+  }
+
+  .article-editor:focus {
+    @apply outline-none;
+  }
+
+  /* Tables need visible structure while editing — prose alone leaves them flat. */
+  .article-editor table {
+    @apply my-4 w-full table-fixed border-collapse overflow-hidden;
+  }
+
+  .article-editor th,
+  .article-editor td {
+    @apply relative min-w-24 border border-default-200 px-3 py-2 align-top;
+  }
+
+  .article-editor th {
+    @apply bg-default-100 text-start font-semibold text-default-800;
+  }
+
+  .article-editor .selectedCell::after {
+    @apply pointer-events-none absolute inset-0 z-10 bg-primary/10;
+    content: '';
+  }
+
+  .article-editor .column-resize-handle {
+    @apply absolute -bottom-0.5 -end-0.5 top-0 w-1 cursor-col-resize bg-primary;
+  }
+
+  .article-editor img {
+    @apply my-4 h-auto max-w-full rounded-lg;
+  }
+
+  .article-editor img.ProseMirror-selectednode {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+
+  .article-editor hr {
+    @apply my-6 border-default-200;
+  }
+
+  .article-editor hr.ProseMirror-selectednode {
+    @apply border-primary;
+  }
+
+  .article-editor blockquote {
+    @apply border-s-2 border-primary bg-default-50 py-1 ps-4;
+  }
+
+  .article-editor pre {
+    @apply overflow-x-auto rounded-lg bg-default-100 p-3 text-default-800;
+  }
+
+  /* ── Article preview ───────────────────────────────────────────────────── */
+  /* Mirrors the public site's .article-body rhythm so a preview reads true. */
+  .article-preview {
+    @apply text-[16.5px] leading-[1.75] text-default-700;
+  }
+
+  .article-preview > * + * {
+    margin-top: 1.35em;
+  }
+
+  .article-preview h2 {
+    @apply text-[1.6rem] font-bold tracking-tight text-default-900;
+    margin-top: 2.2em;
+    margin-bottom: -0.35em;
+    line-height: 1.25;
+  }
+
+  .article-preview h3 {
+    @apply text-[1.2rem] font-semibold text-default-900;
+    margin-top: 1.8em;
+    margin-bottom: -0.45em;
+    line-height: 1.35;
+  }
+
+  .article-preview h4 {
+    @apply text-[1.05rem] font-semibold text-default-900;
+    margin-top: 1.5em;
+    margin-bottom: -0.55em;
+  }
+
+  .article-preview strong {
+    @apply font-semibold text-default-900;
+  }
+
+  .article-preview a {
+    @apply text-primary underline underline-offset-2;
+  }
+
+  .article-preview ul,
+  .article-preview ol {
+    padding-inline-start: 1.35em;
+  }
+
+  .article-preview ul {
+    @apply list-disc;
+  }
+
+  .article-preview ol {
+    @apply list-decimal;
+  }
+
+  .article-preview li {
+    @apply mt-2 ps-1;
+  }
+
+  .article-preview li::marker {
+    @apply text-primary;
+  }
+
+  .article-preview blockquote {
+    @apply my-8 rounded-e-xl border-s-[3px] border-primary bg-default-100 px-6 py-4 text-default-800;
+  }
+
+  .article-preview blockquote p {
+    @apply m-0;
+  }
+
+  .article-preview img {
+    @apply my-8 h-auto max-w-full rounded-2xl border border-default-200;
+  }
+
+  .article-preview figcaption {
+    @apply mt-3 text-center text-[13.5px] text-default-500;
+  }
+
+  .article-preview code {
+    @apply rounded bg-default-100 px-1.5 py-0.5 text-[0.88em] text-default-800;
+  }
+
+  .article-preview pre {
+    @apply overflow-x-auto rounded-2xl bg-default-900 p-5 text-[14px] leading-relaxed;
+  }
+
+  .article-preview pre code {
+    @apply bg-transparent p-0 text-default-50;
+  }
+
+  /* Wide tables scroll inside the article instead of stretching the page. */
+  .article-preview table {
+    @apply block w-full overflow-x-auto border-collapse text-[15px];
+  }
+
+  .article-preview th,
+  .article-preview td {
+    @apply border border-default-200 px-3.5 py-2.5 text-start align-top;
+  }
+
+  .article-preview th {
+    @apply bg-default-100 font-semibold text-default-900;
+  }
+
+  .article-preview hr {
+    @apply my-10 border-t border-default-200;
+  }
+
+  .article-preview iframe {
+    @apply aspect-video w-full rounded-2xl border-0;
+  }
+}
