@@ -57,6 +57,11 @@ Sidenav Menu
       .badge {
         @apply size-4 ms-auto flex justify-center items-center font-semibold text-[.75em];
       }
+
+      /* Unread counter pill (Notifications, Requests, …). */
+      > .menu-badge {
+        @apply ms-auto flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary px-1.5 text-[.6875rem] leading-none font-semibold text-white transition-all;
+      }
     }
 
     &.active .menu-link.active .menu-arrow {
@@ -113,6 +118,8 @@ html[data-sidenav-size='hover'] {
     @apply w-sidenav-width-sm min-w-sidenav-width-sm;
 
     .logo-box {
+      @apply justify-center px-0;
+
       .logo-lg {
         display: none;
       }
@@ -132,6 +139,11 @@ html[data-sidenav-size='hover'] {
         .menu-arrow,
         .badge {
           visibility: hidden;
+        }
+
+        /* Rail is only 70px wide — pin the count to the icon corner. */
+        > .menu-badge {
+          @apply absolute end-0.5 top-0.5 ms-0 h-3.5 min-w-3.5 px-1 text-[.5625rem] leading-none;
         }
       }
 
@@ -210,7 +222,7 @@ html[data-sidenav-size='sm'] {
 
     .logo-box {
       background: var(--sidenav-background);
-      @apply z-40;
+      @apply z-40 justify-center px-0;
 
       .logo-lg {
         display: none;
@@ -238,6 +250,11 @@ html[data-sidenav-size='sm'] {
           > .badge {
             transition: none;
             display: none;
+          }
+
+          /* Rail is only 70px wide — pin the count to the icon corner. */
+          > .menu-badge {
+            @apply absolute end-0.5 top-0.5 ms-0 h-3.5 min-w-3.5 px-1 text-[.5625rem] leading-none;
           }
         }
 
@@ -358,6 +375,7 @@ html[data-sidenav-size='md'] {
         @apply flex-col text-center;
 
         .badge,
+        .menu-badge,
         .menu-arrow {
           @apply hidden;
         }

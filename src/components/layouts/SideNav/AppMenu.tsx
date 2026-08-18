@@ -1,8 +1,8 @@
-import { useMemo } from 'react';
-import { Link, useLocation } from 'react-router';
-import { LuChevronRight } from 'react-icons/lu';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { useAdminSidebarCounts } from '@/lib/useAdminSidebarCounts';
+import { useMemo } from 'react';
+import { LuChevronRight } from 'react-icons/lu';
+import { Link, useLocation } from 'react-router';
 import { menuItemsData, type MenuItemType } from './menu';
 
 /** Matches nested routes too, so /tenants/:id and /plans/new highlight their item. */
@@ -99,11 +99,7 @@ const MenuItem = ({ item, badge }: { item: MenuItemType; badge?: number }) => {
           </span>
         )}
         <div className="menu-text">{item.label}</div>
-        {!!badge && (
-          <span className="ms-auto rounded-full bg-primary px-1.5 py-0.5 text-xs font-medium text-white">
-            {badge}
-          </span>
-        )}
+        {!!badge && <span className="menu-badge">{badge}</span>}
       </Link>
     </li>
   );
