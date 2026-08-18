@@ -23,6 +23,17 @@ export interface AdminUser {
   systemRole: SystemRole;
 }
 
+/**
+ * Minimal account shape returned by `/admin/users/lookup` — what the billing
+ * owner pickers need, and nothing a manager shouldn't see.
+ */
+export interface UserLookupItem {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+}
+
 export interface UserListItem {
   id: string;
   email: string;

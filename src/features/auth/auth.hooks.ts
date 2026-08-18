@@ -1,6 +1,8 @@
+import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
+import { permissionsForRole, type SystemPermission } from '@/lib/permissions';
 import {
   changePassword,
   getMe,
@@ -19,10 +21,33 @@ export function useMe() {
   });
 }
 
-/** True when the signed-in admin may perform SYSTEM_ADMIN-only writes. */
-export function useCanWrite(): boolean {
-  const { data: signedInAdmin } = useMe();
-  return signedInAdmin?.systemRole === 'SYSTEM_ADMIN';
+/**
+ * Resolves what the signed-in admin is allowed to do. Permissions come from the
+ * role map in `@/lib/permissions`, which mirrors the server catalogue — so a
+ * hidden button and a rejected request always agree.
+ *
+ * `isLoading` matters: callers must not render actions before the session
+ * resolves, or a manager briefly sees admin-only controls.
+ */
+export function usePermissions() {
+  const { data: signedInAdmin, isLoading } = useMe();
+  const role = signedInAdmin?.systemRole;
+
+  const granted = useMemo(() => permissionsForRole(role), [role]);
+
+  return useMemo(
+    () => ({
+      isLoading,
+      role: role ?? null,
+      isSystemAdmin: role === 'SYSTEM_ADMIN',
+      can: (permission: SystemPermission) => granted.has(permission),
+      canAny: (...permissions: SystemPermission[]) =>
+        permissions.some(permission => granted.has(permission)),
+      canAll: (...permissions: SystemPermission[]) =>
+        permissions.every(permission => granted.has(permission)),
+    }),
+    [granted, isLoading, role],
+  );
 }
 
 export function useLogin() {

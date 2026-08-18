@@ -1,4 +1,6 @@
-import { LuCircleAlert, LuLoaderCircle, LuSearchX } from 'react-icons/lu';
+import { Link } from 'react-router';
+import { LuCircleAlert, LuLoaderCircle, LuLock, LuSearchX } from 'react-icons/lu';
+import { buttonVariants } from '@/components/ui/button';
 import { apiMessage } from '@/lib/apiClient';
 
 /** Full-viewport spinner — route Suspense fallback and the auth guard. */
@@ -33,6 +35,30 @@ export function ErrorState({ error, onRetry }: { error?: unknown; onRetry?: () =
           Retry
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Shown by RouteGuard when a role reaches a page it has no permission for —
+ * by typing the URL, or following a stale link after a role change.
+ */
+export function AccessDeniedState() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <div className="card flex max-w-sm flex-col items-center gap-3 p-8 text-center">
+        <span className="flex size-11 items-center justify-center rounded-full bg-default-100 text-default-500">
+          <LuLock className="size-5" />
+        </span>
+        <h2 className="text-base font-semibold text-default-800">You don't have access</h2>
+        <p className="text-sm text-default-500">
+          Your role doesn't include permission to view this page. Ask a system admin if you need
+          access.
+        </p>
+        <Link to="/" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
+          Back to Dashboard
+        </Link>
+      </div>
     </div>
   );
 }
