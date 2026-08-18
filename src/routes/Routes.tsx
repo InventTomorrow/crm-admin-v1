@@ -1,4 +1,5 @@
 import { lazy, type ReactNode } from 'react';
+import { SystemPermissions, type SystemPermission } from '@/lib/permissions';
 
 // Guarded app pages (rendered inside AdminLayout chrome)
 const Dashboard = lazy(() => import('@/app/(admin)/dashboard'));
@@ -31,29 +32,98 @@ export interface AppRoute {
   path: string;
   name: string;
   element: ReactNode;
+  /**
+   * Permission required to open the page. Enforced by RouteGuard and mirrored
+   * by the sidebar, which hides links the role can't use. Omit for pages that
+   * need authentication only.
+   */
+  permission?: SystemPermission;
 }
 
 export const appRoutes: AppRoute[] = [
-  { path: '/', name: 'Dashboard', element: <Dashboard /> },
-  { path: '/users', name: 'Users', element: <Users /> },
-  { path: '/tenants', name: 'Tenants', element: <Tenants /> },
-  { path: '/tenants/:id', name: 'TenantDetail', element: <TenantDetail /> },
-  { path: '/plans', name: 'Plans', element: <Plans /> },
-  { path: '/plans/new', name: 'PlanCreate', element: <PlanCreate /> },
-  { path: '/plans/:planId/edit', name: 'PlanEdit', element: <PlanEdit /> },
-  { path: '/subscriptions', name: 'Subscriptions', element: <Subscriptions /> },
+  {
+    path: '/',
+    name: 'Dashboard',
+    element: <Dashboard />,
+    permission: SystemPermissions.DASHBOARD_VIEW,
+  },
+  { path: '/users', name: 'Users', element: <Users />, permission: SystemPermissions.USERS_VIEW },
+  {
+    path: '/tenants',
+    name: 'Tenants',
+    element: <Tenants />,
+    permission: SystemPermissions.TENANTS_VIEW,
+  },
+  {
+    path: '/tenants/:id',
+    name: 'TenantDetail',
+    element: <TenantDetail />,
+    permission: SystemPermissions.TENANTS_VIEW,
+  },
+  { path: '/plans', name: 'Plans', element: <Plans />, permission: SystemPermissions.PLANS_VIEW },
+  {
+    path: '/plans/new',
+    name: 'PlanCreate',
+    element: <PlanCreate />,
+    permission: SystemPermissions.PLANS_CREATE,
+  },
+  {
+    path: '/plans/:planId/edit',
+    name: 'PlanEdit',
+    element: <PlanEdit />,
+    permission: SystemPermissions.PLANS_EDIT,
+  },
+  {
+    path: '/subscriptions',
+    name: 'Subscriptions',
+    element: <Subscriptions />,
+    permission: SystemPermissions.SUBSCRIPTIONS_VIEW,
+  },
   {
     path: '/subscription-requests',
     name: 'SubscriptionRequests',
     element: <SubscriptionRequests />,
+    permission: SystemPermissions.SUBSCRIPTION_REQUESTS_VIEW,
   },
-  { path: '/checkout-links', name: 'CheckoutLinks', element: <CheckoutLinks /> },
-  { path: '/blog', name: 'Blog', element: <Blog /> },
-  { path: '/blog/new', name: 'BlogPostCreate', element: <BlogPostCreate /> },
-  { path: '/blog/categories', name: 'BlogCategories', element: <BlogCategories /> },
-  { path: '/blog/:postId/edit', name: 'BlogPostEdit', element: <BlogPostEdit /> },
-  { path: '/blog/:postId/preview', name: 'BlogPostPreview', element: <BlogPostPreview /> },
-  { path: '/notifications', name: 'Notifications', element: <Notifications /> },
+  {
+    path: '/checkout-links',
+    name: 'CheckoutLinks',
+    element: <CheckoutLinks />,
+    permission: SystemPermissions.CHECKOUT_LINKS_VIEW,
+  },
+  { path: '/blog', name: 'Blog', element: <Blog />, permission: SystemPermissions.BLOG_VIEW },
+  {
+    path: '/blog/new',
+    name: 'BlogPostCreate',
+    element: <BlogPostCreate />,
+    permission: SystemPermissions.BLOG_CREATE,
+  },
+  {
+    path: '/blog/categories',
+    name: 'BlogCategories',
+    element: <BlogCategories />,
+    permission: SystemPermissions.BLOG_CATEGORIES_VIEW,
+  },
+  {
+    path: '/blog/:postId/edit',
+    name: 'BlogPostEdit',
+    element: <BlogPostEdit />,
+    permission: SystemPermissions.BLOG_EDIT,
+  },
+  {
+    path: '/blog/:postId/preview',
+    name: 'BlogPostPreview',
+    element: <BlogPostPreview />,
+    permission: SystemPermissions.BLOG_VIEW,
+  },
+  {
+    path: '/notifications',
+    name: 'Notifications',
+    element: <Notifications />,
+    permission: SystemPermissions.NOTIFICATIONS_VIEW,
+  },
+  // Auth-only: Settings is the admin's own profile. The platform support-contact
+  // card inside it gates itself on settings:edit.
   { path: '/settings', name: 'Settings', element: <Settings /> },
 ];
 

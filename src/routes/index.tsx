@@ -5,6 +5,7 @@ import PageWrapper from '@/components/PageWrapper';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { FullPageSpinner } from '@/components/states';
 import { appRoutes, publicRoutes, notFoundRoute } from './Routes';
+import { RouteGuard } from './RouteGuard';
 import { mockLayoutsRoutes, mockSingleRoutes } from './mockRoutes';
 
 const AppRoutes = () => {
@@ -14,7 +15,11 @@ const AppRoutes = () => {
         <Routes>
           <Route element={<AdminLayout />}>
             {appRoutes.map(route => (
-              <Route key={route.path} path={route.path} element={route.element} />
+              <Route
+                key={route.path}
+                path={route.path}
+                element={<RouteGuard permission={route.permission}>{route.element}</RouteGuard>}
+              />
             ))}
           </Route>
 

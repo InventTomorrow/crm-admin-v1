@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Link, useLocation } from 'react-router';
 import { LuChevronRight } from 'react-icons/lu';
+import { usePermissions } from '@/features/auth/auth.hooks';
 import { useAdminSidebarCounts } from '@/lib/useAdminSidebarCounts';
 import { menuItemsData, type MenuItemType } from './menu';
 
@@ -16,6 +18,35 @@ const isItemActive = (item: MenuItemType, pathname: string): boolean => {
   }
   return false;
 };
+
+type PermissionCheck = (permission: NonNullable<MenuItemType['permission']>) => boolean;
+
+/** Keeps a link only when the role holds its permission; children are filtered too. */
+const filterByPermission = (items: MenuItemType[], can: PermissionCheck): MenuItemType[] =>
+  items.reduce<MenuItemType[]>((visible, item) => {
+    if (item.permission && !can(item.permission)) return visible;
+
+    if (item.children) {
+      const children = filterByPermission(item.children, can);
+      // A group with nothing left under it would open onto an empty submenu.
+      if (!children.length) return visible;
+      return [...visible, { ...item, children }];
+    }
+
+    return [...visible, item];
+  }, []);
+
+/**
+ * Drops a section title once every link beneath it has been filtered out. The
+ * menu is flat, so a title owns the items up to the next title — if the very
+ * next entry is another title (or the list ends), this section is empty.
+ */
+const dropEmptySections = (items: MenuItemType[]): MenuItemType[] =>
+  items.filter((item, index) => {
+    if (!item.isTitle) return true;
+    const nextItem = items[index + 1];
+    return !!nextItem && !nextItem.isTitle;
+  });
 
 const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
   const { pathname } = useLocation();
@@ -80,10 +111,16 @@ const MenuItem = ({ item, badge }: { item: MenuItemType; badge?: number }) => {
 
 const AppMenu = () => {
   const counts = useAdminSidebarCounts();
+  const { can } = usePermissions();
+
+  const visibleItems = useMemo(
+    () => dropEmptySections(filterByPermission(menuItemsData, can)),
+    [can]
+  );
 
   return (
     <ul className="side-nav p-3 hs-accordion-group">
-      {menuItemsData.map((item: MenuItemType) =>
+      {visibleItems.map((item: MenuItemType) =>
         item.isTitle ? (
           <li className="menu-title" key={item.key}>
             <span>{item.label}</span>
