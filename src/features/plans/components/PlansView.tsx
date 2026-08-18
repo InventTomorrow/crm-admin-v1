@@ -6,7 +6,9 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { PermissionGuard } from '@/components/PermissionGuard';
+import { SystemPermissions } from '@/lib/permissions';
 import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
 import type { Plan } from '@/lib/types';
 import { useDebounce } from '@/lib/useDebounce';
@@ -18,7 +20,8 @@ import { MigratePlanDialog } from './MigratePlanDialog';
 /** Plans with historical subscriptions cannot be deleted — say so before the request fails. */
 function deletionWarning(plan: Plan | null): string {
   const totalSubscriberCount = plan?.totalSubscriberCount ?? 0;
-  if (totalSubscriberCount === 0) return 'This cannot be undone. Tenants on this plan may be affected.';
+  if (totalSubscriberCount === 0)
+    return 'This cannot be undone. Tenants on this plan may be affected.';
   return `This plan has ${totalSubscriberCount} subscription record${
     totalSubscriberCount === 1 ? '' : 's'
   } tied to it, including past ones. Deleting will be rejected — deactivate the plan instead.`;
@@ -27,7 +30,7 @@ function deletionWarning(plan: Plan | null): string {
 export function PlansView() {
   const { data, isLoading, isError, error, refetch } = usePlans();
   const deleteMutation = useDeletePlan();
-  const canWrite = useCanWrite();
+  const { can, canAny } = usePermissions();
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchInput, setSearchInput] = useState('');
@@ -115,13 +118,19 @@ export function PlansView() {
             <span>
               {activeSubscriberCount}
               {totalSubscriberCount > activeSubscriberCount && (
-                <span className="ms-1 text-xs text-default-500">· {totalSubscriberCount} total</span>
+                <span className="ms-1 text-xs text-default-500">
+                  · {totalSubscriberCount} total
+                </span>
               )}
             </span>
           );
         },
       },
-      ...(canWrite
+      ...(canAny(
+        SystemPermissions.PLANS_EDIT,
+        SystemPermissions.PLANS_MIGRATE_SUBSCRIBERS,
+        SystemPermissions.PLANS_DELETE
+      )
         ? [
             {
               id: 'actions',
@@ -129,36 +138,42 @@ export function PlansView() {
               enableHiding: false,
               cell: ({ row }) => (
                 <div className="flex gap-1">
-                  <Link
-                    to={`/plans/${row.original.id}/edit`}
-                    aria-label="Edit plan"
-                    className={buttonVariants({ variant: 'soft', size: 'icon-sm' })}
-                  >
-                    <LuSquarePen className="size-4" />
-                  </Link>
-                  <Button
-                    aria-label="Move subscribers to another plan"
-                    variant="soft"
-                    size="icon-sm"
-                    onClick={() => setPlanPendingMigration(row.original)}
-                  >
-                    <LuArrowRightLeft className="size-4" />
-                  </Button>
-                  <Button
-                    aria-label="Delete plan"
-                    variant="soft-danger"
-                    size="icon-sm"
-                    onClick={() => setPlanPendingDeletion(row.original)}
-                  >
-                    <LuTrash2 className="size-4" />
-                  </Button>
+                  {can(SystemPermissions.PLANS_EDIT) && (
+                    <Link
+                      to={`/plans/${row.original.id}/edit`}
+                      aria-label="Edit plan"
+                      className={buttonVariants({ variant: 'soft', size: 'icon-sm' })}
+                    >
+                      <LuSquarePen className="size-4" />
+                    </Link>
+                  )}
+                  {can(SystemPermissions.PLANS_MIGRATE_SUBSCRIBERS) && (
+                    <Button
+                      aria-label="Move subscribers to another plan"
+                      variant="soft"
+                      size="icon-sm"
+                      onClick={() => setPlanPendingMigration(row.original)}
+                    >
+                      <LuArrowRightLeft className="size-4" />
+                    </Button>
+                  )}
+                  {can(SystemPermissions.PLANS_DELETE) && (
+                    <Button
+                      aria-label="Delete plan"
+                      variant="soft-danger"
+                      size="icon-sm"
+                      onClick={() => setPlanPendingDeletion(row.original)}
+                    >
+                      <LuTrash2 className="size-4" />
+                    </Button>
+                  )}
                 </div>
               ),
             } satisfies ColumnDef<Plan, unknown>,
           ]
         : []),
     ],
-    [canWrite]
+    [can, canAny]
   );
 
   return (
@@ -167,11 +182,11 @@ export function PlansView() {
         title="Plans"
         description="Subscription plans & limits"
         action={
-          canWrite ? (
+          <PermissionGuard permission={SystemPermissions.PLANS_CREATE}>
             <Link to="/plans/new" className={buttonVariants({ size: 'sm' })}>
               <LuPlus className="size-4 me-1" /> New plan
             </Link>
-          ) : undefined
+          </PermissionGuard>
         }
       />
 

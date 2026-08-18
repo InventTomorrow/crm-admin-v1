@@ -4,7 +4,9 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { PermissionGuard } from '@/components/PermissionGuard';
+import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
 import type { BlogPostListItem, BlogPostStatus } from '@/lib/types';
 import { useDebounce } from '@/lib/useDebounce';
@@ -39,7 +41,10 @@ export function PostsView() {
   const [postPendingDeletion, setPostPendingDeletion] = useState<BlogPostListItem | null>(null);
 
   const search = useDebounce(searchInput, 300);
-  const canWrite = useCanWrite();
+  const { can } = usePermissions();
+  const canEditPost = can(SystemPermissions.BLOG_EDIT);
+  const canPublishPost = can(SystemPermissions.BLOG_PUBLISH);
+  const canDeletePost = can(SystemPermissions.BLOG_DELETE);
   const { data: categories = [] } = useBlogCategories();
   const deleteMutation = useDeletePost();
   const statusMutation = useUpdatePostStatus();
@@ -137,47 +142,49 @@ export function PostsView() {
               >
                 <LuEye className="size-4" />
               </Link>
-              <Link
-                to={`/blog/${post.id}/edit`}
-                className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-                aria-label={`Edit ${post.title}`}
-              >
-                <LuSquarePen className="size-4" />
-              </Link>
-              {canWrite && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    title={isPublished ? 'Move back to draft' : 'Publish'}
-                    aria-label={isPublished ? 'Move back to draft' : 'Publish'}
-                    loading={statusMutation.isPending && statusMutation.variables?.id === post.id}
-                    onClick={() =>
-                      statusMutation.mutate({
-                        id: post.id,
-                        status: isPublished ? 'DRAFT' : 'PUBLISHED',
-                      })
-                    }
-                  >
-                    {isPublished ? <LuUndo2 className="size-4" /> : <LuSend className="size-4" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    title="Delete"
-                    aria-label={`Delete ${post.title}`}
-                    onClick={() => setPostPendingDeletion(post)}
-                  >
-                    <LuTrash2 className="size-4 text-danger" />
-                  </Button>
-                </>
+              {canEditPost && (
+                <Link
+                  to={`/blog/${post.id}/edit`}
+                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                  aria-label={`Edit ${post.title}`}
+                >
+                  <LuSquarePen className="size-4" />
+                </Link>
+              )}
+              {canPublishPost && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title={isPublished ? 'Move back to draft' : 'Publish'}
+                  aria-label={isPublished ? 'Move back to draft' : 'Publish'}
+                  loading={statusMutation.isPending && statusMutation.variables?.id === post.id}
+                  onClick={() =>
+                    statusMutation.mutate({
+                      id: post.id,
+                      status: isPublished ? 'DRAFT' : 'PUBLISHED',
+                    })
+                  }
+                >
+                  {isPublished ? <LuUndo2 className="size-4" /> : <LuSend className="size-4" />}
+                </Button>
+              )}
+              {canDeletePost && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="Delete"
+                  aria-label={`Delete ${post.title}`}
+                  onClick={() => setPostPendingDeletion(post)}
+                >
+                  <LuTrash2 className="size-4 text-danger" />
+                </Button>
               )}
             </div>
           );
         },
       },
     ],
-    [canWrite, statusMutation]
+    [canEditPost, canPublishPost, canDeletePost, statusMutation]
   );
 
   return (
@@ -187,19 +194,21 @@ export function PostsView() {
         description="Articles published on the marketing site."
         action={
           <div className="flex items-center gap-2">
-            <Link
-              to="/blog/categories"
-              className={buttonVariants({ variant: 'outline', size: 'sm' })}
-            >
-              <LuFolderTree className="size-4" />
-              Categories
-            </Link>
-            {canWrite && (
+            <PermissionGuard permission={SystemPermissions.BLOG_CATEGORIES_VIEW}>
+              <Link
+                to="/blog/categories"
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <LuFolderTree className="size-4" />
+                Categories
+              </Link>
+            </PermissionGuard>
+            <PermissionGuard permission={SystemPermissions.BLOG_CREATE}>
               <Link to="/blog/new" className={buttonVariants({ size: 'sm' })}>
                 <LuPlus className="size-4" />
                 New post
               </Link>
-            )}
+            </PermissionGuard>
           </div>
         }
       />
@@ -230,7 +239,9 @@ export function PostsView() {
         renderGridItem={post => (
           <PostGridCard
             post={post}
-            canWrite={canWrite}
+            canEdit={canEditPost}
+            canPublish={canPublishPost}
+            canDelete={canDeletePost}
             isStatusPending={statusMutation.isPending && statusMutation.variables?.id === post.id}
             onToggleStatus={target =>
               statusMutation.mutate({

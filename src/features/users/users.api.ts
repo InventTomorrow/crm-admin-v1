@@ -1,5 +1,12 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { Paged, SystemRole, UserDetail, UserListItem, WhatsAppConnectionItem } from '@/lib/types';
+import type {
+  Paged,
+  SystemRole,
+  UserDetail,
+  UserListItem,
+  UserLookupItem,
+  WhatsAppConnectionItem,
+} from '@/lib/types';
 
 export async function listUsers(params: {
   page: number;
@@ -10,6 +17,21 @@ export async function listUsers(params: {
 }): Promise<Paged<UserListItem>> {
   const { data } = await apiClient.get<ApiEnvelope<UserListItem[]>>('/admin/users', { params });
   return { items: data.data, meta: data.meta! };
+}
+
+/**
+ * Owner picker search. Hits the narrow lookup route rather than the full list,
+ * so managers (who hold `users:lookup` but not `users:view`) can still choose a
+ * subscription owner.
+ */
+export async function lookupUsers(params: {
+  search?: string;
+  limit?: number;
+}): Promise<UserLookupItem[]> {
+  const { data } = await apiClient.get<ApiEnvelope<UserLookupItem[]>>('/admin/users/lookup', {
+    params,
+  });
+  return data.data;
 }
 
 export async function getUser(id: string): Promise<UserDetail> {

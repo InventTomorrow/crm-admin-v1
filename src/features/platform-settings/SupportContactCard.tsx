@@ -7,7 +7,9 @@ import { toast } from 'sonner';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { PermissionGuard } from '@/components/PermissionGuard';
+import { SystemPermissions } from '@/lib/permissions';
 import { apiMessage } from '@/lib/apiClient';
 import { getSupportContact, updateSupportContact, type SupportContact } from './settings.api';
 import { supportContactSchema, type SupportContactFormValues } from './types';
@@ -28,7 +30,8 @@ const toFormValues = (contact: SupportContact): SupportContactFormValues => ({
  */
 export function SupportContactCard() {
   const qc = useQueryClient();
-  const canWrite = useCanWrite();
+  const { can } = usePermissions();
+  const canEditSettings = can(SystemPermissions.SETTINGS_EDIT);
   const { data, isLoading } = useQuery({
     queryKey: ['support-contact'],
     queryFn: getSupportContact,
@@ -68,7 +71,7 @@ export function SupportContactCard() {
     onError: error => toast.error(apiMessage(error)),
   });
 
-  const fieldsDisabled = isLoading || !canWrite;
+  const fieldsDisabled = isLoading || !canEditSettings;
 
   return (
     <div className="card">
@@ -134,12 +137,12 @@ export function SupportContactCard() {
           />
         </Field>
 
-        {canWrite && (
+        <PermissionGuard permission={SystemPermissions.SETTINGS_EDIT}>
           <Button type="submit" disabled={isLoading || saveMutation.isPending}>
             {saveMutation.isPending && <LuLoaderCircle className="size-4 me-1.5 animate-spin" />}
             {saveMutation.isPending ? 'Saving…' : 'Save contact'}
           </Button>
-        )}
+        </PermissionGuard>
       </form>
     </div>
   );

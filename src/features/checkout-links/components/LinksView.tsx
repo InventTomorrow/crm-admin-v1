@@ -8,7 +8,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/tabs';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
 import { CreateCheckoutLinkDialog } from './CreateCheckoutLinkDialog';
 import type { CheckoutLink, CheckoutLinkSource, CheckoutLinkStatus } from '../links.api';
@@ -33,7 +34,8 @@ export function LinksView() {
   const [statusFilter, setStatusFilter] = useState<CheckoutLinkStatus | 'ALL'>('ALL');
   const [sourceFilter, setSourceFilter] = useState<CheckoutLinkSource | 'ALL'>('ADMIN');
   const [linkPendingRevocation, setLinkPendingRevocation] = useState<CheckoutLink | null>(null);
-  const canWrite = useCanWrite();
+  const { can } = usePermissions();
+  const canRevokeLink = can(SystemPermissions.CHECKOUT_LINKS_REVOKE);
 
   const { data, isLoading, isError, error, refetch } = useCheckoutLinks({
     page,
@@ -101,7 +103,7 @@ export function LinksView() {
             <Button variant="outline" size="sm" onClick={() => copyUrl(row.original.url)}>
               <LuCopy className="size-4 me-1" /> Copy
             </Button>
-            {canWrite && row.original.status === 'ACTIVE' && (
+            {canRevokeLink && row.original.status === 'ACTIVE' && (
               <Button
                 variant="outline-danger"
                 size="sm"
@@ -114,7 +116,7 @@ export function LinksView() {
         ),
       },
     ],
-    [canWrite]
+    [canRevokeLink]
   );
 
   return (
@@ -122,7 +124,9 @@ export function LinksView() {
       <PageHeader
         title="Checkout links"
         description="Single-use payment links sent to customers"
-        action={canWrite ? <CreateCheckoutLinkDialog /> : undefined}
+        action={
+          can(SystemPermissions.CHECKOUT_LINKS_CREATE) ? <CreateCheckoutLinkDialog /> : undefined
+        }
       />
 
       <Tabs

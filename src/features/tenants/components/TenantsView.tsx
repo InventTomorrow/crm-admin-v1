@@ -7,7 +7,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { SystemPermissions } from '@/lib/permissions';
 import { TENANT_STATUS_TONE } from '@/lib/statusTones';
 import type { TenantListItem, TenantStatus } from '@/lib/types';
 import { useDebounce } from '@/lib/useDebounce';
@@ -21,7 +22,8 @@ export function TenantsView() {
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<TenantStatus | 'ALL'>('ALL');
   const search = useDebounce(searchInput, 350);
-  const canWrite = useCanWrite();
+  const { can } = usePermissions();
+  const canChangeStatus = can(SystemPermissions.TENANTS_STATUS_CHANGE);
 
   const { data, isLoading, isError, error, refetch } = useTenants({
     page,
@@ -147,11 +149,11 @@ export function TenantsView() {
         error={error}
         onRetry={refetch}
         emptyMessage="No tenants found."
-        enableSelection={canWrite}
+        enableSelection={canChangeStatus}
         getRowId={tenant => tenant.id}
         onRowClick={tenant => navigate(`/tenants/${tenant.id}`)}
         renderBulkActions={
-          canWrite
+          canChangeStatus
             ? (selectedTenantIds, clearSelection) => (
                 <>
                   <Button

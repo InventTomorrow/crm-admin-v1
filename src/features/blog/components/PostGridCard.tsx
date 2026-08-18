@@ -13,7 +13,9 @@ const STATUS_TONE: Record<BlogPostStatus, BadgeTone> = {
 
 interface PostGridCardProps {
   post: BlogPostListItem;
-  canWrite: boolean;
+  canEdit: boolean;
+  canPublish: boolean;
+  canDelete: boolean;
   isStatusPending: boolean;
   onToggleStatus: (post: BlogPostListItem) => void;
   onDelete: (post: BlogPostListItem) => void;
@@ -22,7 +24,9 @@ interface PostGridCardProps {
 /** Card form of a row in the posts list — same actions, cover-first layout. */
 export function PostGridCard({
   post,
-  canWrite,
+  canEdit,
+  canPublish,
+  canDelete,
   isStatusPending,
   onToggleStatus,
   onDelete,
@@ -91,36 +95,38 @@ export function PostGridCard({
           >
             <LuEye className="size-4" />
           </Link>
-          <Link
-            to={`/blog/${post.id}/edit`}
-            className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
-            title="Edit"
-            aria-label={`Edit ${post.title}`}
-          >
-            <LuSquarePen className="size-4" />
-          </Link>
-          {canWrite && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                title={isPublished ? 'Move back to draft' : 'Publish'}
-                aria-label={isPublished ? 'Move back to draft' : 'Publish'}
-                loading={isStatusPending}
-                onClick={() => onToggleStatus(post)}
-              >
-                {isPublished ? <LuUndo2 className="size-4" /> : <LuSend className="size-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                title="Delete"
-                aria-label={`Delete ${post.title}`}
-                onClick={() => onDelete(post)}
-              >
-                <LuTrash2 className="size-4 text-danger" />
-              </Button>
-            </>
+          {canEdit && (
+            <Link
+              to={`/blog/${post.id}/edit`}
+              className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+              title="Edit"
+              aria-label={`Edit ${post.title}`}
+            >
+              <LuSquarePen className="size-4" />
+            </Link>
+          )}
+          {canPublish && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title={isPublished ? 'Move back to draft' : 'Publish'}
+              aria-label={isPublished ? 'Move back to draft' : 'Publish'}
+              loading={isStatusPending}
+              onClick={() => onToggleStatus(post)}
+            >
+              {isPublished ? <LuUndo2 className="size-4" /> : <LuSend className="size-4" />}
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              title="Delete"
+              aria-label={`Delete ${post.title}`}
+              onClick={() => onDelete(post)}
+            >
+              <LuTrash2 className="size-4 text-danger" />
+            </Button>
           )}
         </div>
       </div>

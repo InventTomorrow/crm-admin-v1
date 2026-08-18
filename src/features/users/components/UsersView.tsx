@@ -8,7 +8,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { SystemPermissions } from '@/lib/permissions';
 import { formatDate, formatFullName } from '@/lib/format';
 import type { UserListItem } from '@/lib/types';
 import { useDebounce } from '@/lib/useDebounce';
@@ -37,7 +38,7 @@ export function UsersView() {
   const [pageSize, setPageSize] = useState(10);
   const [searchInput, setSearchInput] = useState('');
   const search = useDebounce(searchInput, 350);
-  const canWrite = useCanWrite();
+  const { can, canAny } = usePermissions();
 
   const { data, isLoading, isError, error, refetch } = useUsers({
     type: typeFilter,
@@ -102,7 +103,12 @@ export function UsersView() {
           <span className="text-default-500">{formatDate(row.original.lastLoginAt)}</span>
         ),
       },
-      ...(canWrite
+      ...(canAny(
+        SystemPermissions.USERS_ROLE_CHANGE,
+        SystemPermissions.USERS_DELETE,
+        SystemPermissions.USERS_RESTORE,
+        SystemPermissions.USERS_WIPE_WORKSPACES
+      )
         ? [
             {
               id: 'actions',
@@ -120,19 +126,21 @@ export function UsersView() {
                         trigger={<LuEllipsis className="size-4" />}
                         triggerLabel="User actions"
                       >
-                        {!user.permanentlyDeletedAt && (
+                        {!user.permanentlyDeletedAt && can(SystemPermissions.USERS_RESTORE) && (
                           <DropdownItem onSelect={() => setUserPendingRestore(user)}>
                             Restore account
                           </DropdownItem>
                         )}
-                        {user.permanentlyDeletedAt && !user.workspaceDataWipedAt && (
-                          <>
-                            <DropdownLabel>Closed — cannot be restored</DropdownLabel>
-                            <DropdownItem destructive onSelect={() => setUserPendingWipe(user)}>
-                              Erase workspaces
-                            </DropdownItem>
-                          </>
-                        )}
+                        {user.permanentlyDeletedAt &&
+                          !user.workspaceDataWipedAt &&
+                          can(SystemPermissions.USERS_WIPE_WORKSPACES) && (
+                            <>
+                              <DropdownLabel>Closed — cannot be restored</DropdownLabel>
+                              <DropdownItem destructive onSelect={() => setUserPendingWipe(user)}>
+                                Erase workspaces
+                              </DropdownItem>
+                            </>
+                          )}
                         {user.permanentlyDeletedAt && user.workspaceDataWipedAt && (
                           <DropdownLabel>Closed — workspaces erased</DropdownLabel>
                         )}
@@ -146,30 +154,42 @@ export function UsersView() {
                       trigger={<LuEllipsis className="size-4" />}
                       triggerLabel="User actions"
                     >
-                      <DropdownLabel>System role</DropdownLabel>
-                      <DropdownItem
-                        onSelect={() => roleMutation.mutate({ id: user.id, role: 'SYSTEM_ADMIN' })}
-                      >
-                        Make System Admin
-                      </DropdownItem>
-                      <DropdownItem
-                        onSelect={() =>
-                          roleMutation.mutate({ id: user.id, role: 'SYSTEM_MANAGER' })
-                        }
-                      >
-                        Make System Manager
-                      </DropdownItem>
-                      {user.systemMembership && (
-                        <DropdownItem
-                          onSelect={() => roleMutation.mutate({ id: user.id, role: null })}
-                        >
-                          Revoke system role
-                        </DropdownItem>
+                      {can(SystemPermissions.USERS_ROLE_CHANGE) && (
+                        <>
+                          <DropdownLabel>System role</DropdownLabel>
+                          <DropdownItem
+                            onSelect={() =>
+                              roleMutation.mutate({ id: user.id, role: 'SYSTEM_ADMIN' })
+                            }
+                          >
+                            Make System Admin
+                          </DropdownItem>
+                          <DropdownItem
+                            onSelect={() =>
+                              roleMutation.mutate({ id: user.id, role: 'SYSTEM_MANAGER' })
+                            }
+                          >
+                            Make System Manager
+                          </DropdownItem>
+                          {user.systemMembership && (
+                            <DropdownItem
+                              onSelect={() => roleMutation.mutate({ id: user.id, role: null })}
+                            >
+                              Revoke system role
+                            </DropdownItem>
+                          )}
+                        </>
                       )}
-                      <div className="-mx-2 my-1 border-t border-default-200" />
-                      <DropdownItem destructive onSelect={() => setUserPendingDeletion(user)}>
-                        Delete user
-                      </DropdownItem>
+                      {can(SystemPermissions.USERS_DELETE) && (
+                        <>
+                          {can(SystemPermissions.USERS_ROLE_CHANGE) && (
+                            <div className="-mx-2 my-1 border-t border-default-200" />
+                          )}
+                          <DropdownItem destructive onSelect={() => setUserPendingDeletion(user)}>
+                            Delete user
+                          </DropdownItem>
+                        </>
+                      )}
                     </Dropdown>
                   </span>
                 );
@@ -178,7 +198,7 @@ export function UsersView() {
           ]
         : []),
     ],
-    [roleMutation, canWrite]
+    [roleMutation, can, canAny]
   );
 
   // KPI counts — three tiny parallel queries (limit:1 → only meta.total matters)
@@ -196,7 +216,11 @@ export function UsersView() {
       <PageHeader
         title="Users"
         description="All CRM and system users"
-        action={canWrite ? <CreateUserDialog defaultSystem={typeFilter === 'system'} /> : undefined}
+        action={
+          can(SystemPermissions.USERS_CREATE) ? (
+            <CreateUserDialog defaultSystem={typeFilter === 'system'} />
+          ) : undefined
+        }
       />
 
       <ConfirmDialog

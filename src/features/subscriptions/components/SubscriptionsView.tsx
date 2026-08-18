@@ -17,7 +17,8 @@ import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { SystemPermissions } from '@/lib/permissions';
 import { formatFullName } from '@/lib/format';
 import { formatPlanPrice } from '@/lib/planFormat';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
@@ -40,7 +41,10 @@ export function SubscriptionsView() {
   const [subscriptionBeingManaged, setSubscriptionBeingManaged] = useState<Subscription | null>(null);
   const [subscriptionPendingDeletion, setSubscriptionPendingDeletion] =
     useState<Subscription | null>(null);
-  const canWrite = useCanWrite();
+  const { can, canAny } = usePermissions();
+  const canEditSubscription = can(SystemPermissions.SUBSCRIPTIONS_EDIT);
+  const canCancelSubscription = can(SystemPermissions.SUBSCRIPTIONS_CANCEL);
+  const canDeleteSubscription = can(SystemPermissions.SUBSCRIPTIONS_DELETE);
 
   const { data, isLoading, isError, error, refetch } = useSubscriptions({
     page,
@@ -103,7 +107,11 @@ export function SubscriptionsView() {
           <Badge tone={SUBSCRIPTION_STATUS_TONE[row.original.status]}>{row.original.status}</Badge>
         ),
       },
-      ...(canWrite
+      ...(canAny(
+        SystemPermissions.SUBSCRIPTIONS_EDIT,
+        SystemPermissions.SUBSCRIPTIONS_CANCEL,
+        SystemPermissions.SUBSCRIPTIONS_DELETE
+      )
         ? [
             {
               id: 'actions',
@@ -118,48 +126,56 @@ export function SubscriptionsView() {
                     className="flex items-center gap-1.5"
                     onClick={event => event.stopPropagation()}
                   >
-                    <Select
-                      value={subscription.status}
-                      onChange={event =>
-                        statusMutation.mutate({
-                          id: subscription.id,
-                          status: event.target.value as SubscriptionStatus,
-                        })
-                      }
-                      className="form-input-sm w-32"
-                      aria-label="Change subscription status"
-                    >
-                      <option value="TRIALING">Trialing</option>
-                      <option value="ACTIVE">Active</option>
-                      <option value="PAST_DUE">Past due</option>
-                      <option value="CANCELLED">Cancelled</option>
-                    </Select>
+                    {canEditSubscription && (
+                      <Select
+                        value={subscription.status}
+                        onChange={event =>
+                          statusMutation.mutate({
+                            id: subscription.id,
+                            status: event.target.value as SubscriptionStatus,
+                          })
+                        }
+                        className="form-input-sm w-32"
+                        aria-label="Change subscription status"
+                      >
+                        <option value="TRIALING">Trialing</option>
+                        <option value="ACTIVE">Active</option>
+                        <option value="PAST_DUE">Past due</option>
+                        <option value="CANCELLED">Cancelled</option>
+                      </Select>
+                    )}
 
                     <Dropdown
                       trigger={<LuEllipsisVertical className="size-4" />}
                       triggerLabel="Subscription actions"
                     >
-                      <DropdownItem
-                        icon={LuSettings2}
-                        onSelect={() => setSubscriptionBeingManaged(subscription)}
-                      >
-                        Change plan / dates
-                      </DropdownItem>
-                      <DropdownItem
-                        icon={LuCalendarOff}
-                        // Only a live subscription has a period left to run out.
-                        disabled={!isLive || !subscription.currentPeriodEnd}
-                        onSelect={() => cancelMutation.mutate(subscription.id)}
-                      >
-                        Cancel at period end
-                      </DropdownItem>
-                      <DropdownItem
-                        icon={LuTrash2}
-                        destructive
-                        onSelect={() => setSubscriptionPendingDeletion(subscription)}
-                      >
-                        Delete
-                      </DropdownItem>
+                      {canEditSubscription && (
+                        <DropdownItem
+                          icon={LuSettings2}
+                          onSelect={() => setSubscriptionBeingManaged(subscription)}
+                        >
+                          Change plan / dates
+                        </DropdownItem>
+                      )}
+                      {canCancelSubscription && (
+                        <DropdownItem
+                          icon={LuCalendarOff}
+                          // Only a live subscription has a period left to run out.
+                          disabled={!isLive || !subscription.currentPeriodEnd}
+                          onSelect={() => cancelMutation.mutate(subscription.id)}
+                        >
+                          Cancel at period end
+                        </DropdownItem>
+                      )}
+                      {canDeleteSubscription && (
+                        <DropdownItem
+                          icon={LuTrash2}
+                          destructive
+                          onSelect={() => setSubscriptionPendingDeletion(subscription)}
+                        >
+                          Delete
+                        </DropdownItem>
+                      )}
                     </Dropdown>
                   </span>
                 );
@@ -168,7 +184,14 @@ export function SubscriptionsView() {
           ]
         : []),
     ],
-    [statusMutation, cancelMutation, canWrite]
+    [
+      statusMutation,
+      cancelMutation,
+      canAny,
+      canEditSubscription,
+      canCancelSubscription,
+      canDeleteSubscription,
+    ]
   );
 
   return (
@@ -176,7 +199,9 @@ export function SubscriptionsView() {
       <PageHeader
         title="Subscriptions"
         description="Tenant subscriptions & billing state"
-        action={canWrite ? <CreateSubscriptionDialog /> : undefined}
+        action={
+          can(SystemPermissions.SUBSCRIPTIONS_CREATE) ? <CreateSubscriptionDialog /> : undefined
+        }
       />
 
       {/* KPI cards */}

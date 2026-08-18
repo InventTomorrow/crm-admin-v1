@@ -5,7 +5,8 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ErrorState, TenantDetailSkeleton } from '@/components/states';
 import { Tabs } from '@/components/ui/tabs';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { PermissionGuard } from '@/components/PermissionGuard';
+import { SystemPermissions } from '@/lib/permissions';
 import { WhatsAppNumbersTable } from '@/features/whatsapp-numbers/components/WhatsAppNumbersTable';
 import { formatDate, formatFullName } from '@/lib/format';
 import { SUBSCRIPTION_STATUS_TONE, TENANT_STATUS_TONE } from '@/lib/statusTones';
@@ -19,7 +20,6 @@ type TenantTab = 'team' | 'roles' | 'billing' | 'whatsapp';
 export function TenantDetailView() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const canWrite = useCanWrite();
   const [activeTab, setActiveTab] = useState<TenantTab>('team');
 
   const { data: tenant, isLoading, isError, error, refetch } = useTenant(id);
@@ -59,7 +59,7 @@ export function TenantDetailView() {
                 {tenant._count.products} products
               </p>
             </div>
-            {canWrite && (
+            <PermissionGuard permission={SystemPermissions.TENANTS_STATUS_CHANGE}>
               <Select
                 value={tenant.status}
                 onChange={event => statusMutation.mutate(event.target.value as TenantStatus)}
@@ -71,7 +71,7 @@ export function TenantDetailView() {
                 <option value="SUSPENDED">Suspended</option>
                 <option value="CHURNED">Churned</option>
               </Select>
-            )}
+            </PermissionGuard>
           </div>
         </div>
       </div>

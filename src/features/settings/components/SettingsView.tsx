@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LuCreditCard } from 'react-icons/lu';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Tabs } from '@/components/ui/tabs';
+import { usePermissions } from '@/features/auth/auth.hooks';
 import { SupportContactCard } from '@/features/platform-settings/SupportContactCard';
+import { SystemPermissions, type SystemPermission } from '@/lib/permissions';
 import { AppearanceCard } from './AppearanceCard';
 import { ProfileCard } from './ProfileCard';
 import { SecurityCard } from './SecurityCard';
@@ -11,16 +13,30 @@ import { SettingsCard } from './SettingsCard';
 
 type SettingsTab = 'general' | 'profile' | 'security' | 'appearance' | 'billing';
 
-const SETTINGS_TABS: { key: SettingsTab; label: string }[] = [
-  { key: 'general', label: 'General' },
+// Profile, Security and Appearance are the admin's own account — always shown.
+// The platform-wide tabs carry the permission that reveals them.
+const SETTINGS_TABS: { key: SettingsTab; label: string; permission?: SystemPermission }[] = [
+  { key: 'general', label: 'General', permission: SystemPermissions.SETTINGS_VIEW },
   { key: 'profile', label: 'Profile' },
   { key: 'security', label: 'Security' },
   { key: 'appearance', label: 'Appearance' },
-  { key: 'billing', label: 'Billing' },
+  { key: 'billing', label: 'Billing', permission: SystemPermissions.SETTINGS_VIEW },
 ];
 
 export function SettingsView() {
+  const { can } = usePermissions();
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
+
+  const visibleTabs = useMemo(
+    () => SETTINGS_TABS.filter(tab => !tab.permission || can(tab.permission)),
+    [can]
+  );
+
+  // Falls back to the first tab the role can see, so a hidden default never
+  // renders an empty panel.
+  const openTab = visibleTabs.some(tab => tab.key === activeTab)
+    ? activeTab
+    : (visibleTabs[0]?.key ?? 'profile');
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -28,22 +44,22 @@ export function SettingsView() {
 
       <div className="mb-5">
         <Tabs
-          tabs={SETTINGS_TABS}
-          active={activeTab}
+          tabs={visibleTabs}
+          active={openTab}
           onChange={tabKey => setActiveTab(tabKey as SettingsTab)}
         />
       </div>
 
       <div className="space-y-5">
-        {activeTab === 'general' && <SupportContactCard />}
+        {openTab === 'general' && can(SystemPermissions.SETTINGS_VIEW) && <SupportContactCard />}
 
-        {activeTab === 'profile' && <ProfileCard />}
+        {openTab === 'profile' && <ProfileCard />}
 
-        {activeTab === 'security' && <SecurityCard />}
+        {openTab === 'security' && <SecurityCard />}
 
-        {activeTab === 'appearance' && <AppearanceCard />}
+        {openTab === 'appearance' && <AppearanceCard />}
 
-        {activeTab === 'billing' && (
+        {openTab === 'billing' && can(SystemPermissions.SETTINGS_VIEW) && (
           <SettingsCard
             icon={LuCreditCard}
             title="Payment gateway"

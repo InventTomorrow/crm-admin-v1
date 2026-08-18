@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { SearchSelect, type SearchSelectOption } from '@/components/ui/search-select';
 import { formatFullName } from '@/lib/format';
 import { useDebounce } from '@/lib/useDebounce';
-import { listUsers } from '../users.api';
+import { lookupUsers } from '../users.api';
 
 interface CrmUserSearchSelectProps {
   value: SearchSelectOption | null;
@@ -15,7 +15,11 @@ interface CrmUserSearchSelectProps {
   clearable?: boolean;
 }
 
-/** Server-searched CRM account picker — shared by the billing dialogs. */
+/**
+ * Server-searched CRM account picker — shared by the billing dialogs. Uses the
+ * narrow lookup endpoint so a System Manager, who may create subscriptions but
+ * not manage accounts, can still choose an owner.
+ */
 export function CrmUserSearchSelect({
   value,
   onSelect,
@@ -28,12 +32,12 @@ export function CrmUserSearchSelect({
   const debouncedUserSearch = useDebounce(userSearch, 300);
 
   const usersQuery = useQuery({
-    queryKey: ['users-min', debouncedUserSearch],
-    queryFn: () => listUsers({ page: 1, limit: 25, search: debouncedUserSearch, type: 'crm' }),
+    queryKey: ['users-lookup', debouncedUserSearch],
+    queryFn: () => lookupUsers({ search: debouncedUserSearch, limit: 25 }),
     enabled,
   });
 
-  const options: SearchSelectOption[] = (usersQuery.data?.items ?? []).map(user => ({
+  const options: SearchSelectOption[] = (usersQuery.data ?? []).map(user => ({
     id: user.id,
     label:
       formatFullName(user.firstName, user.lastName) === '—'

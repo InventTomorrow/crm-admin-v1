@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
 import { Badge } from '@/components/ui/badge';
-import { useCanWrite } from '@/features/auth/auth.hooks';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { SystemPermissions } from '@/lib/permissions';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
 import { formatDateTime } from '@/lib/format';
 import { formatPlanPrice } from '@/lib/planFormat';
@@ -88,7 +89,7 @@ export function ReviewRequestDialog({
   open: boolean;
   onClose: () => void;
 }) {
-  const canWrite = useCanWrite();
+  const { can } = usePermissions();
   const [selectedOwner, setSelectedOwner] = useState<SearchSelectOption | null>(null);
   // Two-step reject: the reason field only appears after choosing Reject.
   const [rejecting, setRejecting] = useState(false);
@@ -117,7 +118,9 @@ export function ReviewRequestDialog({
 
   const pending = request.status === 'PENDING_APPROVAL';
   const busy = approveMutation.isPending || rejectMutation.isPending;
-  const showActions = pending && canWrite;
+  const canApprove = can(SystemPermissions.SUBSCRIPTION_REQUESTS_APPROVE);
+  const canReject = can(SystemPermissions.SUBSCRIPTION_REQUESTS_REJECT);
+  const showActions = pending && (canApprove || canReject);
 
   return (
     <Modal
@@ -176,7 +179,7 @@ export function ReviewRequestDialog({
           )}
         </div>
 
-        {showActions && needsOwner && (
+        {showActions && canApprove && needsOwner && (
           <Field
             label="Assign to CRM account"
             hint="This request came from a link with no CRM account attached."
@@ -250,33 +253,37 @@ export function ReviewRequestDialog({
               </>
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  className="flex-1"
-                  disabled={busy}
-                  onClick={() => setRejecting(true)}
-                >
-                  Reject
-                </Button>
-                <Button
-                  variant="success"
-                  className="flex-1"
-                  disabled={busy || (needsOwner && !selectedOwner)}
-                  onClick={() =>
-                    approveMutation.mutate(
-                      {
-                        id: request.id,
-                        ...(selectedOwner ? { ownerUserId: selectedOwner.id } : {}),
-                      },
-                      { onSuccess: onClose }
-                    )
-                  }
-                >
-                  {approveMutation.isPending && (
-                    <LuLoaderCircle className="size-4 me-1.5 animate-spin" />
-                  )}
-                  {approveMutation.isPending ? 'Approving…' : 'Approve & activate'}
-                </Button>
+                {canReject && (
+                  <Button
+                    variant="ghost"
+                    className="flex-1"
+                    disabled={busy}
+                    onClick={() => setRejecting(true)}
+                  >
+                    Reject
+                  </Button>
+                )}
+                {canApprove && (
+                  <Button
+                    variant="success"
+                    className="flex-1"
+                    disabled={busy || (needsOwner && !selectedOwner)}
+                    onClick={() =>
+                      approveMutation.mutate(
+                        {
+                          id: request.id,
+                          ...(selectedOwner ? { ownerUserId: selectedOwner.id } : {}),
+                        },
+                        { onSuccess: onClose }
+                      )
+                    }
+                  >
+                    {approveMutation.isPending && (
+                      <LuLoaderCircle className="size-4 me-1.5 animate-spin" />
+                    )}
+                    {approveMutation.isPending ? 'Approving…' : 'Approve & activate'}
+                  </Button>
+                )}
               </>
             )}
           </div>
