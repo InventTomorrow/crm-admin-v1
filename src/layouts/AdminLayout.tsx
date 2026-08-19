@@ -6,6 +6,7 @@ import Customizer from '@/components/layouts/customizer';
 import { RouteProgressBar } from '@/components/RouteProgressBar';
 import { FullPageSpinner } from '@/components/states';
 import { useMe } from '@/features/auth/auth.hooks';
+import { ActiveOfferStrip } from '@/features/promo-offers/components/ActiveOfferStrip';
 
 /**
  * Guarded admin shell: verifies the session, then mounts the Tailwick chrome
@@ -24,6 +25,8 @@ const AdminLayout = () => {
         <Sidebar />
         <div className="page-content">
           <Topbar />
+          {/* Running campaign — every page needs the context, not just /plans. */}
+          <ActiveOfferStrip />
           <Outlet />
           <Footer />
         </div>
