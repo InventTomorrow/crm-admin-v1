@@ -17,6 +17,8 @@ const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
 const BlogPostEdit = lazy(() => import('@/app/(admin)/blog/edit'));
 const BlogPostPreview = lazy(() => import('@/app/(admin)/blog/preview'));
 const BlogCategories = lazy(() => import('@/app/(admin)/blog/categories'));
+const Newsletter = lazy(() => import('@/app/(admin)/newsletter'));
+const ContactMessages = lazy(() => import('@/app/(admin)/contact-messages'));
 const Notifications = lazy(() => import('@/app/(admin)/notifications'));
 const Settings = lazy(() => import('@/app/(admin)/settings'));
 
@@ -115,6 +117,18 @@ export const appRoutes: AppRoute[] = [
     name: 'BlogPostPreview',
     element: <BlogPostPreview />,
     permission: SystemPermissions.BLOG_VIEW,
+  },
+  {
+    path: '/newsletter',
+    name: 'Newsletter',
+    element: <Newsletter />,
+    permission: SystemPermissions.NEWSLETTER_VIEW,
+  },
+  {
+    path: '/contact-messages',
+    name: 'ContactMessages',
+    element: <ContactMessages />,
+    permission: SystemPermissions.CONTACT_MESSAGES_VIEW,
   },
   {
     path: '/notifications',
