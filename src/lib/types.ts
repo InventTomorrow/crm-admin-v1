@@ -34,9 +34,21 @@ export interface UserLookupItem {
   lastName: string | null;
 }
 
+/** Plan a user is currently on, trial included. Null when they have none. */
+export interface ActiveSubscription {
+  id: string;
+  status: SubscriptionStatus;
+  trialEndsAt: string | null;
+  currentPeriodEnd: string | null;
+  cancelledAt: string | null;
+  plan: { id: string; name: string; tier: PlanTier; price: number; isTrial: boolean };
+}
+
 export interface UserListItem {
   id: string;
   email: string;
+  /** Real address of a closed account whose `email` is now a tombstone. */
+  originalEmail: string | null;
   firstName: string | null;
   lastName: string | null;
   phone: string | null;
@@ -52,22 +64,55 @@ export interface UserListItem {
   /** Set once an admin erased the workspaces of a permanently deleted account. */
   workspaceDataWipedAt: string | null;
   systemMembership: { role: SystemRole } | null;
+  activeSubscription: ActiveSubscription | null;
   _count: { memberships: number; ownedTenants: number };
 }
 
-export interface UserDetail extends Omit<UserListItem, '_count' | 'systemMembership'> {
+/** Columns the users list can be ordered by. Sorting happens server-side, so it
+ *  spans every matching row rather than reordering the current page. */
+export type UserSortField = 'name' | 'email' | 'phone' | 'createdAt' | 'lastLoginAt';
+
+export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
   systemMembership: { role: SystemRole; createdAt: string } | null;
+  isTester: boolean;
+  updatedAt: string;
   /** Deadline for restoring a deleted account. */
   scheduledPurgeAt: string | null;
   /** Workspaces closed by the deletion, restored alongside the account. */
   deletionTenantIds: string[];
+  /** Every subscription this user has ever owned, newest first. */
+  subscriptionHistory: {
+    id: string;
+    status: SubscriptionStatus;
+    provider: string;
+    trialEndsAt: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    cancelledAt: string | null;
+    createdAt: string;
+    plan: { id: string; name: string; tier: PlanTier; price: number; isTrial: boolean };
+  }[];
   memberships: {
     id: string;
-    tenant: { id: string; name: string; status: TenantStatus };
+    tenant: {
+      id: string;
+      name: string;
+      status: TenantStatus;
+      businessVertical: BusinessVertical;
+      createdAt: string;
+    };
     role: { name: string };
     joinedAt: string;
   }[];
-  ownedTenants: { id: string; name: string; status: TenantStatus }[];
+  ownedTenants: {
+    id: string;
+    name: string;
+    status: TenantStatus;
+    businessVertical: BusinessVertical;
+    createdAt: string;
+    suspendedByUserDeletion: boolean;
+    _count: { leads: number; memberships: number; products: number };
+  }[];
 }
 
 export interface TenantListItem {
@@ -210,9 +255,35 @@ export interface Metrics {
   newUsers: number;
   newSubscriptions: number;
   series: { date: string; tenants: number; users: number }[];
+  /** Latest signups overall — a snapshot, deliberately not range-scoped. */
+  recentUsers: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl: string | null;
+    createdAt: string;
+    emailVerifiedAt: string | null;
+    activeSubscription: {
+      status: SubscriptionStatus;
+      plan: { name: string; tier: PlanTier; isTrial: boolean };
+    } | null;
+  }[];
 }
 
 export type BlogPostStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface BlogAuthor {
+  id: string;
+  name: string;
+  slug: string;
+  title: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+  postCount: number;
+}
 
 export interface BlogCategory {
   id: string;
@@ -237,9 +308,11 @@ export interface BlogPostListItem {
   readingMinutes: number;
   publishedAt: string | null;
   authorName: string;
+  authorId: string | null;
   createdAt: string;
   updatedAt: string;
   category: { id: string; name: string; slug: string };
+  author?: { id: string; name: string; slug: string; avatarUrl: string | null } | null;
 }
 
 export interface BlogPostDetail extends BlogPostListItem {
@@ -249,4 +322,5 @@ export interface BlogPostDetail extends BlogPostListItem {
   seoTitle: string | null;
   seoDescription: string | null;
   categoryId: string;
+  author?: { id: string; name: string; slug: string; title: string | null; bio: string | null; avatarUrl: string | null } | null;
 }

@@ -17,6 +17,7 @@ const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
 const BlogPostEdit = lazy(() => import('@/app/(admin)/blog/edit'));
 const BlogPostPreview = lazy(() => import('@/app/(admin)/blog/preview'));
 const BlogCategories = lazy(() => import('@/app/(admin)/blog/categories'));
+const BlogAuthors = lazy(() => import('@/app/(admin)/blog/authors'));
 const Newsletter = lazy(() => import('@/app/(admin)/newsletter'));
 const ContactMessages = lazy(() => import('@/app/(admin)/contact-messages'));
 const Notifications = lazy(() => import('@/app/(admin)/notifications'));
@@ -105,6 +106,12 @@ export const appRoutes: AppRoute[] = [
     name: 'BlogCategories',
     element: <BlogCategories />,
     permission: SystemPermissions.BLOG_CATEGORIES_VIEW,
+  },
+  {
+    path: '/blog/authors',
+    name: 'BlogAuthors',
+    element: <BlogAuthors />,
+    permission: SystemPermissions.BLOG_AUTHORS_VIEW,
   },
   {
     path: '/blog/:postId/edit',

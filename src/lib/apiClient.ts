@@ -26,6 +26,18 @@ apiClient.interceptors.response.use(
   res => res,
   async (error: AxiosError<{ error?: { code?: string } }>) => {
     const original = error.config as AxiosRequestConfig & { _retry?: boolean };
+
+    // File downloads use responseType 'blob', so a failure arrives as a Blob
+    // rather than the parsed envelope. Read it back out or the refresh check
+    // below (and apiMessage) would never see the error code.
+    if (error.response?.data instanceof Blob && error.response.data.type.includes('json')) {
+      try {
+        error.response.data = JSON.parse(await error.response.data.text());
+      } catch {
+        // Not the envelope after all — leave the original body untouched.
+      }
+    }
+
     const code = error.response?.data?.error?.code;
     const url = original?.url ?? '';
 

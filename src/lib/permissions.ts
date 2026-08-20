@@ -58,6 +58,11 @@ export const SystemPermissions = {
   BLOG_CATEGORIES_EDIT: 'blog_categories:edit',
   BLOG_CATEGORIES_DELETE: 'blog_categories:delete',
 
+  BLOG_AUTHORS_VIEW: 'blog_authors:view',
+  BLOG_AUTHORS_CREATE: 'blog_authors:create',
+  BLOG_AUTHORS_EDIT: 'blog_authors:edit',
+  BLOG_AUTHORS_DELETE: 'blog_authors:delete',
+
   NEWSLETTER_VIEW: 'newsletter:view',
   NEWSLETTER_EXPORT: 'newsletter:export',
   NEWSLETTER_DELETE: 'newsletter:delete',
@@ -110,6 +115,10 @@ const SYSTEM_MANAGER_PERMISSIONS: SystemPermission[] = [
   SystemPermissions.BLOG_CATEGORIES_CREATE,
   SystemPermissions.BLOG_CATEGORIES_EDIT,
   SystemPermissions.BLOG_CATEGORIES_DELETE,
+  SystemPermissions.BLOG_AUTHORS_VIEW,
+  SystemPermissions.BLOG_AUTHORS_CREATE,
+  SystemPermissions.BLOG_AUTHORS_EDIT,
+  SystemPermissions.BLOG_AUTHORS_DELETE,
   SystemPermissions.NEWSLETTER_VIEW,
   SystemPermissions.NEWSLETTER_EXPORT,
   SystemPermissions.NEWSLETTER_DELETE,
