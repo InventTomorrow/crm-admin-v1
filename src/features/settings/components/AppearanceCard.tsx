@@ -1,14 +1,10 @@
-import type { IconType } from 'react-icons/lib';
-import { LuMonitor, LuMoon, LuPalette, LuPanelLeft, LuSun } from 'react-icons/lu';
-import { Field } from '@/components/ui/field';
-import { Select } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import {
   useLayoutContext,
   type LayoutThemeType,
-  type SideNavColorType,
-  type SideNavSizeType,
 } from '@/context/useLayoutContext';
+import { cn } from '@/lib/utils';
+import type { IconType } from 'react-icons/lib';
+import { LuMonitor, LuMoon, LuPalette, LuSun } from 'react-icons/lu';
 import { SettingsCard } from './SettingsCard';
 
 const THEME_OPTIONS: { value: LayoutThemeType; label: string; icon: IconType }[] = [
@@ -17,15 +13,8 @@ const THEME_OPTIONS: { value: LayoutThemeType; label: string; icon: IconType }[]
   { value: 'system', label: 'System', icon: LuMonitor },
 ];
 
-const SIDENAV_SIZE_OPTIONS: { value: SideNavSizeType; label: string }[] = [
-  { value: 'default', label: 'Default' },
-  { value: 'md', label: 'Compact' },
-  { value: 'sm', label: 'Small (icons)' },
-  { value: 'hover', label: 'Hover to expand' },
-];
-
 export function AppearanceCard() {
-  const { theme, sidenav, updateSettings } = useLayoutContext();
+  const { theme, updateSettings } = useLayoutContext();
 
   return (
     <SettingsCard
@@ -55,7 +44,7 @@ export function AppearanceCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label="Sidebar style" hint="How the navigation collapses on desktop.">
             <span className="relative flex items-center">
               <LuPanelLeft className="pointer-events-none absolute start-3 size-4 text-default-500" />
@@ -89,7 +78,7 @@ export function AppearanceCard() {
               <option value="dark">Dark</option>
             </Select>
           </Field>
-        </div>
+        </div> */}
       </div>
     </SettingsCard>
   );

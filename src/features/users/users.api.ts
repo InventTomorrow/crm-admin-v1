@@ -1,22 +1,57 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
+import { downloadBlob, filenameFromDisposition } from '@/lib/download';
 import type {
   Paged,
   SystemRole,
   UserDetail,
   UserListItem,
   UserLookupItem,
+  UserSortField,
   WhatsAppConnectionItem,
 } from '@/lib/types';
 
-export async function listUsers(params: {
-  page: number;
-  limit: number;
+export interface UserListFilters {
   search?: string;
   type: 'all' | 'system' | 'crm';
   status?: 'active' | 'deleted' | 'all';
-}): Promise<Paged<UserListItem>> {
+  sortBy?: UserSortField;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function listUsers(
+  params: UserListFilters & { page: number; limit: number }
+): Promise<Paged<UserListItem>> {
   const { data } = await apiClient.get<ApiEnvelope<UserListItem[]>>('/admin/users', { params });
   return { items: data.data, meta: data.meta! };
+}
+
+/**
+ * Downloads a CSV of every row matching the current filters — the whole result
+ * set, not the visible page. `ids` narrows it to the current row selection.
+ */
+export async function exportUsers(params: UserListFilters & { ids?: string[] }): Promise<void> {
+  const { ids, ...filters } = params;
+  const response = await apiClient.get('/admin/users/export', {
+    params: { ...filters, ...(ids?.length ? { ids: ids.join(',') } : {}) },
+    responseType: 'blob',
+  });
+  downloadBlob(
+    response.data as Blob,
+    filenameFromDisposition(response.headers['content-disposition'], 'users.csv')
+  );
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  failed: number;
+  failures: { id: string; reason: string }[];
+}
+
+export async function bulkDeleteUsers(ids: string[]): Promise<BulkDeleteResult> {
+  const { data } = await apiClient.post<ApiEnvelope<BulkDeleteResult>>('/admin/users/bulk-delete', {
+    ids,
+  });
+  return data.data;
 }
 
 /**

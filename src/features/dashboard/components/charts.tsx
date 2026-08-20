@@ -85,8 +85,11 @@ export function TenantsByStatusChart({
       chart: { type: 'bar', toolbar: { show: false }, foreColor: chartColors.foreground },
       colors: STATUS_ORDER.map(status => statusColor[status]),
       plotOptions: {
-        bar: { distributed: true, borderRadius: 6, columnWidth: '20%' },
+        // Wide columns with no gap between them keeps the three bars reading as
+        // one group instead of three lonely spikes across a full-width card.
+        bar: { distributed: true, borderRadius: 4, columnWidth: '55%' },
       },
+      states: { active: { filter: { type: 'none' } } },
       dataLabels: { enabled: false },
       legend: { show: false },
       grid: { borderColor: chartColors.border, strokeDashArray: 3 },
@@ -106,7 +109,7 @@ export function TenantsByStatusChart({
     <div>
       <ApexChartClient
         type="bar"
-        height={260}
+        height={180}
         getOptions={getOptions}
         series={[{ name: 'Tenants', data: counts }]}
       />

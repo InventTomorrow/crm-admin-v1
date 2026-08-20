@@ -42,6 +42,7 @@ export function ActiveOfferStrip() {
         onOpenChange={setIsConfirmOpen}
         title="End this offer?"
         description="Plans go back to their list price immediately and the countdown disappears for every customer. Payments already in flight keep the discounted price for a few hours."
+        intent="warning"
         confirmLabel="End offer"
         isLoading={endOffer.isPending}
         onConfirm={() =>

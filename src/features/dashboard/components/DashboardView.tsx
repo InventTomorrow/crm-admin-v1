@@ -2,19 +2,21 @@ import { useState } from 'react';
 import {
   LuBuilding2,
   LuCreditCard,
+  LuLoaderCircle,
   LuShieldCheck,
   LuTrendingUp,
   LuUserPlus,
   LuUsers,
   LuWallet,
 } from 'react-icons/lu';
+import { Link } from 'react-router';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { DashboardSkeleton, ErrorState } from '@/components/states';
 import { formatMoneyPKR } from '@/lib/format';
-import { cn } from '@/lib/utils';
 import { DateRangeFilter } from './DateRangeFilter';
 import { GrowthChart, TenantsByStatusChart, UsersDonutChart } from './charts';
+import { RecentUsersWidget } from './RecentUsersWidget';
 import { rangeFromPreset, useMetrics, type Preset } from '../dashboard.hooks';
 
 export function DashboardView() {
@@ -40,7 +42,23 @@ export function DashboardView() {
   const crmUsers = Math.max(0, data.totalUsers - data.systemUsers);
 
   return (
-    <div className={cn('transition-opacity', isFetching && 'opacity-70')}>
+    <div className="relative">
+      {/* Refetch overlay — the whole board is range-scoped, so a filter change
+          dims it as one surface with a single spinner rather than swapping
+          every card for its own skeleton. */}
+      {isFetching && (
+        <div
+          className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-body-bg/60 backdrop-blur-[1px]"
+          role="status"
+          aria-label="Updating dashboard"
+        >
+          <span className="flex items-center gap-2 rounded-lg bg-card px-4 py-2.5 text-sm text-default-600 shadow-lg">
+            <LuLoaderCircle className="size-5 animate-spin text-primary" />
+            Updating…
+          </span>
+        </div>
+      )}
+
       <PageHeader
         title="Dashboard"
         description="Platform overview"
@@ -133,14 +151,29 @@ export function DashboardView() {
           <KpiCard label="Plans" value={data.plans} icon={LuCreditCard} />
         </div>
 
-        {/* Tenants by status */}
-        <div className="col-span-12">
-          <div className="card">
+        {/* Tenants by status — narrowed so the three bars stay a compact group */}
+        <div className="col-span-12 xl:col-span-5">
+          <div className="card h-full">
             <div className="card-header">
               <h6 className="card-title">Tenants by status</h6>
             </div>
             <div className="card-body">
               <TenantsByStatusChart tenantsByStatus={data.tenantsByStatus} />
+            </div>
+          </div>
+        </div>
+
+        {/* Recently joined users */}
+        <div className="col-span-12 xl:col-span-7">
+          <div className="card h-full">
+            <div className="card-header flex items-center justify-between">
+              <h6 className="card-title">Recently joined users</h6>
+              <Link to="/users" className="text-sm text-primary hover:underline">
+                View all
+              </Link>
+            </div>
+            <div className="card-body">
+              <RecentUsersWidget users={data.recentUsers} />
             </div>
           </div>
         </div>
