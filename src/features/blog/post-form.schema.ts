@@ -26,7 +26,8 @@ export const postFormSchema = z.object({
 
   seoTitle: z.string().trim().max(70, 'Google truncates past ~60 characters'),
   seoDescription: z.string().trim().max(180, 'Google truncates past ~160 characters'),
-  authorName: z.string().trim().min(2, 'At least 2 characters').max(80),
+  authorId: z.string().nullable(),
+  authorName: z.string().trim().max(80),
 });
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
@@ -45,6 +46,7 @@ export const emptyPostDefaults = (authorName: string): PostFormValues => ({
   publishedAt: null,
   seoTitle: '',
   seoDescription: '',
+  authorId: null,
   authorName,
 });
 
@@ -63,6 +65,7 @@ export function postToFormValues(post: BlogPostDetail): PostFormValues {
     publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
     seoTitle: post.seoTitle ?? '',
     seoDescription: post.seoDescription ?? '',
+    authorId: post.authorId ?? null,
     authorName: post.authorName,
   };
 }
@@ -87,6 +90,7 @@ export function formValuesToPostInput(values: PostFormValues, bodyJson: unknown)
     publishedAt: values.publishedAt ? values.publishedAt.toISOString() : null,
     seoTitle: values.seoTitle.trim() || null,
     seoDescription: values.seoDescription.trim() || null,
-    authorName: values.authorName.trim(),
+    authorId: values.authorId || undefined,
+    authorName: values.authorName.trim() || undefined,
   };
 }

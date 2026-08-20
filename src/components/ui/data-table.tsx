@@ -72,6 +72,11 @@ export interface DataTableProps<TData> {
   search?: string;
   onSearchChange?: (v: string) => void;
   searchPlaceholder?: string;
+  /** Supplying both switches sorting to server-side, so it spans the whole
+   *  result set instead of reordering the page currently in view. Omit them and
+   *  the table keeps sorting its own rows locally. */
+  sorting?: SortingState;
+  onSortingChange?: (sorting: SortingState) => void;
   isLoading?: boolean;
   isError?: boolean;
   error?: unknown;
@@ -113,6 +118,8 @@ export function DataTable<TData>({
   search,
   onSearchChange,
   searchPlaceholder = 'Search…',
+  sorting: controlledSorting,
+  onSortingChange,
   isLoading,
   isError,
   error,
@@ -136,8 +143,11 @@ export function DataTable<TData>({
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
-  // Sorts the rows of the current page (lists paginate server-side).
-  const [sorting, setSorting] = useState<SortingState>([]);
+  // Fallback for tables that don't hand sorting to the server: sorts the rows
+  // of the current page only, since lists paginate server-side.
+  const [localSorting, setLocalSorting] = useState<SortingState>([]);
+  const isServerSorted = controlledSorting !== undefined && onSortingChange !== undefined;
+  const sorting = isServerSorted ? controlledSorting : localSorting;
 
   const selectionColumn: ColumnDef<TData, unknown> = {
     id: 'select',
@@ -208,6 +218,7 @@ export function DataTable<TData>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
+    manualSorting: isServerSorted,
     pageCount,
     state: {
       rowSelection,
@@ -217,7 +228,11 @@ export function DataTable<TData>({
     },
     onRowSelectionChange: setRowSelection,
     onColumnVisibilityChange: setColumnVisibility,
-    onSortingChange: setSorting,
+    onSortingChange: updater => {
+      const next = typeof updater === 'function' ? updater(sorting) : updater;
+      if (isServerSorted) onSortingChange(next);
+      else setLocalSorting(next);
+    },
     enableRowSelection: enableSelection,
     getRowId: getRowId ? row => getRowId(row) : undefined,
   });

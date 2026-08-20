@@ -1,6 +1,6 @@
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { useAdminSidebarCounts } from '@/lib/useAdminSidebarCounts';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { LuChevronRight } from 'react-icons/lu';
 import { Link, useLocation } from 'react-router';
 import { menuItemsData, type MenuItemType } from './menu';
@@ -53,24 +53,41 @@ const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
   const Icon = item.icon;
 
   const isActive = isItemActive(item, pathname);
+  const [isOpen, setIsOpen] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive) {
+      setIsOpen(true);
+    }
+  }, [isActive]);
 
   return (
     <li className={`menu-item hs-accordion ${isActive ? 'active' : ''}`}>
-      <button className={`hs-accordion-toggle menu-link ${isActive ? 'active' : ''}`}>
-        {Icon && (
-          <span className="menu-icon">
-            <Icon />
-          </span>
-        )}
-        <span className="menu-text">{item.label}</span>
-        <span className="menu-arrow">
+      <button
+        type="button"
+        onClick={() => setIsOpen(prev => !prev)}
+        className={`hs-accordion-toggle menu-link flex w-full items-center justify-between text-left h-9 ${
+          isActive ? 'active' : ''
+        }`}
+      >
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <span className="menu-icon">
+              <Icon />
+            </span>
+          )}
+          <span className="menu-text">{item.label}</span>
+        </div>
+        <span
+          className={`menu-arrow transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+        >
           <LuChevronRight />
         </span>
       </button>
 
       <ul
-        className={`sub-menu hs-accordion-content hs-accordion-group ${
-          isActive ? 'block' : 'hidden'
+        className={`sub-menu hs-accordion-content space-y-1 overflow-hidden transition-all duration-200 ${
+          isOpen ? 'block' : 'hidden'
         }`}
       >
         {item.children?.map((child: MenuItemType) =>

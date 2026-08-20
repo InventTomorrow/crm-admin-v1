@@ -30,6 +30,7 @@ import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router';
 import {
   useBlogCategories,
+  useBlogAuthors,
   usePostDraftPersistence,
   usePosts,
   useSavePost,
@@ -165,6 +166,7 @@ function PostForm({
 }) {
   const navigate = useNavigate();
   const { data: categories = [] } = useBlogCategories();
+  const { data: authors = [] } = useBlogAuthors();
   const saveMutation = useSavePost();
   const statusMutation = useUpdatePostStatus();
 
@@ -635,8 +637,40 @@ function PostForm({
               )}
             />
 
-            <Field label="Author" htmlFor="post-author" required error={errors.authorName?.message}>
-              <Input id="post-author" invalid={!!errors.authorName} {...register('authorName')} />
+            <Field
+              label="Author"
+              htmlFor="post-author"
+              required
+              error={errors.authorName?.message || errors.authorId?.message}
+            >
+              {authors.length > 0 ? (
+                <Select
+                  id="post-author"
+                  value={watch('authorId') || ''}
+                  onChange={e => {
+                    const selectedId = e.target.value;
+                    const found = authors.find(a => a.id === selectedId);
+                    if (found) {
+                      setValue('authorId', found.id, { shouldDirty: true });
+                      setValue('authorName', found.name, { shouldDirty: true });
+                    } else {
+                      setValue('authorId', null, { shouldDirty: true });
+                      if (!watch('authorName')) {
+                        setValue('authorName', adminName, { shouldDirty: true });
+                      }
+                    }
+                  }}
+                >
+                  <option value="">Select an Author...</option>
+                  {authors.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} {a.title ? `(${a.title})` : ''}
+                    </option>
+                  ))}
+                </Select>
+              ) : (
+                <Input id="post-author" invalid={!!errors.authorName} {...register('authorName')} />
+              )}
             </Field>
           </FormCard>
 
