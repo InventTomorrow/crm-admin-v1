@@ -43,7 +43,11 @@ export function CreateSubscriptionDialog() {
 
   const ownerUserId = form.watch('ownerUserId');
   const planId = form.watch('planId');
+  const amount = form.watch('amount');
   const selectedPlan = plans.find(plan => plan.id === planId);
+  // Charging under the list price is allowed, but it has to be accounted for —
+  // the server rejects an unexplained shortfall no live campaign covers.
+  const isDiscounted = !!selectedPlan && !Number.isNaN(amount) && amount < selectedPlan.price;
 
   // Default the amount to the plan's price; the admin can still override it
   // if they collected a different figure.
@@ -70,6 +74,9 @@ export function CreateSubscriptionDialog() {
           amount: values.amount,
           currency: selectedPlan.currency ?? 'PKR',
           reference: values.reference?.trim() || undefined,
+          // Sent only when there is a gap to explain, so a full-price payment
+          // never carries a stale reason from an abandoned edit.
+          discountReason: isDiscounted ? values.discountReason?.trim() || undefined : undefined,
         },
       },
       { onSuccess: () => closeAndReset(false) }
@@ -148,7 +155,9 @@ export function CreateSubscriptionDialog() {
                       value={Number.isNaN(field.value) ? '' : field.value}
                       onChange={event =>
                         field.onChange(
-                          Number.isNaN(event.target.valueAsNumber) ? NaN : event.target.valueAsNumber
+                          Number.isNaN(event.target.valueAsNumber)
+                            ? NaN
+                            : event.target.valueAsNumber
                         )
                       }
                     />
@@ -164,6 +173,27 @@ export function CreateSubscriptionDialog() {
               placeholder="Transaction reference (optional)"
               {...form.register('reference')}
             />
+
+            {isDiscounted && (
+              <div className="mt-2.5 rounded-lg border border-info/30 bg-info/5 p-3">
+                <p className="text-xs text-default-600">
+                  {formatPlanPrice(selectedPlan.price - amount, selectedPlan.currency)} below the{' '}
+                  {selectedPlan.name} price of{' '}
+                  {formatPlanPrice(selectedPlan.price, selectedPlan.currency)}.
+                </p>
+                <Input
+                  className="mt-2"
+                  placeholder="Why? e.g. Eid campaign, loyalty discount"
+                  aria-label="Reason for the reduced price"
+                  {...form.register('discountReason')}
+                />
+                <p className="mt-1.5 text-xs text-default-400">
+                  Shown on the subscriptions table. A running campaign that matches the amount fills
+                  this in on its own.
+                </p>
+              </div>
+            )}
+
             <p className="mt-1.5 text-xs text-default-400">
               The subscription activates immediately.
               {selectedPlan?.isTrial ? ' Trial plans start as Trialing.' : ''}

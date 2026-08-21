@@ -1,16 +1,20 @@
 import { useMemo, useState } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
+import type { ColumnDef, SortingState } from '@tanstack/react-table';
 import {
   LuCircleAlert,
   LuCircleCheck,
   LuCalendarOff,
   LuEllipsisVertical,
   LuHourglass,
+  LuLandmark,
   LuLayers,
   LuSettings2,
   LuTrash2,
+  LuWallet,
 } from 'react-icons/lu';
+import { Link } from 'react-router';
 import { Select } from '@/components/ui/select';
+import { buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { Dropdown, DropdownItem } from '@/components/ui/dropdown';
@@ -19,37 +23,61 @@ import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
-import { formatFullName } from '@/lib/format';
-import { formatPlanPrice } from '@/lib/planFormat';
+import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
-import type { Subscription, SubscriptionStatus } from '@/lib/types';
+import type { SubscriptionListItem, SubscriptionSortField, SubscriptionStatus } from '@/lib/types';
 import { CreateSubscriptionDialog } from './CreateSubscriptionDialog';
 import { ManageSubscriptionDialog } from './ManageSubscriptionDialog';
 import { SubscriptionDetailSheet } from './SubscriptionDetailSheet';
+import { SubscriptionPlanPriceCell, SubscriptionPriceCell } from './SubscriptionPriceCell';
 import {
   useCancelSubscriptionAtPeriodEnd,
   useDeleteSubscription,
+  useSubscriptionRevenue,
   useSubscriptions,
   useUpdateSubscriptionStatus,
 } from '../subscriptions.hooks';
+
+/** Column ids double as the server's sort keys, so the two can never drift. */
+const SORTABLE_COLUMNS: SubscriptionSortField[] = [
+  'account',
+  'plan',
+  'price',
+  'paid',
+  'status',
+  'currentPeriodEnd',
+];
 
 export function SubscriptionsView() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'ALL'>('ALL');
-  const [subscriptionUnderReview, setSubscriptionUnderReview] = useState<Subscription | null>(null);
-  const [subscriptionBeingManaged, setSubscriptionBeingManaged] = useState<Subscription | null>(null);
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
+  const [subscriptionUnderReview, setSubscriptionUnderReview] =
+    useState<SubscriptionListItem | null>(null);
+  const [subscriptionBeingManaged, setSubscriptionBeingManaged] =
+    useState<SubscriptionListItem | null>(null);
   const [subscriptionPendingDeletion, setSubscriptionPendingDeletion] =
-    useState<Subscription | null>(null);
+    useState<SubscriptionListItem | null>(null);
   const { can, canAny } = usePermissions();
   const canEditSubscription = can(SystemPermissions.SUBSCRIPTIONS_EDIT);
   const canCancelSubscription = can(SystemPermissions.SUBSCRIPTIONS_CANCEL);
   const canDeleteSubscription = can(SystemPermissions.SUBSCRIPTIONS_DELETE);
 
+  const activeSort = sorting[0];
+  const sortBy = (
+    activeSort && SORTABLE_COLUMNS.includes(activeSort.id as SubscriptionSortField)
+      ? activeSort.id
+      : 'createdAt'
+  ) as SubscriptionSortField;
+  const sortOrder = activeSort?.desc === false ? 'asc' : 'desc';
+
   const { data, isLoading, isError, error, refetch } = useSubscriptions({
     page,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
     limit: pageSize,
+    sortBy,
+    sortOrder,
   });
   const statusMutation = useUpdateSubscriptionStatus();
   const cancelMutation = useCancelSubscriptionAtPeriodEnd();
@@ -60,8 +88,9 @@ export function SubscriptionsView() {
   const { data: activeData } = useSubscriptions({ page: 1, status: 'ACTIVE', limit: 1 });
   const { data: trialingData } = useSubscriptions({ page: 1, status: 'TRIALING', limit: 1 });
   const { data: pastDueData } = useSubscriptions({ page: 1, status: 'PAST_DUE', limit: 1 });
+  const { data: revenue, isLoading: revenueLoading } = useSubscriptionRevenue();
 
-  const columns = useMemo<ColumnDef<Subscription, unknown>[]>(
+  const columns = useMemo<ColumnDef<SubscriptionListItem, unknown>[]>(
     () => [
       {
         id: 'account',
@@ -92,12 +121,15 @@ export function SubscriptionsView() {
       },
       {
         id: 'price',
-        accessorFn: subscription => subscription.plan?.price ?? 0,
-        header: 'Price',
-        cell: ({ row }) =>
-          row.original.plan
-            ? formatPlanPrice(row.original.plan.price, row.original.plan.currency)
-            : '—',
+        accessorFn: subscription => subscription.billing.planPrice,
+        header: 'Plan price',
+        cell: ({ row }) => <SubscriptionPlanPriceCell billing={row.original.billing} />,
+      },
+      {
+        id: 'paid',
+        accessorFn: subscription => subscription.billing.paidAmount ?? 0,
+        header: 'Paid',
+        cell: ({ row }) => <SubscriptionPriceCell billing={row.original.billing} />,
       },
       {
         id: 'status',
@@ -105,6 +137,14 @@ export function SubscriptionsView() {
         header: 'Status',
         cell: ({ row }) => (
           <Badge tone={SUBSCRIPTION_STATUS_TONE[row.original.status]}>{row.original.status}</Badge>
+        ),
+      },
+      {
+        id: 'currentPeriodEnd',
+        accessorFn: subscription => subscription.currentPeriodEnd ?? '',
+        header: 'Renews / ends',
+        cell: ({ row }) => (
+          <span className="text-default-500">{formatDate(row.original.currentPeriodEnd)}</span>
         ),
       },
       ...(canAny(
@@ -117,6 +157,7 @@ export function SubscriptionsView() {
               id: 'actions',
               header: 'Actions',
               enableHiding: false,
+              enableSorting: false,
               cell: ({ row }) => {
                 const subscription = row.original;
                 const isLive =
@@ -180,7 +221,7 @@ export function SubscriptionsView() {
                   </span>
                 );
               },
-            } satisfies ColumnDef<Subscription, unknown>,
+            } satisfies ColumnDef<SubscriptionListItem, unknown>,
           ]
         : []),
     ],
@@ -198,19 +239,45 @@ export function SubscriptionsView() {
     <>
       <PageHeader
         title="Subscriptions"
-        description="Tenant subscriptions & billing state"
+        description={
+          revenue
+            ? `${revenue.activeSubscriptions} live · ${formatMoneyPKR(revenue.collected)} collected`
+            : 'Tenant subscriptions & billing state'
+        }
         action={
-          can(SystemPermissions.SUBSCRIPTIONS_CREATE) ? <CreateSubscriptionDialog /> : undefined
+          <div className="flex items-center gap-2">
+            {can(SystemPermissions.SETTINGS_VIEW) && (
+              <Link
+                to="/payment-accounts"
+                className={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                <LuLandmark className="size-4" />
+                Payment accounts
+              </Link>
+            )}
+            {can(SystemPermissions.SUBSCRIPTIONS_CREATE) && <CreateSubscriptionDialog />}
+          </div>
         }
       />
 
-      {/* KPI cards */}
-      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      {/* KPI cards — revenue first, since it is the figure the page is judged on */}
+      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <KpiCard
+          label="Subscription revenue"
+          value={formatMoneyPKR(revenue?.collected)}
+          icon={LuWallet}
+          variant="brand"
+          isLoading={revenueLoading}
+          sub={
+            revenue
+              ? `${revenue.payments} payments · MRR ${formatMoneyPKR(revenue.mrr)}`
+              : 'plan payments only'
+          }
+        />
         <KpiCard
           label="Total Subscriptions"
           value={totalData?.meta.total}
           icon={LuLayers}
-          variant="brand"
           isLoading={kpiLoading}
           sub="all billing states"
         />
@@ -246,6 +313,13 @@ export function SubscriptionsView() {
         onPageChange={setPage}
         onPageSizeChange={size => {
           setPageSize(size);
+          setPage(1);
+        }}
+        sorting={sorting}
+        onSortingChange={nextSorting => {
+          setSorting(nextSorting);
+          // A re-sorted list reshuffles every page, so page 1 is the only
+          // meaningful place to land.
           setPage(1);
         }}
         isLoading={isLoading}

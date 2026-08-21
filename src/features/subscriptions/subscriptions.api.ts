@@ -1,16 +1,38 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { Paged, Subscription, SubscriptionStatus } from '@/lib/types';
+import type {
+  Paged,
+  Subscription,
+  SubscriptionListItem,
+  SubscriptionRevenue,
+  SubscriptionSortField,
+  SubscriptionStatus,
+} from '@/lib/types';
 
-export async function listSubscriptions(params: {
-  page: number;
-  limit: number;
+export interface SubscriptionListFilters {
   status?: SubscriptionStatus;
   ownerUserId?: string;
-}): Promise<Paged<Subscription>> {
-  const { data } = await apiClient.get<ApiEnvelope<Subscription[]>>('/admin/subscriptions', {
-    params,
-  });
+  sortBy?: SubscriptionSortField;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function listSubscriptions(
+  params: SubscriptionListFilters & { page: number; limit: number }
+): Promise<Paged<SubscriptionListItem>> {
+  const { data } = await apiClient.get<ApiEnvelope<SubscriptionListItem[]>>(
+    '/admin/subscriptions',
+    {
+      params,
+    }
+  );
   return { items: data.data, meta: data.meta! };
+}
+
+/** Platform revenue for the page header — subscription money only. */
+export async function getSubscriptionRevenue(): Promise<SubscriptionRevenue> {
+  const { data } = await apiClient.get<ApiEnvelope<SubscriptionRevenue>>(
+    '/admin/subscriptions/revenue'
+  );
+  return data.data;
 }
 
 export const PAYMENT_METHODS = ['BANK_TRANSFER', 'EASYPAISA', 'JAZZCASH', 'CASH', 'OTHER'] as const;
@@ -38,6 +60,9 @@ export async function createSubscription(input: {
     currency: string;
     reference?: string;
     notes?: string;
+    /** Required by the server when `amount` is under the plan's price and no
+     *  live campaign accounts for the gap. */
+    discountReason?: string;
   };
 }): Promise<Subscription> {
   const { data } = await apiClient.post<ApiEnvelope<Subscription>>('/admin/subscriptions', input);

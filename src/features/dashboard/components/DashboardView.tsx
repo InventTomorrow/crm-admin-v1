@@ -1,8 +1,14 @@
+import { KpiCard } from '@/components/KpiCard';
+import { PageHeader } from '@/components/PageHeader';
+import { DashboardSkeleton, ErrorState } from '@/components/states';
+import { formatMoneyPKR } from '@/lib/format';
 import { useState } from 'react';
 import {
   LuBuilding2,
   LuCreditCard,
+  LuDollarSign,
   LuLoaderCircle,
+  LuRepeat,
   LuShieldCheck,
   LuTrendingUp,
   LuUserPlus,
@@ -10,14 +16,10 @@ import {
   LuWallet,
 } from 'react-icons/lu';
 import { Link } from 'react-router';
-import { KpiCard } from '@/components/KpiCard';
-import { PageHeader } from '@/components/PageHeader';
-import { DashboardSkeleton, ErrorState } from '@/components/states';
-import { formatMoneyPKR } from '@/lib/format';
-import { DateRangeFilter } from './DateRangeFilter';
-import { GrowthChart, TenantsByStatusChart, UsersDonutChart } from './charts';
-import { RecentUsersWidget } from './RecentUsersWidget';
 import { rangeFromPreset, useMetrics, type Preset } from '../dashboard.hooks';
+import { GrowthChart, TenantsByStatusChart, UsersDonutChart } from './charts';
+import { DateRangeFilter } from './DateRangeFilter';
+import { RecentUsersWidget } from './RecentUsersWidget';
 
 export function DashboardView() {
   const [preset, setPreset] = useState<Preset>('7d');
@@ -75,12 +77,14 @@ export function DashboardView() {
       />
 
       <div className="grid grid-cols-12 gap-5">
-        {/* Range-scoped growth */}
+        {/* Range-scoped growth. The headline figure is money actually banked in
+            the selected window — plan payments only, never workspace order
+            sales, which belong to the workspaces and not to us. */}
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <KpiCard
-            label="MRR"
-            value={formatMoneyPKR(data.mrr)}
-            sub={`${data.activeSubscriptions} active subscriptions`}
+            label="Subscription revenue"
+            value={formatMoneyPKR(data.subscriptionRevenue)}
+            sub={`${data.subscriptionPayments} payments in selected range`}
             icon={LuWallet}
             variant="brand"
           />
@@ -132,8 +136,24 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* Snapshots */}
-        <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+        {/* Snapshots — none of these move with the date filter */}
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
+          <KpiCard
+            label="MRR"
+            value={formatMoneyPKR(data.mrr)}
+            sub={`${data.activeSubscriptions} active subscriptions`}
+            icon={LuRepeat}
+          />
+        </div>
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
+          <KpiCard
+            label="Lifetime subscription revenue"
+            value={formatMoneyPKR(data.lifetimeSubscriptionRevenue)}
+            sub="every plan payment ever received"
+            icon={LuDollarSign}
+          />
+        </div>
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
           <KpiCard
             label="Tenants"
             value={totalTenants}
@@ -141,13 +161,13 @@ export function DashboardView() {
             icon={LuBuilding2}
           />
         </div>
-        <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
           <KpiCard label="Users" value={data.totalUsers} icon={LuUsers} />
         </div>
-        <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
           <KpiCard label="System users" value={data.systemUsers} icon={LuShieldCheck} />
         </div>
-        <div className="col-span-12 sm:col-span-6 xl:col-span-3">
+        <div className="col-span-12 sm:col-span-6 xl:col-span-4">
           <KpiCard label="Plans" value={data.plans} icon={LuCreditCard} />
         </div>
 
