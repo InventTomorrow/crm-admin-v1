@@ -8,7 +8,7 @@ import { Tabs } from '@/components/ui/tabs';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { SystemPermissions } from '@/lib/permissions';
 import { WhatsAppNumbersTable } from '@/features/whatsapp-numbers/components/WhatsAppNumbersTable';
-import { formatDate, formatFullName } from '@/lib/format';
+import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SUBSCRIPTION_STATUS_TONE, TENANT_STATUS_TONE } from '@/lib/statusTones';
 import type { TenantStatus } from '@/lib/types';
 import { RolePermissionsView } from './RolePermissionsView';
@@ -57,6 +57,12 @@ export function TenantDetailView() {
               <p className="mt-1 text-sm text-default-500">
                 Owner: {tenant.owner?.email ?? '—'} · {tenant._count.leads} leads ·{' '}
                 {tenant._count.products} products
+              </p>
+              <p className="mt-2 text-sm text-default-600">
+                Order revenue:{' '}
+                <span className="font-semibold text-default-800 tabular-nums">
+                  {formatMoneyPKR(tenant.revenue)}
+                </span>
               </p>
             </div>
             <PermissionGuard permission={SystemPermissions.TENANTS_STATUS_CHANGE}>

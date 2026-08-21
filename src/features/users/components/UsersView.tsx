@@ -1,6 +1,19 @@
+import { KpiCard } from '@/components/KpiCard';
+import { PageHeader } from '@/components/PageHeader';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { DataTable } from '@/components/ui/data-table';
+import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
+import { Select } from '@/components/ui/select';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
+import { SystemPermissions } from '@/lib/permissions';
+import { isOnPaidPlan } from '@/lib/plan';
+import type { SystemRole, UserListItem, UserSortField } from '@/lib/types';
+import { useDebounce } from '@/lib/useDebounce';
+import type { ColumnDef, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import type { SortingState } from '@tanstack/react-table';
 import {
   LuBuilding2,
   LuDownload,
@@ -12,23 +25,6 @@ import {
   LuUser,
   LuUsers,
 } from 'react-icons/lu';
-import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
-import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { DataTable } from '@/components/ui/data-table';
-import { KpiCard } from '@/components/KpiCard';
-import { PageHeader } from '@/components/PageHeader';
-import { Badge } from '@/components/ui/badge';
-import { usePermissions } from '@/features/auth/auth.hooks';
-import { SystemPermissions } from '@/lib/permissions';
-import { formatDate, formatFullName } from '@/lib/format';
-import { isOnPaidPlan } from '@/lib/plan';
-import type { SystemRole, UserListItem, UserSortField } from '@/lib/types';
-import { useDebounce } from '@/lib/useDebounce';
-import { CreateUserDialog } from './CreateUserDialog';
-import { UserAvatar } from './UserAvatar';
-import { UserDetailSheet } from './UserDetailSheet';
 import {
   useBulkDeleteUsers,
   useDeleteUser,
@@ -38,12 +34,22 @@ import {
   useUsers,
   useWipeUserWorkspaces,
 } from '../users.hooks';
+import { CreateUserDialog } from './CreateUserDialog';
+import { UserAvatar } from './UserAvatar';
+import { UserDetailSheet } from './UserDetailSheet';
 
 type UserTypeFilter = 'all' | 'system' | 'crm';
 type UserStatusFilter = 'active' | 'deleted' | 'all';
 
 /** Column ids double as the server's sort keys, so the two can never drift. */
-const SORTABLE_COLUMNS: UserSortField[] = ['name', 'email', 'phone', 'lastLoginAt'];
+const SORTABLE_COLUMNS: UserSortField[] = [
+  'name',
+  'email',
+  'phone',
+  'lastLoginAt',
+  'workspaces',
+  'revenue',
+];
 
 const ROLE_LABEL: Record<SystemRole, string> = {
   SYSTEM_ADMIN: 'System Admin',
@@ -68,9 +74,19 @@ export function UsersView() {
   ) as UserSortField;
   const sortOrder = activeSort?.desc === false ? 'asc' : 'desc';
 
-  const listFilters = { type: typeFilter, status: statusFilter, search, sortBy, sortOrder } as const;
+  const listFilters = {
+    type: typeFilter,
+    status: statusFilter,
+    search,
+    sortBy,
+    sortOrder,
+  } as const;
 
-  const { data, isLoading, isError, error, refetch } = useUsers({ ...listFilters, page, limit: pageSize });
+  const { data, isLoading, isError, error, refetch } = useUsers({
+    ...listFilters,
+    page,
+    limit: pageSize,
+  });
   const roleMutation = useSetSystemRole();
   const deleteMutation = useDeleteUser();
   const restoreMutation = useRestoreUser();
@@ -156,10 +172,21 @@ export function UsersView() {
         id: 'workspaces',
         accessorFn: user => user._count.memberships,
         header: 'Workspaces',
-        // Relation counts aren't orderable in the database, so this column
-        // stays unsorted rather than silently sorting only the visible page.
-        enableSorting: false,
         cell: ({ row }) => row.original._count.memberships,
+      },
+      {
+        // Matches the server's sort key; the field on the row is `ownedRevenue`.
+        id: 'revenue',
+        accessorFn: user => user.ownedRevenue,
+        header: 'Revenue',
+        cell: ({ row }) => (
+          <span
+            className="font-medium tabular-nums"
+            title="Order revenue across all workspaces this user owns"
+          >
+            {formatMoneyPKR(row.original.ownedRevenue)}
+          </span>
+        ),
       },
       {
         id: 'lastLoginAt',

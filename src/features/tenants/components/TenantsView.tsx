@@ -8,6 +8,7 @@ import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/features/auth/auth.hooks';
+import { formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { TENANT_STATUS_TONE } from '@/lib/statusTones';
 import type { TenantListItem, TenantStatus } from '@/lib/types';
@@ -66,6 +67,16 @@ export function TenantsView() {
         header: 'Plan',
         cell: ({ row }) =>
           row.original.activePlan?.name ?? <span className="text-default-500">—</span>,
+      },
+      {
+        id: 'revenue',
+        accessorFn: tenant => tenant.revenue,
+        header: 'Revenue',
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">
+            {formatMoneyPKR(row.original.revenue)}
+          </span>
+        ),
       },
       {
         id: 'members',

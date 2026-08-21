@@ -171,6 +171,9 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             {user._count.ownedTenants > 0 && (
               <Badge tone="info">Owns {user._count.ownedTenants}</Badge>
             )}
+            {user._count.ownedTenants > 0 && (
+              <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
+            )}
             {whatsappNumbers && whatsappNumbers.length > 0 && (
               <Badge tone="success">
                 {whatsappNumbers.filter(number => number.isActive).length} WhatsApp connected
@@ -341,6 +344,18 @@ export function UserDetailPanel({ userId }: { userId: string }) {
           </span>
         </SectionHeading>
 
+        {user._count.ownedTenants > 0 && (
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-default-200 bg-default-50 px-4 py-3">
+            <span className="text-xs font-medium uppercase tracking-wide text-default-400">
+              Total order revenue · {user._count.ownedTenants} owned workspace
+              {user._count.ownedTenants === 1 ? '' : 's'}
+            </span>
+            <span className="text-lg font-semibold tabular-nums text-default-800">
+              {formatMoneyPKR(user.ownedRevenue)}
+            </span>
+          </div>
+        )}
+
         {tenantRows.length > 0 && (
           <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-[1fr_10rem]">
             <Input
@@ -379,6 +394,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
               <thead className="bg-default-150">
                 <tr className="text-start text-sm font-normal text-default-700">
                   <th className="px-3.5 py-2 text-start">Workspace</th>
+                  <th className="px-3.5 py-2 text-start">Revenue</th>
                   <th className="px-3.5 py-2 text-start">Role</th>
                   <th className="px-3.5 py-2 text-start">Status</th>
                   <th className="px-3.5 py-2 text-start">Joined</th>
@@ -398,6 +414,15 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                           ? `${row.tenant.businessVertical} · ${row.owned._count.leads} leads · ${row.owned._count.products} products · ${row.owned._count.memberships} members`
                           : row.tenant.businessVertical}
                       </span>
+                    </td>
+                    {/* Revenue is only aggregated for workspaces this user
+                        owns — a plain membership carries no figure here. */}
+                    <td className="px-3.5 py-2.5 tabular-nums">
+                      {row.owned ? (
+                        formatMoneyPKR(row.owned.revenue)
+                      ) : (
+                        <span className="text-default-400">—</span>
+                      )}
                     </td>
                     <td className="px-3.5 py-2.5">
                       <span className="flex flex-wrap items-center gap-1.5">
