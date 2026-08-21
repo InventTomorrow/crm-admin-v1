@@ -65,12 +65,23 @@ export interface UserListItem {
   workspaceDataWipedAt: string | null;
   systemMembership: { role: SystemRole } | null;
   activeSubscription: ActiveSubscription | null;
+  /** Order revenue summed across every workspace this user owns. Their sales —
+   *  not what they pay us, which is `activeSubscription`. */
+  ownedRevenue: number;
   _count: { memberships: number; ownedTenants: number };
 }
 
 /** Columns the users list can be ordered by. Sorting happens server-side, so it
- *  spans every matching row rather than reordering the current page. */
-export type UserSortField = 'name' | 'email' | 'phone' | 'createdAt' | 'lastLoginAt';
+ *  spans every matching row rather than reordering the current page —
+ *  `workspaces` and `revenue` included, which the service ranks itself. */
+export type UserSortField =
+  | 'name'
+  | 'email'
+  | 'phone'
+  | 'createdAt'
+  | 'lastLoginAt'
+  | 'workspaces'
+  | 'revenue';
 
 export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
   systemMembership: { role: SystemRole; createdAt: string } | null;
@@ -111,6 +122,8 @@ export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
     businessVertical: BusinessVertical;
     createdAt: string;
     suspendedByUserDeletion: boolean;
+    /** This workspace's own order revenue. */
+    revenue: number;
     _count: { leads: number; memberships: number; products: number };
   }[];
 }
@@ -125,6 +138,9 @@ export interface TenantListItem {
   createdAt: string;
   owner: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
   activePlan: { id: string; name: string; tier: PlanTier } | null;
+  /** Booked order revenue for this workspace — excludes cancelled, refunded
+   *  and draft orders, matching the figure its owner sees in the CRM. */
+  revenue: number;
   _count: { memberships: number; leads: number };
 }
 
@@ -228,6 +244,28 @@ export interface Plan {
   totalSubscriberCount?: number;
 }
 
+/** The gap between the plan's price and what was collected for it. */
+export interface SubscriptionDiscount {
+  /** Currency units below the plan price — always greater than zero. */
+  amount: number;
+  /** Rounded, for the badge: 2,000 off a 5,000 plan reads as 40. */
+  percent: number;
+  /** A promo campaign, or whatever the admin typed. Null when nobody recorded one. */
+  reason: string | null;
+}
+
+/** What a subscription was quoted at versus what actually came in. */
+export interface SubscriptionBilling {
+  /** The plan's price when this subscription was bought, not today's price. */
+  planPrice: number;
+  /** Null when no payment was ever recorded against the subscription. */
+  paidAmount: number | null;
+  currency: string;
+  paidAt: string | null;
+  method: string | null;
+  discount: SubscriptionDiscount | null;
+}
+
 export interface Subscription {
   id: string;
   // Subscriptions belong to the CRM account owner; one covers every workspace
@@ -243,12 +281,50 @@ export interface Subscription {
   plan?: { id: string; name: string; tier: PlanTier; price: number; currency: string };
 }
 
+/**
+ * A subscription as the admin Subscriptions screen sees it. The tenant detail
+ * endpoint returns the bare `Subscription` — only the subscriptions endpoints
+ * price the row, so only they promise `billing`.
+ */
+export interface SubscriptionListItem extends Subscription {
+  billing: SubscriptionBilling;
+}
+
+/** Columns the subscriptions list can be ordered by — all server-side. */
+export type SubscriptionSortField =
+  | 'createdAt'
+  | 'status'
+  | 'currentPeriodEnd'
+  | 'account'
+  | 'plan'
+  | 'price'
+  | 'paid';
+
+/** Platform revenue — what subscribers pay us. Never workspace order revenue. */
+export interface SubscriptionRevenue {
+  /** All-time subscription payments received. */
+  collected: number;
+  /** How many payments make up `collected`. */
+  payments: number;
+  /** Recurring value of every live subscription, at current plan prices. */
+  mrr: number;
+  activeSubscriptions: number;
+}
+
 export interface Metrics {
   totalUsers: number;
   systemUsers: number;
   tenantsByStatus: { status: TenantStatus; _count: { _all: number } }[];
   activeSubscriptions: number;
+  /** Recurring value of every live subscription — a snapshot, not range-scoped. */
   mrr: number;
+  /** Subscription payments banked inside the selected range. Plan money only —
+   *  workspace order sales are never mixed in. */
+  subscriptionRevenue: number;
+  /** How many payments make up `subscriptionRevenue`. */
+  subscriptionPayments: number;
+  /** All-time subscription payments, independent of the range. */
+  lifetimeSubscriptionRevenue: number;
   plans: number;
   range: { from: string; to: string };
   newTenants: number;
@@ -322,5 +398,12 @@ export interface BlogPostDetail extends BlogPostListItem {
   seoTitle: string | null;
   seoDescription: string | null;
   categoryId: string;
-  author?: { id: string; name: string; slug: string; title: string | null; bio: string | null; avatarUrl: string | null } | null;
+  author?: {
+    id: string;
+    name: string;
+    slug: string;
+    title: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+  } | null;
 }

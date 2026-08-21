@@ -12,6 +12,7 @@ const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
 const Subscriptions = lazy(() => import('@/app/(admin)/subscriptions'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
+const PaymentAccounts = lazy(() => import('@/app/(admin)/payment-accounts'));
 const Blog = lazy(() => import('@/app/(admin)/blog'));
 const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
 const BlogPostEdit = lazy(() => import('@/app/(admin)/blog/edit'));
@@ -93,6 +94,14 @@ export const appRoutes: AppRoute[] = [
     name: 'CheckoutLinks',
     element: <CheckoutLinks />,
     permission: SystemPermissions.CHECKOUT_LINKS_VIEW,
+  },
+  // Deliberately absent from the sidebar — reached from the Subscriptions page,
+  // since it is configuration rather than day-to-day work.
+  {
+    path: '/payment-accounts',
+    name: 'PaymentAccounts',
+    element: <PaymentAccounts />,
+    permission: SystemPermissions.SETTINGS_VIEW,
   },
   { path: '/blog', name: 'Blog', element: <Blog />, permission: SystemPermissions.BLOG_VIEW },
   {
