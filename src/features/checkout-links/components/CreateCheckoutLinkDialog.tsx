@@ -11,7 +11,11 @@ import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
 import { listPlans } from '@/features/plans/plans.api';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
-import { formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
+import {
+  formatPlanPeriod,
+  formatPlanPeriodCountLabel,
+  formatPlanPrice,
+} from '@/lib/planFormat';
 import { useCreateCheckoutLink } from '../links.hooks';
 import { createCheckoutLinkSchema, type CreateCheckoutLinkFormValues } from '../types';
 import { Button } from '@/components/ui/button';
@@ -33,6 +37,7 @@ export function CreateCheckoutLinkDialog() {
     defaultValues: {
       planId: '',
       ownerUserId: '',
+      periodCount: 1,
       customerName: '',
       customerEmail: '',
       customerPhone: '',
@@ -43,6 +48,15 @@ export function CreateCheckoutLinkDialog() {
 
   const plansQuery = useQuery({ queryKey: ['plans'], queryFn: listPlans, enabled: open });
   const plans = plansQuery.data ?? [];
+
+  // The customer is quoted the whole span, so the admin sees that total here
+  // rather than the per-period price the plan dropdown shows.
+  const watchedPlanId = form.watch('planId');
+  const watchedPeriodCount = form.watch('periodCount');
+  const selectedPlan = plans.find(plan => plan.id === watchedPlanId) ?? null;
+  const countLabel = selectedPlan ? formatPlanPeriodCountLabel(selectedPlan.duration) : 'Periods';
+  const totalDue =
+    selectedPlan && watchedPeriodCount > 0 ? selectedPlan.price * watchedPeriodCount : null;
 
   const closeAndReset = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -62,6 +76,7 @@ export function CreateCheckoutLinkDialog() {
     createLinkMutation.mutate(
       {
         planId: values.planId,
+        periodCount: values.periodCount,
         // The link belongs to the CRM account owner (server contract) — not a
         // workspace. Fixed from the old admin, which sent an unknown tenantId
         // field the API silently dropped.
@@ -145,32 +160,68 @@ export function CreateCheckoutLinkDialog() {
                 </Select>
               </Field>
 
+              <Controller
+                control={form.control}
+                name="periodCount"
+                render={({ field, fieldState }) => (
+                  <Field
+                    label={`${countLabel} sold`}
+                    error={fieldState.error?.message}
+                    hint={
+                      totalDue !== null && selectedPlan
+                        ? `The customer is asked to transfer ${formatPlanPrice(
+                            totalDue,
+                            selectedPlan.currency
+                          )} in total.`
+                        : 'How many plan periods this link sells.'
+                    }
+                  >
+                    <Input
+                      type="number"
+                      min={1}
+                      max={60}
+                      step={1}
+                      invalid={!!fieldState.error}
+                      value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={event =>
+                        field.onChange(
+                          Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
+                        )
+                      }
+                    />
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="expiresInDays"
+                render={({ field, fieldState }) => (
+                  <Field
+                    label="Link expires in (days)"
+                    error={fieldState.error?.message}
+                    hint="How long the customer has to open this link — not the subscription length."
+                  >
+                    <Input
+                      type="number"
+                      min={1}
+                      max={90}
+                      invalid={!!fieldState.error}
+                      value={Number.isNaN(field.value) ? '' : field.value}
+                      onChange={event =>
+                        field.onChange(
+                          Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
+                        )
+                      }
+                    />
+                  </Field>
+                )}
+              />
+
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Customer name">
                   <Input placeholder="Optional prefill" {...form.register('customerName')} />
                 </Field>
-                <Controller
-                  control={form.control}
-                  name="expiresInDays"
-                  render={({ field, fieldState }) => (
-                    <Field label="Expires in (days)" error={fieldState.error?.message}>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={90}
-                        invalid={!!fieldState.error}
-                        value={Number.isNaN(field.value) ? '' : field.value}
-                        onChange={event =>
-                          field.onChange(
-                            Number.isNaN(event.target.valueAsNumber)
-                              ? 0
-                              : event.target.valueAsNumber
-                          )
-                        }
-                      />
-                    </Field>
-                  )}
-                />
                 <Field label="Email" error={errors.customerEmail?.message}>
                   <Input
                     type="email"

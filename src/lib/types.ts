@@ -274,6 +274,7 @@ export interface Subscription {
   planId: string;
   status: SubscriptionStatus;
   trialEndsAt: string | null;
+  currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelledAt: string | null;
   createdAt: string;

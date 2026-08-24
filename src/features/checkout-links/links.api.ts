@@ -13,6 +13,8 @@ export interface CheckoutLink {
   url: string;
   planId: string;
   ownerUserId: string | null;
+  /** Plan periods sold by this link. Null on links minted before multi-period selling. */
+  periodCount: number | null;
   status: CheckoutLinkStatus;
   source: CheckoutLinkSource;
   customerName: string | null;
@@ -47,6 +49,7 @@ export async function listCheckoutLinks(params: {
 export async function createCheckoutLink(input: {
   planId: string;
   ownerUserId?: string;
+  periodCount: number;
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
