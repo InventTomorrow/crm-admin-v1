@@ -25,6 +25,15 @@ export async function updatePaymentAccount(
   return data.data;
 }
 
+/** Takes every account id in the order they should appear on checkout. */
+export async function reorderPaymentAccounts(ids: string[]): Promise<PaymentAccount[]> {
+  const { data } = await apiClient.patch<ApiEnvelope<PaymentAccount[]>>(
+    '/admin/payment-accounts/reorder',
+    { ids }
+  );
+  return data.data;
+}
+
 export async function deletePaymentAccount(id: string): Promise<void> {
   await apiClient.delete(`/admin/payment-accounts/${id}`);
 }

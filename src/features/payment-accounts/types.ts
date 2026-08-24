@@ -16,7 +16,6 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 /** A bank / wallet account, as the admin API returns it. */
 export interface PaymentAccount {
   id: string;
-  label: string;
   method: PaymentMethod;
   accountTitle: string;
   accountNumber: string;
@@ -56,6 +55,24 @@ function isAccountNumberValidForMethod(method: PaymentMethod, accountNumber: str
   return HANDLE_PATTERN.test(accountNumber) && accountNumber.trim().length >= 3;
 }
 
+/** A transfer can't be made without the institution — cash and "other" have none. */
+export function isBankNameRequiredFor(method: PaymentMethod): boolean {
+  return method === 'BANK_TRANSFER' || method === 'EASYPAISA' || method === 'JAZZCASH';
+}
+
+/** Wallets have a provider, not a bank — the field is the same, the wording isn't. */
+export const BANK_NAME_FIELD_LABEL: Record<PaymentMethod, string> = {
+  BANK_TRANSFER: 'Bank name',
+  EASYPAISA: 'Wallet provider',
+  JAZZCASH: 'Wallet provider',
+  CASH: 'Bank name',
+  OTHER: 'Bank name',
+};
+
+/** How the account is titled in the admin list and on the checkout page. */
+export const accountDisplayName = (account: PaymentAccount): string =>
+  account.bankName ?? PAYMENT_METHOD_LABELS[account.method] ?? account.method;
+
 const ACCOUNT_NUMBER_MESSAGE: Record<PaymentMethod, string> = {
   BANK_TRANSFER: 'Account number must be 6–24 digits — spaces and hyphens allowed, letters are not',
   EASYPAISA: 'Enter the wallet mobile number, e.g. 03001234567',
@@ -71,13 +88,6 @@ const ACCOUNT_NUMBER_MESSAGE: Record<PaymentMethod, string> = {
  */
 export const paymentAccountSchema = z
   .object({
-    label: z
-      .string()
-      .trim()
-      .min(2, 'Label must be at least 2 characters')
-      .max(80, 'Label must be 80 characters or fewer')
-      .regex(NAME_PATTERN, 'Label contains unsupported characters')
-      .refine(value => /[A-Za-z]/.test(value), 'Label must contain letters'),
     method: z.enum(PAYMENT_METHODS),
     accountTitle: z
       .string()
@@ -122,26 +132,29 @@ export const paymentAccountSchema = z
       .max(500, 'Note must be 500 characters or fewer')
       .refine(value => value === '' || value.length >= 5, 'Note must be at least 5 characters'),
     isActive: z.boolean(),
-    sortOrder: z
-      .number({ message: 'Enter a display order' })
-      .int('Display order must be a whole number')
-      .min(0, 'Display order cannot be negative')
-      .max(999, 'Display order must be 999 or less'),
   })
   .superRefine((values, ctx) => {
-    if (isAccountNumberValidForMethod(values.method, values.accountNumber)) return;
-    ctx.addIssue({
-      code: 'custom',
-      path: ['accountNumber'],
-      message: ACCOUNT_NUMBER_MESSAGE[values.method],
-    });
+    if (!isAccountNumberValidForMethod(values.method, values.accountNumber)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['accountNumber'],
+        message: ACCOUNT_NUMBER_MESSAGE[values.method],
+      });
+    }
+
+    if (isBankNameRequiredFor(values.method) && !values.bankName) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['bankName'],
+        message: `${BANK_NAME_FIELD_LABEL[values.method]} is required — the customer needs it to make the transfer`,
+      });
+    }
   });
 
 export type PaymentAccountFormValues = z.infer<typeof paymentAccountSchema>;
 
 /** Payload shape both create and update take — empty optionals become null. */
 export interface PaymentAccountInput {
-  label: string;
   method: PaymentMethod;
   accountTitle: string;
   accountNumber: string;
@@ -150,5 +163,4 @@ export interface PaymentAccountInput {
   branchCode: string | null;
   instructions: string | null;
   isActive: boolean;
-  sortOrder: number;
 }

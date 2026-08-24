@@ -2,6 +2,8 @@ import { useState } from 'react';
 import {
   LuArrowLeft,
   LuBuilding,
+  LuChevronDown,
+  LuChevronUp,
   LuEye,
   LuEyeOff,
   LuPlus,
@@ -16,14 +18,19 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
-import { useDeletePaymentAccount, usePaymentAccounts } from '../accounts.hooks';
+import {
+  useDeletePaymentAccount,
+  usePaymentAccounts,
+  useReorderPaymentAccounts,
+} from '../accounts.hooks';
 import { maskAccountNumber } from '../mask';
-import { PAYMENT_METHOD_LABELS, type PaymentAccount } from '../types';
+import { accountDisplayName, PAYMENT_METHOD_LABELS, type PaymentAccount } from '../types';
 import { PaymentAccountForm } from './PaymentAccountForm';
 
 export function PaymentAccountsView() {
   const { data: accounts = [], isLoading } = usePaymentAccounts();
   const deleteMutation = useDeletePaymentAccount();
+  const reorderMutation = useReorderPaymentAccounts();
   const { can } = usePermissions();
   const canEditSettings = can(SystemPermissions.SETTINGS_EDIT);
 
@@ -35,6 +42,19 @@ export function PaymentAccountsView() {
     setAccountBeingEdited(account);
     setIsFormOpen(true);
   };
+
+  // The list is already in display order, so a move is a swap with the
+  // neighbour — the server rewrites sortOrder from the ids it receives.
+  const moveAccount = (index: number, offset: -1 | 1) => {
+    const targetIndex = index + offset;
+    if (targetIndex < 0 || targetIndex >= accounts.length) return;
+
+    const orderedIds = accounts.map(account => account.id);
+    [orderedIds[index], orderedIds[targetIndex]] = [orderedIds[targetIndex], orderedIds[index]];
+    reorderMutation.mutate(orderedIds);
+  };
+
+  const canReorder = canEditSettings && accounts.length > 1;
 
   return (
     <>
@@ -87,67 +107,100 @@ export function PaymentAccountsView() {
         </div>
       )}
 
+      {canReorder && (
+        <p className="mb-3 text-xs text-default-500">
+          Customers see the accounts in this order — use the arrows to change it.
+        </p>
+      )}
+
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {accounts.map(account => (
-          <div key={account.id} className="card">
-            <div className="card-body">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h5 className="truncate font-medium text-default-800">{account.label}</h5>
-                    <Badge tone={account.isActive ? 'success' : 'neutral'}>
-                      {account.isActive ? 'Live on checkout' : 'Hidden'}
-                    </Badge>
+        {accounts.map((account, index) => {
+          const displayName = accountDisplayName(account);
+
+          return (
+            <div key={account.id} className="card">
+              <div className="card-body">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h5 className="truncate font-medium text-default-800">{displayName}</h5>
+                      <Badge tone={account.isActive ? 'success' : 'neutral'}>
+                        {account.isActive ? 'Live on checkout' : 'Hidden'}
+                      </Badge>
+                    </div>
+                    <p className="mt-0.5 text-xs text-default-400">
+                      {PAYMENT_METHOD_LABELS[account.method] ?? account.method}
+                    </p>
                   </div>
-                  <p className="mt-0.5 text-xs text-default-400">
-                    {PAYMENT_METHOD_LABELS[account.method] ?? account.method}
-                    {account.bankName ? ` · ${account.bankName}` : ''}
-                  </p>
+
+                  {canEditSettings && (
+                    <div className="flex shrink-0 items-center gap-1">
+                      {canReorder && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Move ${displayName} up`}
+                            disabled={index === 0 || reorderMutation.isPending}
+                            onClick={() => moveAccount(index, -1)}
+                          >
+                            <LuChevronUp className="size-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Move ${displayName} down`}
+                            disabled={index === accounts.length - 1 || reorderMutation.isPending}
+                            onClick={() => moveAccount(index, 1)}
+                          >
+                            <LuChevronDown className="size-4" />
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Edit ${displayName}`}
+                        onClick={() => openForm(account)}
+                      >
+                        <LuSquarePen className="size-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Delete ${displayName}`}
+                        onClick={() => setAccountPendingDeletion(account)}
+                      >
+                        <LuTrash2 className="size-4 text-danger" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
-                {canEditSettings && (
-                  <div className="flex shrink-0 items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Edit ${account.label}`}
-                      onClick={() => openForm(account)}
-                    >
-                      <LuSquarePen className="size-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label={`Delete ${account.label}`}
-                      onClick={() => setAccountPendingDeletion(account)}
-                    >
-                      <LuTrash2 className="size-4 text-danger" />
-                    </Button>
-                  </div>
+                <dl className="mt-4 space-y-2 text-sm">
+                  <DetailRow label="Account title" value={account.accountTitle} />
+                  <DetailRow label="Account number" value={account.accountNumber} sensitive />
+                  {account.iban && <DetailRow label="IBAN" value={account.iban} sensitive />}
+                  {account.branchCode && (
+                    <DetailRow label="Branch code" value={account.branchCode} />
+                  )}
+                </dl>
+
+                {account.instructions && (
+                  <p className="mt-3 rounded-lg bg-default-50 p-3 text-xs text-default-500">
+                    {account.instructions}
+                  </p>
                 )}
               </div>
-
-              <dl className="mt-4 space-y-2 text-sm">
-                <DetailRow label="Account title" value={account.accountTitle} />
-                <DetailRow label="Account number" value={account.accountNumber} sensitive />
-                {account.iban && <DetailRow label="IBAN" value={account.iban} sensitive />}
-                {account.branchCode && <DetailRow label="Branch code" value={account.branchCode} />}
-              </dl>
-
-              {account.instructions && (
-                <p className="mt-3 rounded-lg bg-default-50 p-3 text-xs text-default-500">
-                  {account.instructions}
-                </p>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <ConfirmDialog
         open={!!accountPendingDeletion}
         onOpenChange={open => !open && setAccountPendingDeletion(null)}
-        title={`Delete "${accountPendingDeletion?.label ?? ''}"?`}
+        title={`Delete "${accountPendingDeletion ? accountDisplayName(accountPendingDeletion) : ''}"?`}
         description="Customers will no longer see this account on the checkout page. This cannot be undone."
         isLoading={deleteMutation.isPending}
         onConfirm={() => {
