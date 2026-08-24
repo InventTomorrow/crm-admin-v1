@@ -10,7 +10,7 @@ import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
 import { listPlans } from '@/features/plans/plans.api';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
-import { formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
+import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@/lib/planFormat';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '../subscriptions.api';
 import { useCreateSubscription } from '../subscriptions.hooks';
 import { createSubscriptionSchema, type CreateSubscriptionFormValues } from '../types';
@@ -31,6 +31,7 @@ export function CreateSubscriptionDialog() {
     defaultValues: {
       ownerUserId: '',
       planId: '',
+      periodCount: 1,
       method: 'BANK_TRANSFER',
       amount: NaN as unknown as number,
       reference: '',
@@ -43,17 +44,24 @@ export function CreateSubscriptionDialog() {
 
   const ownerUserId = form.watch('ownerUserId');
   const planId = form.watch('planId');
+  const periodCount = form.watch('periodCount');
   const amount = form.watch('amount');
   const selectedPlan = plans.find(plan => plan.id === planId);
+  const countLabel = selectedPlan ? formatPlanPeriodCountLabel(selectedPlan.duration) : 'Periods';
+
+  // The plan is priced per period, so buying several at once is due the whole
+  // span — the same total the server checks the payment against.
+  const totalDue = selectedPlan && periodCount > 0 ? selectedPlan.price * periodCount : null;
+
   // Charging under the list price is allowed, but it has to be accounted for —
   // the server rejects an unexplained shortfall no live campaign covers.
-  const isDiscounted = !!selectedPlan && !Number.isNaN(amount) && amount < selectedPlan.price;
+  const isDiscounted = totalDue !== null && !Number.isNaN(amount) && amount < totalDue;
 
-  // Default the amount to the plan's price; the admin can still override it
+  // Default the amount to what the span costs; the admin can still override it
   // if they collected a different figure.
   useEffect(() => {
-    if (selectedPlan) form.setValue('amount', selectedPlan.price);
-  }, [selectedPlan, form]);
+    if (totalDue !== null) form.setValue('amount', totalDue);
+  }, [totalDue, form]);
 
   const closeAndReset = (nextOpen: boolean) => {
     setOpen(nextOpen);
@@ -69,6 +77,7 @@ export function CreateSubscriptionDialog() {
       {
         ownerUserId: values.ownerUserId,
         planId: values.planId,
+        periodCount: values.periodCount,
         payment: {
           method: values.method,
           amount: values.amount,
@@ -128,6 +137,40 @@ export function CreateSubscriptionDialog() {
               ))}
             </Select>
           </Field>
+
+          <Controller
+            control={form.control}
+            name="periodCount"
+            render={({ field, fieldState }) => (
+              <Field
+                label={`${countLabel} bought`}
+                error={fieldState.error?.message}
+                hint={
+                  totalDue !== null && selectedPlan
+                    ? `Grants ${periodCount} × ${formatPlanPeriod(
+                        selectedPlan.duration,
+                        selectedPlan.customDurationDays
+                      )} for ${formatPlanPrice(totalDue, selectedPlan.currency)} in total.`
+                    : 'How many plan periods this payment covers.'
+                }
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={60}
+                  step={1}
+                  disabled={!planId}
+                  invalid={!!fieldState.error}
+                  value={Number.isNaN(field.value) ? '' : field.value}
+                  onChange={event =>
+                    field.onChange(
+                      Number.isNaN(event.target.valueAsNumber) ? 0 : event.target.valueAsNumber
+                    )
+                  }
+                />
+              </Field>
+            )}
+          />
 
           <div>
             <span className="form-label mb-2 block text-sm font-medium text-default-700">
