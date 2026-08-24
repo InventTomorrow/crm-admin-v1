@@ -56,6 +56,21 @@ const ROLE_LABEL: Record<SystemRole, string> = {
   SYSTEM_MANAGER: 'System Manager',
 };
 
+/**
+ * Confirmation copy for closing an account. The workspace fallout leads, since
+ * that is the part the admin cannot see from the row they clicked.
+ */
+function deletionWarning(user: UserListItem | null): string {
+  const ownedCount = user?._count.ownedTenants ?? 0;
+  const workspaceFallout =
+    ownedCount > 0
+      ? `The ${ownedCount} workspace${ownedCount === 1 ? '' : 's'} this user owns ${
+          ownedCount === 1 ? 'is' : 'are'
+        } suspended along with the account — every member loses access and any connected WhatsApp number is dropped. `
+      : '';
+  return `${workspaceFallout}Nothing is erased: the account and its workspaces stay restorable until the purge date, after which the closure is permanent.`;
+}
+
 export function UsersView() {
   const [typeFilter, setTypeFilter] = useState<UserTypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('active');
@@ -319,7 +334,7 @@ export function UsersView() {
         open={!!userPendingDeletion}
         onOpenChange={open => !open && setUserPendingDeletion(null)}
         title={`Delete ${userPendingDeletion?.email}?`}
-        description="The account is closed and can only be restored until its purge date."
+        description={deletionWarning(userPendingDeletion)}
         confirmLabel="Delete user"
         onConfirm={() => {
           if (userPendingDeletion) deleteMutation.mutate(userPendingDeletion.id);
@@ -391,7 +406,7 @@ export function UsersView() {
         open={!!bulkDeletePending}
         onOpenChange={open => !open && setBulkDeletePending(null)}
         title={`Delete ${bulkDeletePending?.ids.length ?? 0} user(s)?`}
-        description="Accounts that own a workspace are skipped — reassign or delete those workspaces first. This cannot be undone."
+        description="Each account is closed together with the workspaces it owns — their members lose access and connected WhatsApp numbers are dropped. Nothing is erased; all of it stays restorable until each account's purge date. Accounts that are already closed are skipped."
         confirmLabel={`Delete ${bulkDeletePending?.ids.length ?? 0} user(s)`}
         onConfirm={() => {
           if (bulkDeletePending) {

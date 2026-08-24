@@ -62,8 +62,9 @@ export function useBulkDeleteUsers() {
     mutationFn: (ids: string[]) => bulkDeleteUsers(ids),
     onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
-      if (result.deleted > 0) toast.success(`${result.deleted} user(s) deleted`);
-      // Owned-workspace and self-delete guards reject individual rows; surface
+      qc.invalidateQueries({ queryKey: ['tenants'] });
+      if (result.deleted > 0) toast.success(`${result.deleted} account(s) closed`);
+      // Self-delete and already-closed guards reject individual rows; surface
       // the first reason rather than silently dropping them from the count.
       if (result.failed > 0) {
         toast.error(`${result.failed} skipped — ${result.failures[0]?.reason ?? 'not deletable'}`);
@@ -101,9 +102,17 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => deleteUser(id),
-    onSuccess: () => {
+    onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User deleted');
+      // The deletion suspends the owned workspaces too, so the tenants list is
+      // stale the moment this returns.
+      qc.invalidateQueries({ queryKey: ['tenants'] });
+      const suspended = result.suspendedWorkspaces.length;
+      toast.success(
+        suspended > 0
+          ? `Account closed — ${suspended} workspace(s) suspended`
+          : 'Account closed'
+      );
     },
     onError: error => toast.error(apiMessage(error)),
   });

@@ -92,8 +92,16 @@ export async function setSystemRole(id: string, systemRole: SystemRole | null) {
   await apiClient.patch(`/admin/users/${id}/system-role`, { systemRole });
 }
 
-export async function deleteUser(id: string) {
-  await apiClient.delete(`/admin/users/${id}`);
+export interface DeleteUserResult {
+  /** Deadline for restoring the account and the workspaces it took down. */
+  scheduledPurgeAt: string;
+  /** Names of the owned workspaces suspended alongside the account. */
+  suspendedWorkspaces: string[];
+}
+
+export async function deleteUser(id: string): Promise<DeleteUserResult> {
+  const { data } = await apiClient.delete<ApiEnvelope<DeleteUserResult>>(`/admin/users/${id}`);
+  return data.data;
 }
 
 /** Reverses a user-initiated deletion, along with the workspaces it closed. */
