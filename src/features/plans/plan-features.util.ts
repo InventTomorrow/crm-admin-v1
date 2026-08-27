@@ -29,12 +29,19 @@ function catalogBullet(values: PlanFormValues): string | null {
       return isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null;
     case 'MARKETING_AGENCY':
       return isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null;
+    case 'HEALTHCARE':
+      return isIncluded(values.maxClinicalServices)
+        ? count(values.maxClinicalServices, 'clinical service')
+        : null;
     default:
-      // A universal plan carries all three counts, so name each one.
+      // A universal plan carries every count, so name each one.
       return [
         isIncluded(values.maxProducts) ? count(values.maxProducts, 'product') : null,
         isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null,
         isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null,
+        isIncluded(values.maxClinicalServices)
+          ? count(values.maxClinicalServices, 'clinical service')
+          : null,
       ]
         .filter(Boolean)
         .join(' · ') || null;
@@ -79,5 +86,6 @@ export function featureSourceSignature(values: PlanFormValues): string {
     values.maxProducts,
     values.maxMenuItems,
     values.maxServices,
+    values.maxClinicalServices,
   ].join('|');
 }

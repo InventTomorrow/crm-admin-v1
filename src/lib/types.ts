@@ -181,7 +181,11 @@ export interface TenantDetail extends Omit<TenantListItem, '_count'> {
   _count: { leads: number; products: number; channels: number };
 }
 
-export type BusinessVertical = 'ECOMMERCE' | 'RESTAURANT' | 'MARKETING_AGENCY';
+export type BusinessVertical =
+  | 'ECOMMERCE'
+  | 'RESTAURANT'
+  | 'MARKETING_AGENCY'
+  | 'HEALTHCARE';
 
 export type PlanDuration =
   | 'DAYS_3'
@@ -199,8 +203,8 @@ export interface Plan {
   tier: PlanTier;
   isSystem: boolean;
 
-  // Null = universal plan (carries all three catalogue counts, offered to
-  // every vertical). Non-null = scoped to that vertical only.
+  // Null = universal plan (carries every catalogue count, offered to every
+  // vertical). Non-null = scoped to that vertical only.
   businessVertical: BusinessVertical | null;
 
   maxWorkspaces: number;
@@ -210,6 +214,7 @@ export interface Plan {
   maxProducts: number | null;
   maxMenuItems: number | null;
   maxServices: number | null;
+  maxClinicalServices: number | null;
 
   maxMonthlyMessages: number;
   maxImageMessages: number;

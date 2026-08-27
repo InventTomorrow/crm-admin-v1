@@ -62,6 +62,9 @@ export function getPlanFormProgress(values: PlanFormProgressValues): PlanFormPro
     ...(vertical === UNIVERSAL || vertical === 'MARKETING_AGENCY'
       ? [isNumberFilled(values.maxServices)]
       : []),
+    ...(vertical === UNIVERSAL || vertical === 'HEALTHCARE'
+      ? [isNumberFilled(values.maxClinicalServices)]
+      : []),
   ];
 
   const sectionChecks: { id: string; title: string; checks: boolean[] }[] = [

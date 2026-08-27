@@ -331,6 +331,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 <option value="ECOMMERCE">Online store / retail</option>
                 <option value="RESTAURANT">Restaurant / food service</option>
                 <option value="MARKETING_AGENCY">Marketing agency</option>
+                <option value="HEALTHCARE">Healthcare / clinic</option>
               </Select>
             </Field>
 
@@ -577,6 +578,15 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                   control={form.control}
                   name="maxServices"
                   label="Services"
+                  placeholder="e.g. 50"
+                  allowUnlimited
+                />
+              )}
+              {(vertical === UNIVERSAL || vertical === 'HEALTHCARE') && (
+                <NumberField
+                  control={form.control}
+                  name="maxClinicalServices"
+                  label="Clinical services"
                   placeholder="e.g. 50"
                   allowUnlimited
                 />

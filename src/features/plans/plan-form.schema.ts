@@ -50,6 +50,7 @@ export const planFormSchema = z
     maxProducts: limitInt(),
     maxMenuItems: limitInt(),
     maxServices: limitInt(),
+    maxClinicalServices: limitInt(),
 
     maxMonthlyMessages: limitInt(),
     maxImageMessages: limitInt(),
@@ -170,6 +171,7 @@ export const emptyPlanDefaults = (): PlanFormValues => ({
   maxProducts: 100,
   maxMenuItems: 100,
   maxServices: 100,
+  maxClinicalServices: 100,
   maxMonthlyMessages: 1000,
   maxImageMessages: 200,
   maxVoiceMessages: 200,
@@ -200,6 +202,7 @@ export const planToFormValues = (plan: Plan): PlanFormValues => ({
   maxProducts: plan.maxProducts ?? 0,
   maxMenuItems: plan.maxMenuItems ?? 0,
   maxServices: plan.maxServices ?? 0,
+  maxClinicalServices: plan.maxClinicalServices ?? 0,
   maxMonthlyMessages: plan.maxMonthlyMessages,
   maxImageMessages: plan.maxImageMessages,
   maxVoiceMessages: plan.maxVoiceMessages,
@@ -231,6 +234,8 @@ export const formValuesToPlanInput = (v: PlanFormValues, existingPlan?: Plan): P
       businessVertical === null || businessVertical === 'RESTAURANT' ? v.maxMenuItems : null,
     maxServices:
       businessVertical === null || businessVertical === 'MARKETING_AGENCY' ? v.maxServices : null,
+    maxClinicalServices:
+      businessVertical === null || businessVertical === 'HEALTHCARE' ? v.maxClinicalServices : null,
     maxMonthlyMessages: v.maxMonthlyMessages,
     maxImageMessages: v.maxImageMessages,
     maxVoiceMessages: v.maxVoiceMessages,
