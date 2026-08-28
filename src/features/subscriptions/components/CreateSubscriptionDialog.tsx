@@ -1,20 +1,20 @@
-import { useEffect, useState } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
-import { Controller, useForm } from 'react-hook-form';
-import { LuLoaderCircle, LuPlus } from 'react-icons/lu';
+import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
-import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
+import type { SearchSelectOption } from '@/components/ui/search-select';
+import { Select } from '@/components/ui/select';
 import { listPlans } from '@/features/plans/plans.api';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
 import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@/lib/planFormat';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { LuLoaderCircle, LuPlus } from 'react-icons/lu';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '../subscriptions.api';
 import { useCreateSubscription } from '../subscriptions.hooks';
 import { createSubscriptionSchema, type CreateSubscriptionFormValues } from '../types';
-import { Button } from '@/components/ui/button';
 
 /**
  * Workflow 1 — admin-initiated. A subscription belongs to the CRM account
@@ -217,7 +217,7 @@ export function CreateSubscriptionDialog() {
               {...form.register('reference')}
             />
 
-            {isDiscounted && (
+            {isDiscounted && selectedPlan && (
               <div className="mt-2.5 rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-default-600">
                   {formatPlanPrice(selectedPlan.price - amount, selectedPlan.currency)} below the{' '}
