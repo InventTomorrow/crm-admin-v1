@@ -220,9 +220,9 @@ export function CreateSubscriptionDialog() {
             {isDiscounted && selectedPlan && (
               <div className="mt-2.5 rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-default-600">
-                  {formatPlanPrice(selectedPlan.price - amount, selectedPlan.currency)} below the{' '}
+                  {formatPlanPrice(selectedPlan?.price - amount, selectedPlan?.currency)} below the{' '}
                   {selectedPlan.name} price of{' '}
-                  {formatPlanPrice(selectedPlan.price, selectedPlan.currency)}.
+                  {formatPlanPrice(selectedPlan?.price, selectedPlan?.currency)}.
                 </p>
                 <Input
                   className="mt-2"
