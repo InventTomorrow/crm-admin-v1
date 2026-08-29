@@ -15,9 +15,36 @@ export function rangeFromPreset(days: number): DateRange {
   return { from: from.toISOString(), to: to.toISOString() };
 }
 
+/** Metrics the API gained after the currently deployed server was cut. */
+type LaterMetrics =
+  | 'subscriptionRevenue'
+  | 'subscriptionPayments'
+  | 'lifetimeSubscriptionRevenue'
+  | 'recentUsers';
+
+/** What `/admin/metrics` actually sends — an older server omits the newer keys. */
+type MetricsResponse = Omit<Metrics, LaterMetrics> & Partial<Pick<Metrics, LaterMetrics>>;
+
+/**
+ * Fills in whatever the server didn't send. Without this the dashboard crashes
+ * outright on `recentUsers.length` the moment it talks to a server older than
+ * the metrics work, taking the whole root page down with it.
+ */
+function withMissingMetricDefaults(response: MetricsResponse): Metrics {
+  return {
+    ...response,
+    subscriptionRevenue: response.subscriptionRevenue ?? 0,
+    subscriptionPayments: response.subscriptionPayments ?? 0,
+    lifetimeSubscriptionRevenue: response.lifetimeSubscriptionRevenue ?? 0,
+    recentUsers: response.recentUsers ?? [],
+  };
+}
+
 async function getMetrics(range: DateRange): Promise<Metrics> {
-  const { data } = await apiClient.get<ApiEnvelope<Metrics>>('/admin/metrics', { params: range });
-  return data.data;
+  const { data } = await apiClient.get<ApiEnvelope<MetricsResponse>>('/admin/metrics', {
+    params: range,
+  });
+  return withMissingMetricDefaults(data.data);
 }
 
 export function useMetrics(range: DateRange) {
