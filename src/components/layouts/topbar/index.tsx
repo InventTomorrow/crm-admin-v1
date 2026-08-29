@@ -1,7 +1,6 @@
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { Badge } from '@/components/ui/badge';
 import { useLogout, useMe } from '@/features/auth/auth.hooks';
-import { TopbarOfferControl } from '@/features/promo-offers/components/TopbarOfferControl';
 import { useEffect, useState } from 'react';
 import { LuLogOut } from 'react-icons/lu';
 import { TbSearch } from 'react-icons/tb';
@@ -66,8 +65,7 @@ const Topbar = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <TopbarOfferControl />
-
+          {/* TopbarOfferControl stays unmounted until /admin/promo-offers ships. */}
           <ThemeModeToggle />
 
           <NotificationsDropdown />
