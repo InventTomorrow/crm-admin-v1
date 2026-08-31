@@ -18,6 +18,7 @@ export interface PlanFormProgressValues {
   maxProducts?: number;
   maxMenuItems?: number;
   maxServices?: number;
+  maxClinicalServices?: number;
   maxMonthlyMessages?: number;
   maxImageMessages?: number;
   maxVoiceMessages?: number;

@@ -21,7 +21,13 @@ export const planFormSchema = z
   .object({
     name: z.string().min(1, 'Required'),
     tier: z.enum(['TRIAL', 'STARTER', 'GROWTH', 'AGENCY', 'RESELLER']),
-    businessVertical: z.enum([UNIVERSAL, 'ECOMMERCE', 'RESTAURANT', 'MARKETING_AGENCY']),
+    businessVertical: z.enum([
+      UNIVERSAL,
+      'ECOMMERCE',
+      'RESTAURANT',
+      'MARKETING_AGENCY',
+      'HEALTHCARE',
+    ]),
     tagline: z.string().max(200, 'Keep it under 200 characters'),
 
     price: z.number().min(0),
