@@ -1,0 +1,13 @@
+/* Gradient ring marking an account on a paid plan. The gradient paints the
+   outer disc and the padding lets it show through as a ring; the avatar inside
+   carries its own background so the centre stays opaque. */
+.avatar-plan-ring {
+  padding: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-secondary) 55%,
+    var(--color-warning)
+  );
+}

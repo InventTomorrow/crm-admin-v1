@@ -1,0 +1,13 @@
+[build]
+  base = "."
+  command = "yarn build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# SPA fallback — React Router owns all routes client-side.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

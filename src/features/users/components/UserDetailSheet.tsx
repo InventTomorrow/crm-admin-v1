@@ -16,8 +16,8 @@ export function UserDetailSheet({ user, open, onClose }: UserDetailSheetProps) {
       open={open}
       onOpenChange={isOpen => !isOpen && onClose()}
       title={user ? formatFullName(user.firstName, user.lastName) : ''}
-      description={user?.email}
-      size="lg"
+      description={user ? (user.originalEmail ?? user.email) : ''}
+      size="xl"
     >
       {user && <UserDetailPanel userId={user.id} />}
     </Sheet>

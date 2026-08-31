@@ -357,3 +357,24 @@ textarea.form-input {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 25%, transparent);
 }
+
+/* Unlayered on purpose: the forms plugin paints checked/indeterminate boxes from
+   `currentColor` in the base layer, so table row selectors kept coming out its
+   default blue. `text-*` classes stay an opt-out for one-off tinted boxes. */
+input[type='checkbox'].form-checkbox:not([class*='text-']),
+input[type='radio'].form-radio:not([class*='text-']) {
+  color: var(--color-primary);
+  accent-color: var(--color-primary);
+}
+
+input[type='checkbox'].form-checkbox:not([class*='text-']):checked,
+input[type='checkbox'].form-checkbox:not([class*='text-']):indeterminate,
+input[type='radio'].form-radio:not([class*='text-']):checked {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+input[type='checkbox'].form-checkbox:not([class*='text-']):hover:not(:checked, :indeterminate, :disabled),
+input[type='radio'].form-radio:not([class*='text-']):hover:not(:checked, :disabled) {
+  border-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
+}

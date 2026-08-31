@@ -179,7 +179,8 @@ export function LinksView() {
         onOpenChange={isOpen => !isOpen && setLinkPendingRevocation(null)}
         title="Revoke this link?"
         description="The customer will no longer be able to use it. You can always send a new one."
-        confirmLabel="Revoke"
+        intent="warning"
+        confirmLabel="Revoke link"
         isLoading={revokeMutation.isPending}
         onConfirm={() => {
           if (!linkPendingRevocation) return;

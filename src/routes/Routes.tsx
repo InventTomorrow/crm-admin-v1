@@ -12,11 +12,13 @@ const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
 const Subscriptions = lazy(() => import('@/app/(admin)/subscriptions'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
+const PaymentAccounts = lazy(() => import('@/app/(admin)/payment-accounts'));
 const Blog = lazy(() => import('@/app/(admin)/blog'));
 const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
 const BlogPostEdit = lazy(() => import('@/app/(admin)/blog/edit'));
 const BlogPostPreview = lazy(() => import('@/app/(admin)/blog/preview'));
 const BlogCategories = lazy(() => import('@/app/(admin)/blog/categories'));
+const BlogAuthors = lazy(() => import('@/app/(admin)/blog/authors'));
 const Newsletter = lazy(() => import('@/app/(admin)/newsletter'));
 const ContactMessages = lazy(() => import('@/app/(admin)/contact-messages'));
 const Notifications = lazy(() => import('@/app/(admin)/notifications'));
@@ -93,6 +95,14 @@ export const appRoutes: AppRoute[] = [
     element: <CheckoutLinks />,
     permission: SystemPermissions.CHECKOUT_LINKS_VIEW,
   },
+  // Deliberately absent from the sidebar — reached from the Subscriptions page,
+  // since it is configuration rather than day-to-day work.
+  {
+    path: '/payment-accounts',
+    name: 'PaymentAccounts',
+    element: <PaymentAccounts />,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
   { path: '/blog', name: 'Blog', element: <Blog />, permission: SystemPermissions.BLOG_VIEW },
   {
     path: '/blog/new',
@@ -105,6 +115,12 @@ export const appRoutes: AppRoute[] = [
     name: 'BlogCategories',
     element: <BlogCategories />,
     permission: SystemPermissions.BLOG_CATEGORIES_VIEW,
+  },
+  {
+    path: '/blog/authors',
+    name: 'BlogAuthors',
+    element: <BlogAuthors />,
+    permission: SystemPermissions.BLOG_AUTHORS_VIEW,
   },
   {
     path: '/blog/:postId/edit',

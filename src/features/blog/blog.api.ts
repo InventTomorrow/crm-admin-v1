@@ -1,5 +1,6 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
 import type {
+  BlogAuthor,
   BlogCategory,
   BlogPostDetail,
   BlogPostListItem,
@@ -23,7 +24,8 @@ export interface PostInput {
   publishedAt: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
-  authorName: string;
+  authorId?: string;
+  authorName?: string;
 }
 
 export interface ListPostsParams {
@@ -103,6 +105,41 @@ export async function updateCategory(
 
 export async function deleteCategory(id: string) {
   await apiClient.delete(`/admin/blog/categories/${id}`);
+}
+
+// ─── Author API Functions ───────────────────────────────────────────────────
+
+export interface AuthorInput {
+  name: string;
+  slug?: string;
+  title?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+}
+
+export async function listAuthors(): Promise<BlogAuthor[]> {
+  const { data } = await apiClient.get<ApiEnvelope<BlogAuthor[]>>('/admin/blog/authors');
+  return data.data;
+}
+
+export async function createAuthor(input: AuthorInput): Promise<BlogAuthor> {
+  const { data } = await apiClient.post<ApiEnvelope<BlogAuthor>>('/admin/blog/authors', input);
+  return data.data;
+}
+
+export async function updateAuthor(
+  id: string,
+  input: Partial<AuthorInput>
+): Promise<BlogAuthor> {
+  const { data } = await apiClient.patch<ApiEnvelope<BlogAuthor>>(
+    `/admin/blog/authors/${id}`,
+    input
+  );
+  return data.data;
+}
+
+export async function deleteAuthor(id: string) {
+  await apiClient.delete(`/admin/blog/authors/${id}`);
 }
 
 /** Server re-encodes to WebP and returns the stored URL. */

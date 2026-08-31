@@ -11,6 +11,7 @@ export const buttonVariants = cva(
         default: 'bg-primary text-white hover:bg-primary/90',
         destructive: 'bg-danger text-white hover:bg-danger/90',
         success: 'bg-success text-white hover:bg-success/90',
+        warning: 'bg-warning text-white hover:bg-warning/90',
         outline:
           'border border-default-200 bg-transparent text-default-600 hover:border-primary/10 hover:bg-primary/10 hover:text-primary',
         'outline-danger':

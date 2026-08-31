@@ -1,18 +1,62 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LuTriangleAlert } from 'react-icons/lu';
+import type { IconType } from 'react-icons/lib';
+import { LuCircleCheck, LuInfo, LuTrash2, LuTriangleAlert } from 'react-icons/lu';
 import { cn } from '@/lib/utils';
-import { Button } from './button';
+import { Button, type ButtonProps } from './button';
+
+/** What the confirmed action does — drives icon, accent, button and default copy. */
+export type ConfirmIntent = 'danger' | 'warning' | 'success' | 'info';
+
+const INTENT_PRESET: Record<
+  ConfirmIntent,
+  {
+    icon: IconType;
+    accentClass: string;
+    buttonVariant: ButtonProps['variant'];
+    confirmLabel: string;
+    description?: string;
+  }
+> = {
+  danger: {
+    icon: LuTrash2,
+    accentClass: 'bg-danger/10 text-danger',
+    buttonVariant: 'destructive',
+    confirmLabel: 'Delete',
+    description: 'This action cannot be undone.',
+  },
+  warning: {
+    icon: LuTriangleAlert,
+    accentClass: 'bg-warning/15 text-warning',
+    buttonVariant: 'warning',
+    confirmLabel: 'Continue',
+  },
+  success: {
+    icon: LuCircleCheck,
+    accentClass: 'bg-success/10 text-success',
+    buttonVariant: 'success',
+    confirmLabel: 'Confirm',
+  },
+  info: {
+    icon: LuInfo,
+    accentClass: 'bg-info/10 text-info',
+    buttonVariant: 'default',
+    confirmLabel: 'Confirm',
+  },
+};
 
 interface ConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  /** Defaults to `danger` — the only intent that warns the action is permanent. */
+  intent?: ConfirmIntent;
+  /** Overrides the intent's icon when an action has a clearer symbol of its own. */
+  icon?: IconType;
   confirmLabel?: string;
   cancelLabel?: string;
-  destructive?: boolean;
   onConfirm: () => void;
   isLoading?: boolean;
 }
@@ -23,12 +67,17 @@ export function ConfirmDialog({
   onOpenChange,
   title,
   description,
-  confirmLabel = 'Delete',
+  intent = 'danger',
+  icon,
+  confirmLabel,
   cancelLabel = 'Cancel',
-  destructive = true,
   onConfirm,
   isLoading = false,
 }: ConfirmDialogProps) {
+  const preset = INTENT_PRESET[intent];
+  const Icon = icon ?? preset.icon;
+  const bodyText = description ?? preset.description;
+
   useEffect(() => {
     if (!open) return;
     document.body.classList.add('overflow-hidden');
@@ -70,19 +119,17 @@ export function ConfirmDialog({
               <motion.span
                 className={cn(
                   'mx-auto flex size-14 items-center justify-center rounded-full',
-                  destructive ? 'bg-danger/10 text-danger' : 'bg-primary/10 text-primary'
+                  preset.accentClass
                 )}
                 initial={{ scale: 0.5, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 18, delay: 0.05 }}
               >
-                <LuTriangleAlert className="size-6" />
+                <Icon className="size-6" />
               </motion.span>
 
               <h3 className="mt-4 text-lg font-semibold text-default-900">{title}</h3>
-              <p className="mt-1.5 text-sm text-default-500">
-                {description ?? 'This action cannot be undone.'}
-              </p>
+              {bodyText && <p className="mt-1.5 text-sm text-default-500">{bodyText}</p>}
 
               <div className="mt-6 grid grid-cols-2 gap-2.5">
                 <Button
@@ -93,12 +140,8 @@ export function ConfirmDialog({
                 >
                   {cancelLabel}
                 </Button>
-                <Button
-                  variant={destructive ? 'destructive' : 'default'}
-                  loading={isLoading}
-                  onClick={onConfirm}
-                >
-                  {isLoading ? 'Please wait…' : confirmLabel}
+                <Button variant={preset.buttonVariant} loading={isLoading} onClick={onConfirm}>
+                  {isLoading ? 'Please wait…' : (confirmLabel ?? preset.confirmLabel)}
                 </Button>
               </div>
             </div>

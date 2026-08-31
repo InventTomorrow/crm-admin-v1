@@ -41,7 +41,7 @@ const CONTENT_CLASS = cn(
   'prose-table:text-sm prose-th:bg-default-100 prose-th:text-default-800',
   'prose-code:text-default-800 prose-pre:bg-default-100 prose-pre:text-default-800',
   'prose-hr:border-default-200 prose-img:rounded-lg',
-  'min-h-[26rem]'
+  'min-h-[29rem] h-full'
 );
 
 export function RichTextEditor({ value, onChange, invalid }: RichTextEditorProps) {
@@ -102,12 +102,16 @@ export function RichTextEditor({ value, onChange, invalid }: RichTextEditorProps
   return (
     <div
       className={cn(
-        'overflow-hidden rounded-md border bg-card transition-colors',
+        'flex flex-col rounded-md border bg-card transition-colors',
         invalid ? 'border-danger/60' : 'border-default-200 focus-within:border-primary/40'
       )}
     >
-      <EditorToolbar editor={editor} isUploading={isUploading} onUploadImage={uploadAndInsert} />
-      <EditorContent editor={editor} />
+      <div className="sticky top-0 z-10 shrink-0 border-b border-default-200 bg-card">
+        <EditorToolbar editor={editor} isUploading={isUploading} onUploadImage={uploadAndInsert} />
+      </div>
+      <div className="overflow-y-auto max-h-[32rem]">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }

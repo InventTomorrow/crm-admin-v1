@@ -1,16 +1,38 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { Paged, Subscription, SubscriptionStatus } from '@/lib/types';
+import type {
+  Paged,
+  Subscription,
+  SubscriptionListItem,
+  SubscriptionRevenue,
+  SubscriptionSortField,
+  SubscriptionStatus,
+} from '@/lib/types';
 
-export async function listSubscriptions(params: {
-  page: number;
-  limit: number;
+export interface SubscriptionListFilters {
   status?: SubscriptionStatus;
   ownerUserId?: string;
-}): Promise<Paged<Subscription>> {
-  const { data } = await apiClient.get<ApiEnvelope<Subscription[]>>('/admin/subscriptions', {
-    params,
-  });
+  sortBy?: SubscriptionSortField;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function listSubscriptions(
+  params: SubscriptionListFilters & { page: number; limit: number }
+): Promise<Paged<SubscriptionListItem>> {
+  const { data } = await apiClient.get<ApiEnvelope<SubscriptionListItem[]>>(
+    '/admin/subscriptions',
+    {
+      params,
+    }
+  );
   return { items: data.data, meta: data.meta! };
+}
+
+/** Platform revenue for the page header — subscription money only. */
+export async function getSubscriptionRevenue(): Promise<SubscriptionRevenue> {
+  const { data } = await apiClient.get<ApiEnvelope<SubscriptionRevenue>>(
+    '/admin/subscriptions/revenue'
+  );
+  return data.data;
 }
 
 export const PAYMENT_METHODS = ['BANK_TRANSFER', 'EASYPAISA', 'JAZZCASH', 'CASH', 'OTHER'] as const;
@@ -32,12 +54,17 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
 export async function createSubscription(input: {
   ownerUserId: string;
   planId: string;
+  /** Plan periods granted — 2 on a monthly plan is two months. */
+  periodCount: number;
   payment: {
     method: PaymentMethod;
     amount: number;
     currency: string;
     reference?: string;
     notes?: string;
+    /** Required by the server when `amount` is under the plan's price and no
+     *  live campaign accounts for the gap. */
+    discountReason?: string;
   };
 }): Promise<Subscription> {
   const { data } = await apiClient.post<ApiEnvelope<Subscription>>('/admin/subscriptions', input);
@@ -50,8 +77,20 @@ export async function updateSubscription(
     planId?: string;
     status?: SubscriptionStatus;
     /** ISO strings, or null to clear. Editing these is how a manual plan is renewed. */
+    currentPeriodStart?: string | null;
     currentPeriodEnd?: string | null;
     trialEndsAt?: string | null;
+    /** Periods this edit is priced for — it does not move the dates above. */
+    periodCount?: number;
+    /** Money collected outside the checkout flow. Omitted when none was. */
+    payment?: {
+      method: PaymentMethod;
+      amount: number;
+      currency: string;
+      reference?: string;
+      /** Required by the server when `amount` is under what the plan costs. */
+      discountReason?: string;
+    };
   }
 ): Promise<Subscription> {
   const { data } = await apiClient.patch<ApiEnvelope<Subscription>>(

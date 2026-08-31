@@ -6,16 +6,21 @@ import { toast } from 'sonner';
 import type { PostFormValues } from './post-form.schema';
 import { toStoredDraft, usePostDraftStore, type StoredDraft } from './post-draft.store';
 import {
+  createAuthor,
   createCategory,
   createPost,
+  deleteAuthor,
   deleteCategory,
   deletePost,
   getPost,
+  listAuthors,
   listCategories,
   listPosts,
+  updateAuthor,
   updateCategory,
   updatePost,
   updatePostStatus,
+  type AuthorInput,
   type CategoryInput,
   type ListPostsParams,
   type PostInput,
@@ -105,6 +110,37 @@ export function useDeleteCategory() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['blog-categories'] });
       toast.success('Category deleted');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+// ─── Author Hooks ────────────────────────────────────────────────────────────
+
+export function useBlogAuthors() {
+  return useQuery({ queryKey: ['blog-authors'], queryFn: listAuthors });
+}
+
+export function useSaveAuthor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id?: string; input: AuthorInput }) =>
+      id ? updateAuthor(id, input) : createAuthor(input),
+    onSuccess: (_data, variables) => {
+      qc.invalidateQueries({ queryKey: ['blog-authors'] });
+      toast.success(variables.id ? 'Author updated' : 'Author created');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useDeleteAuthor() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteAuthor(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['blog-authors'] });
+      toast.success('Author deleted');
     },
     onError: error => toast.error(apiMessage(error)),
   });

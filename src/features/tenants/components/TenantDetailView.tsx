@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
-import { LuArrowLeft } from 'react-icons/lu';
-import { Select } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { ErrorState, TenantDetailSkeleton } from '@/components/states';
-import { Tabs } from '@/components/ui/tabs';
 import { PermissionGuard } from '@/components/PermissionGuard';
-import { SystemPermissions } from '@/lib/permissions';
+import { ErrorState, TenantDetailSkeleton } from '@/components/states';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { Tabs } from '@/components/ui/tabs';
 import { WhatsAppNumbersTable } from '@/features/whatsapp-numbers/components/WhatsAppNumbersTable';
-import { formatDate, formatFullName } from '@/lib/format';
+import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
+import { SystemPermissions } from '@/lib/permissions';
 import { SUBSCRIPTION_STATUS_TONE, TENANT_STATUS_TONE } from '@/lib/statusTones';
 import type { TenantStatus } from '@/lib/types';
-import { RolePermissionsView } from './RolePermissionsView';
+import { useState } from 'react';
+import { LuArrowLeft } from 'react-icons/lu';
+import { useNavigate, useParams } from 'react-router';
 import { useTenant, useTenantWhatsAppNumbers, useUpdateTenantStatus } from '../tenants.hooks';
-import { Button } from '@/components/ui/button';
+import { RolePermissionsView } from './RolePermissionsView';
 
 type TenantTab = 'team' | 'roles' | 'billing' | 'whatsapp';
 
@@ -25,6 +25,10 @@ export function TenantDetailView() {
   const { data: tenant, isLoading, isError, error, refetch } = useTenant(id);
   const statusMutation = useUpdateTenantStatus(id);
   const { data: whatsappNumbers, isLoading: isWhatsAppLoading } = useTenantWhatsAppNumbers(id);
+
+  const uniqueWhatsAppNumbers = Array.from(new Set(whatsappNumbers?.map(w => w.phoneNumber)));
+
+  // console.log('uniqueWhatsAppNumbers', uniqueWhatsAppNumbers);
 
   if (isLoading) return <TenantDetailSkeleton />;
   if (isError || !tenant) {
@@ -58,6 +62,12 @@ export function TenantDetailView() {
                 Owner: {tenant.owner?.email ?? '—'} · {tenant._count.leads} leads ·{' '}
                 {tenant._count.products} products
               </p>
+              <p className="mt-2 text-sm text-default-600">
+                Order revenue:{' '}
+                <span className="font-semibold text-default-800 tabular-nums">
+                  {formatMoneyPKR(tenant.revenue)}
+                </span>
+              </p>
             </div>
             <PermissionGuard permission={SystemPermissions.TENANTS_STATUS_CHANGE}>
               <Select
@@ -84,7 +94,7 @@ export function TenantDetailView() {
               { key: 'team', label: 'Team', badge: tenant.memberships.length },
               { key: 'roles', label: 'Roles & Permissions' },
               { key: 'billing', label: 'Subscriptions', badge: tenant.subscriptions.length },
-              { key: 'whatsapp', label: 'WhatsApp', badge: whatsappNumbers?.length },
+              { key: 'whatsapp', label: 'WhatsApp', badge: uniqueWhatsAppNumbers?.length ?? 0 },
             ]}
             active={activeTab}
             onChange={tabKey => setActiveTab(tabKey as TenantTab)}

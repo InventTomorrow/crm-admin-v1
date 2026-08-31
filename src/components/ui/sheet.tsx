@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 const SIZE_CLASS = {
   md: 'max-w-md',
   lg: 'max-w-xl',
+  xl: 'max-w-3xl',
 } as const;
 
 interface SheetProps {

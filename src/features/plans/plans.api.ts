@@ -11,11 +11,12 @@ export interface PlanInput {
   maxMembersPerWorkspace: number;
   maxChannels: number;
 
-  // Required for the plan's own vertical; must be null for the other two.
-  // A universal plan (businessVertical: null) carries all three.
+  // Required for the plan's own vertical; must be null for the other three.
+  // A universal plan (businessVertical: null) carries all four.
   maxProducts: number | null;
   maxMenuItems: number | null;
   maxServices: number | null;
+  maxClinicalServices: number | null;
 
   maxMonthlyMessages: number;
   maxImageMessages: number;

@@ -102,9 +102,27 @@ export const menuItemsData: MenuItemType[] = [
   {
     key: 'blog',
     label: 'Blog',
-    href: '/blog',
     icon: LuNewspaper,
-    permission: SystemPermissions.BLOG_VIEW,
+    children: [
+      {
+        key: 'blog-posts',
+        label: 'Posts',
+        href: '/blog',
+        permission: SystemPermissions.BLOG_VIEW,
+      },
+      {
+        key: 'blog-categories',
+        label: 'Categories',
+        href: '/blog/categories',
+        permission: SystemPermissions.BLOG_CATEGORIES_VIEW,
+      },
+      {
+        key: 'blog-authors',
+        label: 'Authors',
+        href: '/blog/authors',
+        permission: SystemPermissions.BLOG_AUTHORS_VIEW,
+      },
+    ],
   },
   {
     key: 'newsletter',

@@ -5,14 +5,15 @@ import {
   LuCalendarX,
   LuCreditCard,
   LuHourglass,
+  LuReceipt,
   LuUser,
 } from 'react-icons/lu';
 import { Sheet } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { formatDateTime, formatFullName, formatRelative } from '@/lib/format';
-import { formatPlanPrice } from '@/lib/planFormat';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
-import type { Subscription } from '@/lib/types';
+import type { SubscriptionListItem } from '@/lib/types';
+import { SubscriptionPlanPriceCell, SubscriptionPriceCell } from './SubscriptionPriceCell';
 
 function DetailRow({
   icon,
@@ -40,7 +41,7 @@ function DetailRow({
 }
 
 interface SubscriptionDetailSheetProps {
-  subscription: Subscription | null;
+  subscription: SubscriptionListItem | null;
   open: boolean;
   onClose: () => void;
 }
@@ -81,15 +82,23 @@ export function SubscriptionDetailSheet({
             <DetailRow
               icon={<LuCreditCard className="size-4.5" />}
               label="Plan"
-              value={
-                subscription.plan
-                  ? `${subscription.plan.name} — ${formatPlanPrice(
-                      subscription.plan.price,
-                      subscription.plan.currency
-                    )}`
-                  : '—'
-              }
+              value={subscription.plan?.name ?? '—'}
               sub={subscription.plan?.tier}
+            />
+            <DetailRow
+              icon={<LuReceipt className="size-4.5" />}
+              label="Plan price vs paid"
+              value={
+                <span className="flex flex-wrap items-center gap-2">
+                  <SubscriptionPlanPriceCell billing={subscription.billing} />
+                  <SubscriptionPriceCell billing={subscription.billing} />
+                </span>
+              }
+              sub={
+                subscription.billing.paidAt
+                  ? `Paid ${formatDateTime(subscription.billing.paidAt)}`
+                  : undefined
+              }
             />
             <DetailRow
               icon={<LuCalendarPlus className="size-4.5" />}

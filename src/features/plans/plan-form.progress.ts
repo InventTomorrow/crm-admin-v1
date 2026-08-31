@@ -18,6 +18,7 @@ export interface PlanFormProgressValues {
   maxProducts?: number;
   maxMenuItems?: number;
   maxServices?: number;
+  maxClinicalServices?: number;
   maxMonthlyMessages?: number;
   maxImageMessages?: number;
   maxVoiceMessages?: number;
@@ -61,6 +62,9 @@ export function getPlanFormProgress(values: PlanFormProgressValues): PlanFormPro
       : []),
     ...(vertical === UNIVERSAL || vertical === 'MARKETING_AGENCY'
       ? [isNumberFilled(values.maxServices)]
+      : []),
+    ...(vertical === UNIVERSAL || vertical === 'HEALTHCARE'
+      ? [isNumberFilled(values.maxClinicalServices)]
       : []),
   ];
 
