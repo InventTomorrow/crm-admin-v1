@@ -35,6 +35,7 @@ type NumKey =
   | 'maxProducts'
   | 'maxMenuItems'
   | 'maxServices'
+  | 'maxClinicalServices'
   | 'maxMonthlyMessages'
   | 'maxImageMessages'
   | 'maxVoiceMessages';
