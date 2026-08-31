@@ -2,6 +2,7 @@ import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { DashboardSkeleton, ErrorState } from '@/components/states';
 import { formatMoneyPKR } from '@/lib/format';
+import type { TenantStatus } from '@/lib/types';
 import { useState } from 'react';
 import {
   LuBuilding2,
@@ -36,11 +37,13 @@ export function DashboardView() {
     );
   }
 
-  const activeTenants =
-    data.tenantsByStatus.find(entry => entry.status === 'ACTIVE')?._count._all ?? 0;
-  const suspendedTenants =
-    data.tenantsByStatus.find(entry => entry.status === 'SUSPENDED')?._count._all ?? 0;
-  const totalTenants = data.tenantsByStatus.reduce((sum, entry) => sum + entry._count._all, 0);
+  const tenantsByStatus = data.tenantsByStatus ?? [];
+  const tenantCountForStatus = (status: TenantStatus) =>
+    tenantsByStatus.find(entry => entry.status === status)?._count?._all ?? 0;
+
+  const activeTenants = tenantCountForStatus('ACTIVE');
+  const suspendedTenants = tenantCountForStatus('SUSPENDED');
+  const totalTenants = tenantsByStatus.reduce((sum, entry) => sum + (entry._count?._all ?? 0), 0);
   const crmUsers = Math.max(0, data.totalUsers - data.systemUsers);
 
   return (
@@ -121,7 +124,7 @@ export function DashboardView() {
               <h6 className="card-title">Growth over time</h6>
             </div>
             <div className="card-body">
-              <GrowthChart series={data.series} />
+              <GrowthChart series={data.series ?? []} />
             </div>
           </div>
         </div>
@@ -178,7 +181,7 @@ export function DashboardView() {
               <h6 className="card-title">Tenants by status</h6>
             </div>
             <div className="card-body">
-              <TenantsByStatusChart tenantsByStatus={data.tenantsByStatus} />
+              <TenantsByStatusChart tenantsByStatus={tenantsByStatus} />
             </div>
           </div>
         </div>
@@ -193,7 +196,7 @@ export function DashboardView() {
               </Link>
             </div>
             <div className="card-body">
-              <RecentUsersWidget users={data.recentUsers} />
+              <RecentUsersWidget users={data.recentUsers ?? []} />
             </div>
           </div>
         </div>

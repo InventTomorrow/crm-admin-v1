@@ -80,12 +80,12 @@ export function TenantsView() {
       },
       {
         id: 'members',
-        accessorFn: tenant => tenant._count.memberships,
+        accessorFn: tenant => tenant._count?.memberships ?? 0,
         header: 'Members',
         cell: ({ row }) => (
           <span className="flex items-center gap-1.5 text-default-500">
             <LuUsers className="size-3.5 shrink-0" />
-            {row.original._count.memberships}
+            {row.original._count?.memberships ?? 0}
           </span>
         ),
       },

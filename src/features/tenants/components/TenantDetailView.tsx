@@ -39,6 +39,10 @@ export function TenantDetailView() {
     );
   }
 
+  // An older API build can omit these collections and the `_count` aggregate.
+  const memberships = tenant.memberships ?? [];
+  const subscriptions = tenant.subscriptions ?? [];
+
   return (
     <div className="space-y-5">
       {/* Header card */}
@@ -59,8 +63,8 @@ export function TenantDetailView() {
                 <Badge tone={TENANT_STATUS_TONE[tenant.status]}>{tenant.status}</Badge>
               </div>
               <p className="mt-1 text-sm text-default-500">
-                Owner: {tenant.owner?.email ?? '—'} · {tenant._count.leads} leads ·{' '}
-                {tenant._count.products} products
+                Owner: {tenant.owner?.email ?? '—'} · {tenant._count?.leads ?? 0} leads ·{' '}
+                {tenant._count?.products ?? 0} products
               </p>
               <p className="mt-2 text-sm text-default-600">
                 Order revenue:{' '}
@@ -91,9 +95,9 @@ export function TenantDetailView() {
         <div className="card-body">
           <Tabs
             tabs={[
-              { key: 'team', label: 'Team', badge: tenant.memberships.length },
+              { key: 'team', label: 'Team', badge: memberships.length },
               { key: 'roles', label: 'Roles & Permissions' },
-              { key: 'billing', label: 'Subscriptions', badge: tenant.subscriptions.length },
+              { key: 'billing', label: 'Subscriptions', badge: subscriptions.length },
               { key: 'whatsapp', label: 'WhatsApp', badge: uniqueWhatsAppNumbers?.length ?? 0 },
             ]}
             active={activeTab}
@@ -102,7 +106,7 @@ export function TenantDetailView() {
 
           <div className="pt-4">
             {activeTab === 'team' &&
-              (tenant.memberships.length === 0 ? (
+              (memberships.length === 0 ? (
                 <p className="py-3 text-sm text-default-500">No members.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -115,7 +119,7 @@ export function TenantDetailView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-default-200">
-                      {tenant.memberships.map(membership => (
+                      {memberships.map(membership => (
                         <tr key={membership.id} className="text-sm text-default-800">
                           <td className="px-3.5 py-3 font-medium">
                             {formatFullName(membership.user.firstName, membership.user.lastName)}
@@ -136,7 +140,7 @@ export function TenantDetailView() {
             {activeTab === 'roles' && <RolePermissionsView tenantId={id} />}
 
             {activeTab === 'billing' &&
-              (tenant.subscriptions.length === 0 ? (
+              (subscriptions.length === 0 ? (
                 <p className="py-3 text-sm text-default-500">No subscriptions yet.</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -149,7 +153,7 @@ export function TenantDetailView() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-default-200">
-                      {tenant.subscriptions.map(subscription => (
+                      {subscriptions?.map(subscription => (
                         <tr key={subscription.id} className="text-sm text-default-800">
                           <td className="px-3.5 py-3">{subscription.plan?.name ?? '—'}</td>
                           <td className="px-3.5 py-3">

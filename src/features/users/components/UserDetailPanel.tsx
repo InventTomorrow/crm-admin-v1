@@ -84,12 +84,21 @@ export function UserDetailPanel({ userId }: { userId: string }) {
     );
   }
 
+  // An older API build can omit these collections and the `_count` aggregate.
+  // Fall back to what the payload does carry so the sheet still renders.
+  const memberships = user.memberships ?? [];
+  const ownedTenants = user.ownedTenants ?? [];
+  const membershipCount = user._count?.memberships ?? memberships.length;
+  const ownedTenantCount = user._count?.ownedTenants ?? ownedTenants.length;
+  const subscriptionHistory = user.subscriptionHistory ?? [];
+  const deletionTenantCount = user.deletionTenantIds?.length ?? 0;
+
   // Owned workspaces used to repeat below the table; they are folded into the
   // rows instead — ownership becomes a badge and the counts become the subline.
-  const ownedTenantsById = new Map(user.ownedTenants.map(tenant => [tenant.id, tenant]));
+  const ownedTenantsById = new Map(ownedTenants.map(tenant => [tenant.id, tenant]));
 
   const tenantRows = [
-    ...user.memberships.map(membership => ({
+    ...memberships.map(membership => ({
       key: membership.id,
       tenant: membership.tenant,
       roleName: membership.role.name,
@@ -97,8 +106,8 @@ export function UserDetailPanel({ userId }: { userId: string }) {
       owned: ownedTenantsById.get(membership.tenant.id) ?? null,
     })),
     // Workspaces this user owns without holding a membership row of their own.
-    ...user.ownedTenants
-      .filter(tenant => !user.memberships.some(membership => membership.tenant.id === tenant.id))
+    ...ownedTenants
+      .filter(tenant => !memberships.some(membership => membership.tenant.id === tenant.id))
       .map(tenant => ({
         key: tenant.id,
         tenant,
@@ -131,8 +140,8 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             {user.permanentlyDeletedAt
               ? `Closed for good on ${formatDate(user.permanentlyDeletedAt)} — it can no longer be restored. The email address was released, so ${user.originalEmail ?? user.email} can be used to sign up again as a new account.`
               : `Restorable until ${formatDate(user.scheduledPurgeAt)}${
-                  user.deletionTenantIds.length > 0
-                    ? `, along with ${user.deletionTenantIds.length} suspended workspace(s)`
+                  deletionTenantCount > 0
+                    ? `, along with ${deletionTenantCount} suspended workspace(s)`
                     : ''
                 }.`}
           </p>
@@ -166,12 +175,10 @@ export function UserDetailPanel({ userId }: { userId: string }) {
               {planLabel(user.activeSubscription)}
             </Badge>
             <Badge tone="neutral">
-              {user._count.memberships} workspace{user._count.memberships === 1 ? '' : 's'}
+              {membershipCount} workspace{membershipCount === 1 ? '' : 's'}
             </Badge>
-            {user._count.ownedTenants > 0 && (
-              <Badge tone="info">Owns {user._count.ownedTenants}</Badge>
-            )}
-            {user._count.ownedTenants > 0 && (
+            {ownedTenantCount > 0 && <Badge tone="info">Owns {ownedTenantCount}</Badge>}
+            {ownedTenantCount > 0 && (
               <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
             )}
             {whatsappNumbers && whatsappNumbers.length > 0 && (
@@ -241,13 +248,13 @@ export function UserDetailPanel({ userId }: { userId: string }) {
           </p>
         )}
 
-        {user.subscriptionHistory.length > 1 && (
+        {subscriptionHistory?.length > 1 && (
           <details className="mt-2 rounded-lg border border-default-200 px-4 py-3">
             <summary className="cursor-pointer text-sm text-default-600">
-              Billing history ({user.subscriptionHistory.length})
+              Billing history ({subscriptionHistory?.length})
             </summary>
             <ul className="mt-3 space-y-2">
-              {user.subscriptionHistory.map(subscription => (
+              {subscriptionHistory?.map(subscription => (
                 <li
                   key={subscription.id}
                   className="flex items-center justify-between gap-3 text-sm"
@@ -344,11 +351,11 @@ export function UserDetailPanel({ userId }: { userId: string }) {
           </span>
         </SectionHeading>
 
-        {user._count.ownedTenants > 0 && (
+        {ownedTenantCount > 0 && (
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-default-200 bg-default-50 px-4 py-3">
             <span className="text-xs font-medium uppercase tracking-wide text-default-400">
-              Total order revenue · {user._count.ownedTenants} owned workspace
-              {user._count.ownedTenants === 1 ? '' : 's'}
+              Total order revenue · {ownedTenantCount} owned workspace
+              {ownedTenantCount === 1 ? '' : 's'}
             </span>
             <span className="text-lg font-semibold tabular-nums text-default-800">
               {formatMoneyPKR(user.ownedRevenue)}
@@ -411,7 +418,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                       <span className="font-medium">{row.tenant.name}</span>
                       <span className="mt-0.5 block text-xs text-default-500">
                         {row.owned
-                          ? `${row.tenant.businessVertical} · ${row.owned._count.leads} leads · ${row.owned._count.products} products · ${row.owned._count.memberships} members`
+                          ? `${row.tenant.businessVertical} · ${row.owned._count?.leads ?? 0} leads · ${row.owned._count?.products ?? 0} products · ${row.owned._count?.memberships ?? 0} members`
                           : row.tenant.businessVertical}
                       </span>
                     </td>

@@ -72,7 +72,7 @@ export function TenantsByStatusChart({
 
   // Every status is always charted (zeros included) so the axis stays stable.
   const counts = STATUS_ORDER.map(
-    status => tenantsByStatus.find(entry => entry.status === status)?._count._all ?? 0
+    status => tenantsByStatus.find(entry => entry.status === status)?._count?._all ?? 0
   );
   const statusColor: Record<TenantStatus, string> = {
     ACTIVE: chartColors.success,

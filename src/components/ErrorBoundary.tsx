@@ -2,6 +2,8 @@ import { Component, type ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
+  /** Replaces the full-screen card — for boundaries nested inside a panel. */
+  fallback?: ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -18,6 +20,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
 
   render() {
     if (!this.state.hasError) return this.props.children;
+    if (this.props.fallback) return this.props.fallback;
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="card w-full max-w-md text-center">

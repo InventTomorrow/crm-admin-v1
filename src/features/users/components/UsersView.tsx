@@ -185,9 +185,9 @@ export function UsersView() {
       },
       {
         id: 'workspaces',
-        accessorFn: user => user._count.memberships,
+        accessorFn: user => user._count?.memberships ?? 0,
         header: 'Workspaces',
-        cell: ({ row }) => row.original._count.memberships,
+        cell: ({ row }) => row.original._count?.memberships ?? 0,
       },
       {
         // Matches the server's sort key; the field on the row is `ownedRevenue`.
@@ -445,7 +445,7 @@ export function UsersView() {
         />
         <KpiCard
           label="Workspaces"
-          value={data?.items.reduce((sum, user) => sum + user._count.memberships, 0)}
+          value={data?.items.reduce((sum, user) => sum + (user._count?.memberships ?? 0), 0)}
           icon={LuBuilding2}
           isLoading={isLoading}
           sub="memberships on page"
