@@ -109,9 +109,7 @@ export function useDeleteUser() {
       qc.invalidateQueries({ queryKey: ['tenants'] });
       const suspended = result.suspendedWorkspaces.length;
       toast.success(
-        suspended > 0
-          ? `Account closed — ${suspended} workspace(s) suspended`
-          : 'Account closed'
+        suspended > 0 ? `Account closed — ${suspended} workspace(s) suspended` : 'Account closed'
       );
     },
     onError: error => toast.error(apiMessage(error)),

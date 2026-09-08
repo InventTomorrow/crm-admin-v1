@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
-import { usePermissions } from '@/features/auth/auth.hooks';
 import { AccessDeniedState, FullPageSpinner } from '@/components/states';
+import { usePermissions } from '@/features/auth/auth.hooks';
 import type { SystemPermission } from '@/lib/permissions';
+import type { ReactNode } from 'react';
 
 /**
  * Page-level gate. The sidebar only hides links — without this a manager could

@@ -1,7 +1,4 @@
-import {
-  useLayoutContext,
-  type LayoutThemeType,
-} from '@/context/useLayoutContext';
+import { useLayoutContext, type LayoutThemeType } from '@/context/useLayoutContext';
 import { cn } from '@/lib/utils';
 import type { IconType } from 'react-icons/lib';
 import { LuMonitor, LuMoon, LuPalette, LuSun } from 'react-icons/lu';
