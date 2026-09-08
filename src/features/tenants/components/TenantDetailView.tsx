@@ -14,8 +14,9 @@ import { LuArrowLeft } from 'react-icons/lu';
 import { useNavigate, useParams } from 'react-router';
 import { useTenant, useTenantWhatsAppNumbers, useUpdateTenantStatus } from '../tenants.hooks';
 import { RolePermissionsView } from './RolePermissionsView';
+import { TenantAiUsageView } from './TenantAiUsageView';
 
-type TenantTab = 'team' | 'roles' | 'billing' | 'whatsapp';
+type TenantTab = 'team' | 'roles' | 'billing' | 'whatsapp' | 'ai-usage';
 
 export function TenantDetailView() {
   const { id = '' } = useParams();
@@ -99,6 +100,7 @@ export function TenantDetailView() {
               { key: 'roles', label: 'Roles & Permissions' },
               { key: 'billing', label: 'Subscriptions', badge: subscriptions.length },
               { key: 'whatsapp', label: 'WhatsApp', badge: uniqueWhatsAppNumbers?.length ?? 0 },
+              { key: 'ai-usage', label: 'AI Usage' },
             ]}
             active={activeTab}
             onChange={tabKey => setActiveTab(tabKey as TenantTab)}
@@ -174,6 +176,8 @@ export function TenantDetailView() {
             {activeTab === 'whatsapp' && (
               <WhatsAppNumbersTable numbers={whatsappNumbers} isLoading={isWhatsAppLoading} />
             )}
+
+            {activeTab === 'ai-usage' && <TenantAiUsageView tenantId={id} />}
           </div>
         </div>
       </div>

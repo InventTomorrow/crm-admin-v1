@@ -68,6 +68,9 @@ export interface UserListItem {
   /** Order revenue summed across every workspace this user owns. Their sales —
    *  not what they pay us, which is `activeSubscription`. */
   ownedRevenue: number;
+  /** Lifetime AI cost summed across every workspace this user owns. */
+  ownedAiUsageCostUsd: number;
+  ownedAiUsageCostPkr: number | null;
   _count: { memberships: number; ownedTenants: number };
 }
 
@@ -124,6 +127,8 @@ export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
     suspendedByUserDeletion: boolean;
     /** This workspace's own order revenue. */
     revenue: number;
+    aiUsageCostUsd: number;
+    aiUsageCostPkr: number | null;
     _count: { leads: number; memberships: number; products: number };
   }[];
 }
@@ -141,7 +146,60 @@ export interface TenantListItem {
   /** Booked order revenue for this workspace — excludes cancelled, refunded
    *  and draft orders, matching the figure its owner sees in the CRM. */
   revenue: number;
+  /** Lifetime input+output tokens across every LLM call this workspace's AI made. */
+  aiUsageTokens: number;
+  aiUsageCostUsd: number;
+  aiUsageCostPkr: number | null;
   _count: { memberships: number; leads: number };
+}
+
+/** One day's AI token usage — the tenant AI-usage chart's series point. */
+export interface TenantAiUsagePoint {
+  date: string; // UTC day, YYYY-MM-DD
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+/** Per-model token totals + cost, for one tenant within a range. `usdCost` is null
+ *  only when no price has been entered yet for that model — a real $0 never shows null. */
+export interface ModelCostBreakdown {
+  provider: string;
+  model: string;
+  promptTokens: number;
+  cachedTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  usdCost: number | null;
+  pkrCost: number | null;
+}
+
+export interface TenantAiUsage {
+  totals: {
+    calls: number;
+    promptTokens: number;
+    cachedTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  series: TenantAiUsagePoint[];
+  costByModel: ModelCostBreakdown[];
+  totalUsdCost: number;
+  totalPkrCost: number | null;
+  hasUnpricedUsage: boolean;
+}
+
+/** One $/1M-token rate for a (provider, model) — manually entered by an admin. */
+export interface AiModelPricing {
+  id: string;
+  provider: string;
+  model: string;
+  inputPricePerMillionTokens: number;
+  cachedInputPricePerMillionTokens: number | null;
+  outputPricePerMillionTokens: number;
+  currency: string;
+  effectiveFrom: string;
+  createdAt: string;
 }
 
 /** One connect event from the append-only WhatsApp connection history. */
@@ -181,11 +239,7 @@ export interface TenantDetail extends Omit<TenantListItem, '_count'> {
   _count: { leads: number; products: number; channels: number };
 }
 
-export type BusinessVertical =
-  | 'ECOMMERCE'
-  | 'RESTAURANT'
-  | 'MARKETING_AGENCY'
-  | 'HEALTHCARE';
+export type BusinessVertical = 'ECOMMERCE' | 'RESTAURANT' | 'MARKETING_AGENCY' | 'HEALTHCARE';
 
 export type PlanDuration =
   | 'DAYS_3'

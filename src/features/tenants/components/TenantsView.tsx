@@ -73,8 +73,26 @@ export function TenantsView() {
         accessorFn: tenant => tenant.revenue,
         header: 'Revenue',
         cell: ({ row }) => (
-          <span className="font-medium tabular-nums">
-            {formatMoneyPKR(row.original.revenue)}
+          <span className="font-medium tabular-nums">{formatMoneyPKR(row.original.revenue)}</span>
+        ),
+      },
+      {
+        id: 'aiUsage',
+        accessorFn: tenant => tenant.aiUsageTokens,
+        header: 'AI Usage',
+        cell: ({ row }) => (
+          <span className="tabular-nums text-default-600">
+            {row.original.aiUsageTokens.toLocaleString()} tokens
+          </span>
+        ),
+      },
+      {
+        id: 'aiCost',
+        accessorFn: tenant => tenant.aiUsageCostUsd,
+        header: 'AI Cost',
+        cell: ({ row }) => (
+          <span className="tabular-nums text-default-600">
+            ${row.original.aiUsageCostUsd.toFixed(2)}
           </span>
         ),
       },

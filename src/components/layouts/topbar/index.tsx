@@ -1,10 +1,20 @@
 import { GlobalSearch } from '@/components/GlobalSearch';
 import { Badge } from '@/components/ui/badge';
-import { useLogout, useMe } from '@/features/auth/auth.hooks';
+import { useLogout, useMe, usePermissions } from '@/features/auth/auth.hooks';
+import { TopbarAiCostCalculatorControl } from '@/features/ai-pricing/components/TopbarAiCostCalculatorControl';
+import { SystemPermissions, type SystemPermission } from '@/lib/permissions';
 import { useEffect, useState } from 'react';
-import { LuLogOut } from 'react-icons/lu';
+import {
+  LuBadgeDollarSign,
+  LuCreditCard,
+  LuLogOut,
+  LuPalette,
+  LuSettings,
+  LuShieldCheck,
+  LuUser,
+} from 'react-icons/lu';
 import { TbSearch } from 'react-icons/tb';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import NotificationsDropdown from './NotificationsDropdown';
 import SidenavToggle from './SidenavToggle';
 import ThemeModeToggle from './ThemeModeToggle';
@@ -14,11 +24,44 @@ const adminInitials = (firstName: string | null, lastName: string | null, email:
   return initials || email[0]?.toUpperCase() || '?';
 };
 
+const ACCOUNT_MENU_LINKS: {
+  href: string;
+  label: string;
+  icon: typeof LuUser;
+  permission?: SystemPermission;
+}[] = [
+  { href: '/settings/profile', label: 'Profile', icon: LuUser },
+  { href: '/settings/security', label: 'Security', icon: LuShieldCheck },
+  { href: '/settings/appearance', label: 'Appearance', icon: LuPalette },
+  {
+    href: '/settings/general',
+    label: 'General settings',
+    icon: LuSettings,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
+  {
+    href: '/settings/ai-pricing',
+    label: 'AI pricing',
+    icon: LuBadgeDollarSign,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
+  {
+    href: '/settings/billing',
+    label: 'Billing',
+    icon: LuCreditCard,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
+];
+
 const Topbar = () => {
   const navigate = useNavigate();
   const { data: signedInAdmin } = useMe();
+  const { can } = usePermissions();
   const logoutMutation = useLogout();
   const [searchOpen, setSearchOpen] = useState(false);
+  const visibleAccountLinks = ACCOUNT_MENU_LINKS.filter(
+    link => !link.permission || can(link.permission)
+  );
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -66,6 +109,8 @@ const Topbar = () => {
 
         <div className="flex items-center gap-3">
           {/* TopbarOfferControl stays unmounted until /admin/promo-offers ships. */}
+          <TopbarAiCostCalculatorControl />
+
           <ThemeModeToggle />
 
           <NotificationsDropdown />
@@ -131,6 +176,21 @@ const Topbar = () => {
                     </Badge>
                   </div>
                 )}
+              </div>
+
+              <div className="border-t border-default-200 -mx-2 my-2"></div>
+
+              <div className="space-y-0.5">
+                {visibleAccountLinks.map(link => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="flex w-full items-center gap-x-3.5 rounded px-3 py-1.5 font-medium text-default-700 hover:bg-default-100"
+                  >
+                    <link.icon className="size-4" />
+                    {link.label}
+                  </Link>
+                ))}
               </div>
 
               <div className="border-t border-default-200 -mx-2 my-2"></div>

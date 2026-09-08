@@ -352,14 +352,24 @@ export function UserDetailPanel({ userId }: { userId: string }) {
         </SectionHeading>
 
         {ownedTenantCount > 0 && (
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-default-200 bg-default-50 px-4 py-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-default-400">
-              Total order revenue · {ownedTenantCount} owned workspace
-              {ownedTenantCount === 1 ? '' : 's'}
-            </span>
-            <span className="text-lg font-semibold tabular-nums text-default-800">
-              {formatMoneyPKR(user.ownedRevenue)}
-            </span>
+          <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-default-200 bg-default-50 px-4 py-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-default-400">
+                Total order revenue · {ownedTenantCount} owned workspace
+                {ownedTenantCount === 1 ? '' : 's'}
+              </span>
+              <span className="text-lg font-semibold tabular-nums text-default-800">
+                {formatMoneyPKR(user.ownedRevenue)}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 rounded-lg border border-default-200 bg-default-50 px-4 py-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-default-400">
+                Lifetime AI cost
+              </span>
+              <span className="text-lg font-semibold tabular-nums text-default-800">
+                ${user.ownedAiUsageCostUsd.toFixed(2)}
+              </span>
+            </div>
           </div>
         )}
 
@@ -402,6 +412,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                 <tr className="text-start text-sm font-normal text-default-700">
                   <th className="px-3.5 py-2 text-start">Workspace</th>
                   <th className="px-3.5 py-2 text-start">Revenue</th>
+                  <th className="px-3.5 py-2 text-start">AI Cost</th>
                   <th className="px-3.5 py-2 text-start">Role</th>
                   <th className="px-3.5 py-2 text-start">Status</th>
                   <th className="px-3.5 py-2 text-start">Joined</th>
@@ -427,6 +438,13 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                     <td className="px-3.5 py-2.5 tabular-nums">
                       {row.owned ? (
                         formatMoneyPKR(row.owned.revenue)
+                      ) : (
+                        <span className="text-default-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-3.5 py-2.5 tabular-nums">
+                      {row.owned ? (
+                        `$${row.owned.aiUsageCostUsd.toFixed(2)}`
                       ) : (
                         <span className="text-default-400">—</span>
                       )}

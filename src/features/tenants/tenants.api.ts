@@ -1,6 +1,7 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
 import type {
   Paged,
+  TenantAiUsage,
   TenantDetail,
   TenantListItem,
   TenantStatus,
@@ -49,9 +50,22 @@ export async function getTenantRoles(tenantId: string): Promise<WorkspaceRole[]>
   return data.data;
 }
 
-export async function getTenantWhatsAppNumbers(tenantId: string): Promise<WhatsAppConnectionItem[]> {
+export async function getTenantWhatsAppNumbers(
+  tenantId: string
+): Promise<WhatsAppConnectionItem[]> {
   const { data } = await apiClient.get<ApiEnvelope<WhatsAppConnectionItem[]>>(
     `/admin/tenants/${tenantId}/whatsapp-numbers`
+  );
+  return data.data;
+}
+
+export async function getTenantAiUsage(
+  tenantId: string,
+  range: { from: string; to: string }
+): Promise<TenantAiUsage> {
+  const { data } = await apiClient.get<ApiEnvelope<TenantAiUsage>>(
+    `/admin/tenants/${tenantId}/ai-usage`,
+    { params: range }
   );
   return data.data;
 }

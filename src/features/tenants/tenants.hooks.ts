@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
+import type { DateRange } from '@/features/dashboard/dashboard.hooks';
 import type { TenantDetail, TenantStatus } from '@/lib/types';
 import {
   bulkUpdateTenantStatus,
   getPermissionCatalog,
   getTenant,
+  getTenantAiUsage,
   getTenantRoles,
   getTenantWhatsAppNumbers,
   listTenants,
@@ -100,5 +102,14 @@ export function useTenantWhatsAppNumbers(tenantId: string) {
     queryKey: ['tenant', tenantId, 'whatsapp-numbers'],
     queryFn: () => getTenantWhatsAppNumbers(tenantId),
     enabled: !!tenantId,
+  });
+}
+
+export function useTenantAiUsage(tenantId: string, range: DateRange) {
+  return useQuery({
+    queryKey: ['tenant', tenantId, 'ai-usage', range.from, range.to],
+    queryFn: () => getTenantAiUsage(tenantId, range),
+    enabled: !!tenantId,
+    placeholderData: prev => prev,
   });
 }

@@ -1,6 +1,7 @@
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { useAdminSidebarCounts } from '@/lib/useAdminSidebarCounts';
 import { useEffect, useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { LuChevronRight } from 'react-icons/lu';
 import { Link, useLocation } from 'react-router';
 import { menuItemsData, type MenuItemType } from './menu';
@@ -85,19 +86,25 @@ const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
         </span>
       </button>
 
-      <ul
-        className={`sub-menu hs-accordion-content space-y-1 overflow-hidden transition-all duration-200 ${
-          isOpen ? 'block' : 'hidden'
-        }`}
-      >
-        {item.children?.map((child: MenuItemType) =>
-          child.children ? (
-            <MenuItemWithChildren key={child.key} item={child} />
-          ) : (
-            <MenuItem key={child.key} item={child} />
-          )
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.ul
+            className="sub-menu hs-accordion-content space-y-1 overflow-hidden"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+          >
+            {item.children?.map((child: MenuItemType) =>
+              child.children ? (
+                <MenuItemWithChildren key={child.key} item={child} />
+              ) : (
+                <MenuItem key={child.key} item={child} />
+              )
+            )}
+          </motion.ul>
         )}
-      </ul>
+      </AnimatePresence>
     </li>
   );
 };

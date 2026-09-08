@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { IconType } from 'react-icons/lib';
 import { cn } from '@/lib/utils';
 
@@ -82,19 +83,25 @@ export function Dropdown({
         {trigger}
       </button>
 
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            'absolute top-full z-50 mt-1 min-w-40 rounded-lg border border-default-200 bg-card p-2 shadow-lg',
-            align === 'end' ? 'end-0' : 'start-0',
-            menuClassName
-          )}
-          onClick={event => event.stopPropagation()}
-        >
-          <DropdownContext value={{ close }}>{children}</DropdownContext>
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            role="menu"
+            className={cn(
+              'absolute top-full z-50 mt-1 min-w-40 rounded-lg border border-default-200 bg-card p-2 shadow-lg',
+              align === 'end' ? 'end-0' : 'start-0',
+              menuClassName
+            )}
+            initial={{ opacity: 0, scale: 0.96, y: -4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -4 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+            onClick={event => event.stopPropagation()}
+          >
+            <DropdownContext value={{ close }}>{children}</DropdownContext>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,15 +1,7 @@
-import PageMeta from '@/components/PageMeta';
-import { SettingsView } from '@/features/settings/components/SettingsView';
+import { Navigate } from 'react-router';
 
-const SettingsPage = () => {
-  return (
-    <>
-      <PageMeta title="Settings" />
-      <main>
-        <SettingsView />
-      </main>
-    </>
-  );
-};
+// Bare /settings has no content of its own — land on the admin's own profile,
+// same as every other settings section is reached: a real route under it.
+const SettingsPage = () => <Navigate to="/settings/profile" replace />;
 
 export default SettingsPage;

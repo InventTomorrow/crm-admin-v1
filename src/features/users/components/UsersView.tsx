@@ -204,6 +204,19 @@ export function UsersView() {
         ),
       },
       {
+        id: 'aiUsageCost',
+        accessorFn: user => user.ownedAiUsageCostUsd,
+        header: 'AI Cost',
+        cell: ({ row }) => (
+          <span
+            className="tabular-nums text-default-600"
+            title="Lifetime AI cost across all workspaces this user owns"
+          >
+            ${row.original.ownedAiUsageCostUsd.toFixed(2)}
+          </span>
+        ),
+      },
+      {
         id: 'lastLoginAt',
         accessorFn: user => user.lastLoginAt ?? '',
         header: 'Last login',

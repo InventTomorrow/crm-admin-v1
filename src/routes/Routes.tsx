@@ -23,6 +23,12 @@ const Newsletter = lazy(() => import('@/app/(admin)/newsletter'));
 const ContactMessages = lazy(() => import('@/app/(admin)/contact-messages'));
 const Notifications = lazy(() => import('@/app/(admin)/notifications'));
 const Settings = lazy(() => import('@/app/(admin)/settings'));
+const SettingsGeneral = lazy(() => import('@/app/(admin)/settings/general'));
+const SettingsAiPricing = lazy(() => import('@/app/(admin)/settings/ai-pricing'));
+const SettingsProfile = lazy(() => import('@/app/(admin)/settings/profile'));
+const SettingsSecurity = lazy(() => import('@/app/(admin)/settings/security'));
+const SettingsAppearance = lazy(() => import('@/app/(admin)/settings/appearance'));
+const SettingsBilling = lazy(() => import('@/app/(admin)/settings/billing'));
 
 // Public pages (no chrome)
 const Login = lazy(() => import('@/app/(auth)/login'));
@@ -152,9 +158,31 @@ export const appRoutes: AppRoute[] = [
     element: <Notifications />,
     permission: SystemPermissions.NOTIFICATIONS_VIEW,
   },
-  // Auth-only: Settings is the admin's own profile. The platform support-contact
-  // card inside it gates itself on settings:edit.
+  // Bare /settings redirects to /settings/profile. Profile/Security/Appearance
+  // are the admin's own account — auth-only. General/AI Pricing/Billing are
+  // platform-wide config, gated the same as everything else in this file.
   { path: '/settings', name: 'Settings', element: <Settings /> },
+  {
+    path: '/settings/general',
+    name: 'SettingsGeneral',
+    element: <SettingsGeneral />,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
+  {
+    path: '/settings/ai-pricing',
+    name: 'SettingsAiPricing',
+    element: <SettingsAiPricing />,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
+  { path: '/settings/profile', name: 'SettingsProfile', element: <SettingsProfile /> },
+  { path: '/settings/security', name: 'SettingsSecurity', element: <SettingsSecurity /> },
+  { path: '/settings/appearance', name: 'SettingsAppearance', element: <SettingsAppearance /> },
+  {
+    path: '/settings/billing',
+    name: 'SettingsBilling',
+    element: <SettingsBilling />,
+    permission: SystemPermissions.SETTINGS_VIEW,
+  },
 ];
 
 export const publicRoutes: AppRoute[] = [

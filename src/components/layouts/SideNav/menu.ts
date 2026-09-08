@@ -150,6 +150,33 @@ export const menuItemsData: MenuItemType[] = [
     icon: LuBellRing,
     permission: SystemPermissions.NOTIFICATIONS_VIEW,
   },
-  // No permission — Settings is the admin's own profile.
-  { key: 'settings', label: 'Settings', href: '/settings', icon: LuSettings },
+  {
+    key: 'settings',
+    label: 'Settings',
+    icon: LuSettings,
+    children: [
+      {
+        key: 'settings-general',
+        label: 'General',
+        href: '/settings/general',
+        permission: SystemPermissions.SETTINGS_VIEW,
+      },
+      {
+        key: 'settings-ai-pricing',
+        label: 'AI Pricing',
+        href: '/settings/ai-pricing',
+        permission: SystemPermissions.SETTINGS_VIEW,
+      },
+      // No permission — the admin's own account.
+      { key: 'settings-profile', label: 'Profile', href: '/settings/profile' },
+      { key: 'settings-security', label: 'Security', href: '/settings/security' },
+      { key: 'settings-appearance', label: 'Appearance', href: '/settings/appearance' },
+      {
+        key: 'settings-billing',
+        label: 'Billing',
+        href: '/settings/billing',
+        permission: SystemPermissions.SETTINGS_VIEW,
+      },
+    ],
+  },
 ];
