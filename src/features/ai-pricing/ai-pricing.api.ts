@@ -28,6 +28,16 @@ export async function addModelPricing(input: AddModelPricingInput): Promise<AiMo
   return data.data;
 }
 
+export async function getPricingHistory(
+  provider: string,
+  model: string
+): Promise<AiModelPricing[]> {
+  const { data } = await apiClient.get<ApiEnvelope<AiModelPricing[]>>('/admin/ai-pricing/history', {
+    params: { provider, model },
+  });
+  return data.data;
+}
+
 export async function calculateHypotheticalCost(
   items: CalculateCostItem[]
 ): Promise<ModelCostBreakdown[]> {

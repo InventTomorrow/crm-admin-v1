@@ -1,41 +1,15 @@
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { LoadingState } from '@/components/states';
 import { Button } from '@/components/ui/button';
-import { ControlledNumberInput } from '@/components/ui/controlled-number-input';
-import { Field } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
-import { SearchSelect } from '@/components/ui/search-select';
-import { Select } from '@/components/ui/select';
-import { usePermissions } from '@/features/auth/auth.hooks';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { LuCalculator, LuCoins, LuLoaderCircle } from 'react-icons/lu';
-import { z } from 'zod';
-import {
-  useAddModelPricing,
-  useCurrentPricing,
-  useExchangeRate,
-  useUpdateExchangeRate,
-} from '../ai-pricing.hooks';
-import { AI_PROVIDERS, PROVIDER_LABELS, modelsForProvider } from '../model-catalog';
+import { useState } from 'react';
+import { LuCalculator, LuCoins, LuHistory, LuPencil, LuPlus } from 'react-icons/lu';
+import { useCurrentPricing, useExchangeRate } from '../ai-pricing.hooks';
+import { AiAddPricingDialog } from './AiAddPricingDialog';
 import { AiCostCalculatorDialog } from './AiCostCalculatorDialog';
-
-const pricingFormSchema = z.object({
-  provider: z.string().trim().min(1, 'Required'),
-  model: z.string().trim().min(1, 'Required'),
-  inputPricePerMillionTokens: z.number().min(0, 'Must be 0 or more'),
-  cachedInputPricePerMillionTokens: z.number().min(0).nullable(),
-  outputPricePerMillionTokens: z.number().min(0, 'Must be 0 or more'),
-});
-type PricingFormValues = z.infer<typeof pricingFormSchema>;
-
-const exchangeRateFormSchema = z.object({
-  usdToPkrRate: z.number().positive('Must be greater than 0'),
-});
-type ExchangeRateFormValues = z.infer<typeof exchangeRateFormSchema>;
+import { AiExchangeRateDialog } from './AiExchangeRateDialog';
+import { AiPricingHistorySheet } from './AiPricingHistorySheet';
 
 /**
  * Per-model $/1M-token rates (input/cached/output) and the USD→PKR rate used to
@@ -43,66 +17,16 @@ type ExchangeRateFormValues = z.infer<typeof exchangeRateFormSchema>;
  * every number here is manually entered — this card doubles as the "what's
  * currently on file" confirmation view.
  */
-
-// TODO:// update the pricing page as well,
-// make the dialog for add price, and show the current pricings of the model openly for the same model (price of one model openly and all other move to recent model prices )  recent pricing in the data table with proper filters including provider
-
 export function AiPricingSettingsCard() {
-  const { can } = usePermissions();
-  const canEdit = can(SystemPermissions.SETTINGS_EDIT);
   const [calculatorOpen, setCalculatorOpen] = useState(false);
-  const [modelQuery, setModelQuery] = useState('');
+  const [addPricingOpen, setAddPricingOpen] = useState(false);
+  const [exchangeRateOpen, setExchangeRateOpen] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState<{ provider: string; model: string } | null>(
+    null
+  );
 
   const { data: pricing, isLoading: pricingLoading } = useCurrentPricing();
-  const addPricingMutation = useAddModelPricing();
-
   const { data: exchangeRate, isLoading: rateLoading } = useExchangeRate();
-  const updateRateMutation = useUpdateExchangeRate();
-
-  const pricingForm = useForm<PricingFormValues>({
-    resolver: zodResolver(pricingFormSchema),
-    defaultValues: {
-      provider: 'openai',
-      model: '',
-      inputPricePerMillionTokens: 0,
-      cachedInputPricePerMillionTokens: null,
-      outputPricePerMillionTokens: 0,
-    },
-  });
-
-  const rateForm = useForm<ExchangeRateFormValues>({
-    resolver: zodResolver(exchangeRateFormSchema),
-    defaultValues: { usdToPkrRate: 0 },
-  });
-  useEffect(() => {
-    if (exchangeRate !== null && exchangeRate !== undefined) {
-      rateForm.reset({ usdToPkrRate: exchangeRate });
-    }
-  }, [exchangeRate, rateForm]);
-
-  const submitPricing = pricingForm.handleSubmit(values => {
-    addPricingMutation.mutate(
-      {
-        provider: values.provider,
-        model: values.model,
-        inputPricePerMillionTokens: values.inputPricePerMillionTokens,
-        cachedInputPricePerMillionTokens: values.cachedInputPricePerMillionTokens,
-        outputPricePerMillionTokens: values.outputPricePerMillionTokens,
-        currency: 'USD',
-      },
-      {
-        onSuccess: () => {
-          pricingForm.reset();
-          setModelQuery('');
-        },
-      }
-    );
-  });
-  const pricingProviderValue = pricingForm.watch('provider');
-
-  const submitRate = rateForm.handleSubmit(values => {
-    updateRateMutation.mutate(values.usdToPkrRate);
-  });
 
   return (
     <div className="card py-4">
@@ -136,12 +60,13 @@ export function AiPricingSettingsCard() {
                   <th className="px-3.5 py-3 text-start">Cached input $/1M</th>
                   <th className="px-3.5 py-3 text-start">Output $/1M</th>
                   <th className="px-3.5 py-3 text-start">Effective from</th>
+                  <th className="px-3.5 py-3 text-end">History</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-default-200">
                 {(pricing ?? []).length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3.5 py-4 text-sm text-default-500">
+                    <td colSpan={6} className="px-3.5 py-4 text-sm text-default-500">
                       No pricing entered yet.
                     </td>
                   </tr>
@@ -165,6 +90,18 @@ export function AiPricingSettingsCard() {
                     <td className="px-3.5 py-3 text-default-500">
                       {formatDate(row.effectiveFrom)}
                     </td>
+                    <td className="px-3.5 py-3 text-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setHistoryTarget({ provider: row.provider, model: row.model })
+                        }
+                      >
+                        <LuHistory className="size-4 me-1.5" /> History
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -173,137 +110,31 @@ export function AiPricingSettingsCard() {
         )}
 
         <PermissionGuard permission={SystemPermissions.SETTINGS_EDIT}>
-          <form
-            onSubmit={submitPricing}
-            noValidate
-            className="space-y-3 border-t border-default-200 pt-4"
-          >
-            <p className="text-sm font-medium text-default-800">Add a price</p>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-5">
-              <Field label="Provider" error={pricingForm.formState.errors.provider?.message}>
-                <Controller
-                  control={pricingForm.control}
-                  name="provider"
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      onChange={event => {
-                        field.onChange(event.target.value);
-                        pricingForm.setValue('model', '');
-                        setModelQuery('');
-                      }}
-                    >
-                      {AI_PROVIDERS.map(p => (
-                        <option key={p} value={p}>
-                          {PROVIDER_LABELS[p]}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                />
-              </Field>
-              <Field label="Model" error={pricingForm.formState.errors.model?.message}>
-                <Controller
-                  control={pricingForm.control}
-                  name="model"
-                  render={({ field }) => (
-                    <SearchSelect
-                      options={modelsForProvider(pricingProviderValue, pricing ?? [])
-                        .filter(m => m.toLowerCase().includes(modelQuery.toLowerCase()))
-                        .map(m => ({ id: m, label: m }))}
-                      value={field.value ? { id: field.value, label: field.value } : null}
-                      onSelect={option => field.onChange(option?.id ?? '')}
-                      onCreate={query => {
-                        field.onChange(query);
-                        setModelQuery('');
-                      }}
-                      query={modelQuery}
-                      onQueryChange={setModelQuery}
-                      placeholder="Select or type a model…"
-                      invalid={!!pricingForm.formState.errors.model}
-                    />
-                  )}
-                />
-              </Field>
-              <Field
-                label="Input $/1M"
-                error={pricingForm.formState.errors.inputPricePerMillionTokens?.message}
-              >
-                <ControlledNumberInput
-                  control={pricingForm.control}
-                  name="inputPricePerMillionTokens"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </Field>
-              <Field label="Cached input $/1M" hint="Optional">
-                <Controller
-                  control={pricingForm.control}
-                  name="cachedInputPricePerMillionTokens"
-                  render={({ field }) => (
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0.00"
-                      value={field.value ?? ''}
-                      onChange={event =>
-                        field.onChange(
-                          Number.isNaN(event.target.valueAsNumber)
-                            ? null
-                            : event.target.valueAsNumber
-                        )
-                      }
-                    />
-                  )}
-                />
-              </Field>
-              <Field
-                label="Output $/1M"
-                error={pricingForm.formState.errors.outputPricePerMillionTokens?.message}
-              >
-                <ControlledNumberInput
-                  control={pricingForm.control}
-                  name="outputPricePerMillionTokens"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </Field>
-            </div>
-            <Button type="submit" size="sm" disabled={addPricingMutation.isPending}>
-              {addPricingMutation.isPending && (
-                <LuLoaderCircle className="size-4 me-1.5 animate-spin" />
-              )}
-              {addPricingMutation.isPending ? 'Saving…' : 'Add price'}
+          <div className="border-t border-default-200 pt-4">
+            <Button type="button" size="sm" onClick={() => setAddPricingOpen(true)}>
+              <LuPlus className="size-4 me-1.5" /> Add a price
             </Button>
-          </form>
+          </div>
         </PermissionGuard>
 
-        <form
-          onSubmit={submitRate}
-          noValidate
-          className="flex flex-wrap items-end gap-3 border-t border-default-200 pt-4"
-        >
-          <Field
-            label="USD → PKR rate"
-            hint="Used to show a secondary PKR figure alongside every USD cost, until changed again."
-            error={rateForm.formState.errors.usdToPkrRate?.message}
-          >
-            <ControlledNumberInput
-              control={rateForm.control}
-              name="usdToPkrRate"
-              step="0.01"
-              placeholder="0.00"
-              className="w-40"
-              disabled={rateLoading || !canEdit}
-            />
-          </Field>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-default-200 pt-4">
+          <div>
+            <p className="text-sm font-medium text-default-800">USD → PKR rate</p>
+            <p className="mt-0.5 text-sm text-default-500">
+              {rateLoading ? '…' : formatMoneyPKR(exchangeRate)}
+            </p>
+          </div>
           <PermissionGuard permission={SystemPermissions.SETTINGS_EDIT}>
-            <Button type="submit" size="sm" disabled={updateRateMutation.isPending}>
-              {updateRateMutation.isPending ? 'Saving…' : 'Save rate'}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setExchangeRateOpen(true)}
+            >
+              <LuPencil className="size-4 me-1.5" /> Edit rate
             </Button>
           </PermissionGuard>
-        </form>
+        </div>
       </div>
 
       <AiCostCalculatorDialog
@@ -311,6 +142,29 @@ export function AiPricingSettingsCard() {
         onOpenChange={setCalculatorOpen}
         availableModels={pricing ?? []}
       />
+
+      <AiAddPricingDialog
+        open={addPricingOpen}
+        onOpenChange={setAddPricingOpen}
+        availableModels={pricing ?? []}
+      />
+
+      <AiExchangeRateDialog
+        open={exchangeRateOpen}
+        onOpenChange={setExchangeRateOpen}
+        currentRate={exchangeRate ?? null}
+      />
+
+      {historyTarget && (
+        <AiPricingHistorySheet
+          open={!!historyTarget}
+          onOpenChange={open => {
+            if (!open) setHistoryTarget(null);
+          }}
+          provider={historyTarget.provider}
+          model={historyTarget.model}
+        />
+      )}
     </div>
   );
 }
