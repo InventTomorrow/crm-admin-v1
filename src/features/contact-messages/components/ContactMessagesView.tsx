@@ -178,7 +178,9 @@ export function ContactMessagesView() {
         size="lg"
         title={openedMessage?.subject}
         description={
-          openedMessage ? `${openedMessage.name} · ${formatDateTime(openedMessage.createdAt)}` : null
+          openedMessage
+            ? `${openedMessage.name} · ${formatDateTime(openedMessage.createdAt)}`
+            : null
         }
       >
         {openedMessage && (

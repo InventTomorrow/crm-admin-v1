@@ -41,10 +41,7 @@ const BlogPostPreviewPage = () => {
                       <LuExternalLink className="size-3.5" />
                     </a>
                   )}
-                  <Link
-                    to={`/blog/${post.id}/edit`}
-                    className={buttonVariants({ size: 'sm' })}
-                  >
+                  <Link to={`/blog/${post.id}/edit`} className={buttonVariants({ size: 'sm' })}>
                     <LuSquarePen className="size-4" />
                     Edit
                   </Link>

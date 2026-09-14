@@ -127,10 +127,7 @@ export async function createAuthor(input: AuthorInput): Promise<BlogAuthor> {
   return data.data;
 }
 
-export async function updateAuthor(
-  id: string,
-  input: Partial<AuthorInput>
-): Promise<BlogAuthor> {
+export async function updateAuthor(id: string, input: Partial<AuthorInput>): Promise<BlogAuthor> {
   const { data } = await apiClient.patch<ApiEnvelope<BlogAuthor>>(
     `/admin/blog/authors/${id}`,
     input

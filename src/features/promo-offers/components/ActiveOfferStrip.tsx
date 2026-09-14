@@ -23,8 +23,8 @@ export function ActiveOfferStrip() {
         <LuBadgePercent className="size-4 shrink-0 text-warning" />
         <span>
           <strong className="font-semibold">{offer.title}</strong> — every plan is{' '}
-          <strong className="font-semibold">{offer.discountPercent}% off</strong> until
-          midnight on {formatOfferEndDate(offer.endsAt)}
+          <strong className="font-semibold">{offer.discountPercent}% off</strong> until midnight on{' '}
+          {formatOfferEndDate(offer.endsAt)}
         </span>
         <OfferCountdown endsAt={offer.endsAt} className="text-warning" />
         <button
@@ -45,9 +45,7 @@ export function ActiveOfferStrip() {
         intent="warning"
         confirmLabel="End offer"
         isLoading={endOffer.isPending}
-        onConfirm={() =>
-          endOffer.mutate(offer.id, { onSuccess: () => setIsConfirmOpen(false) })
-        }
+        onConfirm={() => endOffer.mutate(offer.id, { onSuccess: () => setIsConfirmOpen(false) })}
       />
     </>
   );

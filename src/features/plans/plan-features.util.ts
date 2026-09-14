@@ -35,16 +35,18 @@ function catalogBullet(values: PlanFormValues): string | null {
         : null;
     default:
       // A universal plan carries every count, so name each one.
-      return [
-        isIncluded(values.maxProducts) ? count(values.maxProducts, 'product') : null,
-        isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null,
-        isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null,
-        isIncluded(values.maxClinicalServices)
-          ? count(values.maxClinicalServices, 'clinical service')
-          : null,
-      ]
-        .filter(Boolean)
-        .join(' · ') || null;
+      return (
+        [
+          isIncluded(values.maxProducts) ? count(values.maxProducts, 'product') : null,
+          isIncluded(values.maxMenuItems) ? count(values.maxMenuItems, 'menu item') : null,
+          isIncluded(values.maxServices) ? count(values.maxServices, 'service') : null,
+          isIncluded(values.maxClinicalServices)
+            ? count(values.maxClinicalServices, 'clinical service')
+            : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || null
+      );
   }
 }
 

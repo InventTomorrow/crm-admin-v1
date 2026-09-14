@@ -15,7 +15,12 @@ interface MigratePlanDialogProps {
 }
 
 /** Moves every (or a chosen set of) active/trialing subscriber off `sourcePlan` onto another plan — used to clear a plan before deleting it. */
-export function MigratePlanDialog({ open, onOpenChange, sourcePlan, plans }: MigratePlanDialogProps) {
+export function MigratePlanDialog({
+  open,
+  onOpenChange,
+  sourcePlan,
+  plans,
+}: MigratePlanDialogProps) {
   const targetOptions = useMemo(
     () => plans.filter(plan => plan.id !== sourcePlan?.id),
     [plans, sourcePlan]
@@ -71,7 +76,11 @@ export function MigratePlanDialog({ open, onOpenChange, sourcePlan, plans }: Mig
           <Button variant="soft" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleMigrate} disabled={!canMigrate} loading={migrateMutation.isPending}>
+          <Button
+            onClick={handleMigrate}
+            disabled={!canMigrate}
+            loading={migrateMutation.isPending}
+          >
             Move {selectedCount > 0 ? selectedCount : ''} subscriber{selectedCount === 1 ? '' : 's'}
           </Button>
         </>
@@ -127,9 +136,13 @@ export function MigratePlanDialog({ open, onOpenChange, sourcePlan, plans }: Mig
                 key={sub.id}
                 className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-default-100"
               >
-                <Checkbox checked={selectedIds.has(sub.id)} onChange={() => toggleSelected(sub.id)} />
+                <Checkbox
+                  checked={selectedIds.has(sub.id)}
+                  onChange={() => toggleSelected(sub.id)}
+                />
                 <span className="flex-1 truncate">
-                  {[sub.owner.firstName, sub.owner.lastName].filter(Boolean).join(' ') || sub.owner.email}
+                  {[sub.owner.firstName, sub.owner.lastName].filter(Boolean).join(' ') ||
+                    sub.owner.email}
                 </span>
                 <span className="text-xs text-default-400">{sub.owner.email}</span>
               </label>

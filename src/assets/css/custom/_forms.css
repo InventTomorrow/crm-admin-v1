@@ -374,7 +374,11 @@ input[type='radio'].form-radio:not([class*='text-']):checked {
   border-color: var(--color-primary);
 }
 
-input[type='checkbox'].form-checkbox:not([class*='text-']):hover:not(:checked, :indeterminate, :disabled),
+input[type='checkbox'].form-checkbox:not([class*='text-']):hover:not(
+    :checked,
+    :indeterminate,
+    :disabled
+  ),
 input[type='radio'].form-radio:not([class*='text-']):hover:not(:checked, :disabled) {
   border-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
 }

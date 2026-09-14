@@ -46,7 +46,7 @@ export function usePermissions() {
       canAll: (...permissions: SystemPermission[]) =>
         permissions.every(permission => granted.has(permission)),
     }),
-    [granted, isLoading, role],
+    [granted, isLoading, role]
   );
 }
 

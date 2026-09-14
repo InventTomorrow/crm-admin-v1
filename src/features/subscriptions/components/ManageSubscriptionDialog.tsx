@@ -54,9 +54,8 @@ export function ManageSubscriptionDialog({
   const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
   const [isEndDateEditable, setIsEndDateEditable] = useState(false);
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<(typeof PAYMENT_METHODS)[number]>(
-    'BANK_TRANSFER'
-  );
+  const [paymentMethod, setPaymentMethod] =
+    useState<(typeof PAYMENT_METHODS)[number]>('BANK_TRANSFER');
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentReference, setPaymentReference] = useState('');
   const [discountReason, setDiscountReason] = useState('');
@@ -155,10 +154,12 @@ export function ManageSubscriptionDialog({
   const amountDue =
     selectedPlan && Number.isInteger(periods) && periods > 0 ? selectedPlan.price * periods : null;
   const collectedAmount = Number(paymentAmount);
-  const isAmountValid = paymentAmount !== '' && !Number.isNaN(collectedAmount) && collectedAmount >= 0;
+  const isAmountValid =
+    paymentAmount !== '' && !Number.isNaN(collectedAmount) && collectedAmount >= 0;
   // Below the plan's price, the shortfall has to be accounted for — the server
   // rejects one no live campaign explains.
-  const isDiscounted = isRecordingPayment && isAmountValid && amountDue !== null && collectedAmount < amountDue;
+  const isDiscounted =
+    isRecordingPayment && isAmountValid && amountDue !== null && collectedAmount < amountDue;
   const startChanged =
     (periodStart?.toISOString() ?? null) !==
     (toDate(subscription.currentPeriodStart)?.toISOString() ?? null);
@@ -168,12 +169,12 @@ export function ManageSubscriptionDialog({
   const trialChanged =
     (trialEndsAt?.toISOString() ?? null) !==
     (toDate(subscription.trialEndsAt)?.toISOString() ?? null);
-  const dirty =
-    planChanged || startChanged || periodChanged || trialChanged || isRecordingPayment;
+  const dirty = planChanged || startChanged || periodChanged || trialChanged || isRecordingPayment;
 
   const periodInverted = Boolean(periodStart && periodEnd && periodEnd <= periodStart);
   const countLabel = selectedPlan ? formatPlanPeriodCountLabel(selectedPlan.duration) : 'Periods';
-  const paymentIncomplete = isRecordingPayment && (!isAmountValid || (isDiscounted && !discountReason.trim()));
+  const paymentIncomplete =
+    isRecordingPayment && (!isAmountValid || (isDiscounted && !discountReason.trim()));
 
   const handleSave = () => {
     manageMutation.mutate(
@@ -249,7 +250,11 @@ export function ManageSubscriptionDialog({
         </Field>
 
         <Field label="Period starts" hint="The day this billing period began.">
-          <DatePicker value={periodStart} onChange={handleStartChange} placeholder="No start date" />
+          <DatePicker
+            value={periodStart}
+            onChange={handleStartChange}
+            placeholder="No start date"
+          />
         </Field>
 
         <Field
@@ -349,8 +354,8 @@ export function ManageSubscriptionDialog({
                 <div className="rounded-lg border border-info/30 bg-info/5 p-3">
                   <p className="text-xs text-default-600">
                     {formatPlanPrice(amountDue - collectedAmount, selectedPlan.currency)} below the{' '}
-                    {selectedPlan.name} price of{' '}
-                    {formatPlanPrice(amountDue, selectedPlan.currency)}.
+                    {selectedPlan.name} price of {formatPlanPrice(amountDue, selectedPlan.currency)}
+                    .
                   </p>
                   <Input
                     className="mt-2"

@@ -69,7 +69,10 @@ export function WhatsAppNumbersTable({
                   <Badge tone="neutral">Disconnected</Badge>
                 )}
               </td>
-              <td className="px-3.5 py-2.5 text-default-500" title={formatDateTime(connection.connectedAt)}>
+              <td
+                className="px-3.5 py-2.5 text-default-500"
+                title={formatDateTime(connection.connectedAt)}
+              >
                 {formatRelative(connection.connectedAt)}
               </td>
               <td className="px-3.5 py-2.5 text-default-500">

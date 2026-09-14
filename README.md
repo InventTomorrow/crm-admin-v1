@@ -41,4 +41,5 @@ src/
 ```
 
 The original Tailwick demo pages live in `src/mock/` and are browsable in dev under `/mock/*` (e.g. `/mock/orders`); they are statically stripped from production builds. Delete the folder (and prune its deps: fullcalendar, swiper, react-countdown, lucide-react, @iconify/react, react-router-dom) once no longer needed as reference.
+
 # crm-admin-v1
