@@ -19,8 +19,6 @@ export async function createPromoOffer(input: CreatePromoOfferInput): Promise<Pr
 }
 
 export async function endPromoOffer(id: string): Promise<PromoOffer> {
-  const { data } = await apiClient.patch<ApiEnvelope<PromoOffer>>(
-    `/admin/promo-offers/${id}/end`
-  );
+  const { data } = await apiClient.patch<ApiEnvelope<PromoOffer>>(`/admin/promo-offers/${id}/end`);
   return data.data;
 }

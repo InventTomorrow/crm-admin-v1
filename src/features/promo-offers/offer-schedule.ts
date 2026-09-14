@@ -20,9 +20,7 @@ function offerZoneDateKey(instant: Date): string {
 
 /** "2026-08-26" -> "2026-08-27". Pure string maths, no zone involved. */
 function nextDateKey(dateKey: string): string {
-  return new Date(new Date(`${dateKey}T00:00:00Z`).getTime() + DAY_MS)
-    .toISOString()
-    .slice(0, 10);
+  return new Date(new Date(`${dateKey}T00:00:00Z`).getTime() + DAY_MS).toISOString().slice(0, 10);
 }
 
 /**

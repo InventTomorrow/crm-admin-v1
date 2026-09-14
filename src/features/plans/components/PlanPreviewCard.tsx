@@ -183,7 +183,10 @@ function LandingCard({
       ) : (
         <p
           className="flex-1 rounded-lg border border-dashed px-3 py-4 text-center text-xs"
-          style={{ borderColor: featured ? 'rgba(255,255,255,0.25)' : '#DDE6DE', color: LANDING.text }}
+          style={{
+            borderColor: featured ? 'rgba(255,255,255,0.25)' : '#DDE6DE',
+            color: LANDING.text,
+          }}
         >
           No feature bullets yet — the landing card lists these, not the plan limits.
         </p>
@@ -195,7 +198,11 @@ function LandingCard({
           style={
             featured
               ? { background: '#fff', color: LANDING.dark }
-              : { background: LANDING.green, color: '#fff', boxShadow: '0 6px 20px rgba(22,165,114,0.28)' }
+              : {
+                  background: LANDING.green,
+                  color: '#fff',
+                  boxShadow: '0 6px 20px rgba(22,165,114,0.28)',
+                }
           }
         >
           {values.isComingSoon ? 'Coming soon' : ctaLabel}
@@ -276,7 +283,6 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
             <LimitRow label="Messages / month" value={values.maxMonthlyMessages} />
           </ul>
         )}
-
       </div>
 
       <span

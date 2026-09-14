@@ -11,11 +11,7 @@ import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
 import { listPlans } from '@/features/plans/plans.api';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
-import {
-  formatPlanPeriod,
-  formatPlanPeriodCountLabel,
-  formatPlanPrice,
-} from '@/lib/planFormat';
+import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@/lib/planFormat';
 import { useCreateCheckoutLink } from '../links.hooks';
 import { createCheckoutLinkSchema, type CreateCheckoutLinkFormValues } from '../types';
 import { Button } from '@/components/ui/button';

@@ -152,7 +152,11 @@ export function PaymentAccountForm({ account, onClose }: PaymentAccountFormProps
           </div>
         </FormSection>
 
-        <FormSection title="Account details" hint="Exactly as the customer must enter them." separated>
+        <FormSection
+          title="Account details"
+          hint="Exactly as the customer must enter them."
+          separated
+        >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field
               label="Account title"

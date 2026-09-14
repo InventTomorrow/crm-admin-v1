@@ -1,5 +1,12 @@
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { ControlledNumberInput } from '@/components/ui/controlled-number-input';
+import { Field } from '@/components/ui/field';
+import { Modal } from '@/components/ui/modal';
+import { SearchSelect, type SearchSelectOption } from '@/components/ui/search-select';
+import { Select } from '@/components/ui/select';
+import type { AiModelPricing, ModelCostBreakdown } from '@/lib/types';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import {
   Controller,
   useFieldArray,
@@ -9,18 +16,12 @@ import {
   type FieldErrors,
   type UseFormSetValue,
 } from 'react-hook-form';
-import { z } from 'zod';
 import { LuLoaderCircle, LuPlus, LuTrash2 } from 'react-icons/lu';
-import { Button } from '@/components/ui/button';
-import { ControlledNumberInput } from '@/components/ui/controlled-number-input';
-import { Field } from '@/components/ui/field';
-import { Modal } from '@/components/ui/modal';
-import { Select } from '@/components/ui/select';
-import { SearchSelect, type SearchSelectOption } from '@/components/ui/search-select';
-import type { AiModelPricing, ModelCostBreakdown } from '@/lib/types';
-import { AI_PROVIDERS, PROVIDER_LABELS, modelsForProvider, priceHint } from '../model-catalog';
+import { z } from 'zod';
 import type { CalculateCostItem } from '../ai-pricing.api';
 import { useCalculateHypotheticalCost } from '../ai-pricing.hooks';
+import { AI_PROVIDERS, PROVIDER_LABELS, modelsForProvider, priceHint } from '../model-catalog';
+import { AiAddPricingDialog } from './AiAddPricingDialog';
 
 const usageRowSchema = z.object({
   promptTokens: z.number().int().min(0),
@@ -229,6 +230,7 @@ export function AiCostCalculatorDialog({
     remove: removeGroup,
   } = useFieldArray({ control: form.control, name: 'groups' });
   const calculateMutation = useCalculateHypotheticalCost();
+  const [addPricingOpen, setAddPricingOpen] = useState(false);
 
   const submit = form.handleSubmit(values => {
     calculateMutation.mutate(toCalculateItems(values.groups));
@@ -243,99 +245,116 @@ export function AiCostCalculatorDialog({
   };
 
   return (
-    <Modal
-      open={open}
-      onOpenChange={next => {
-        onOpenChange(next);
-        if (!next) reset();
-      }}
-      title="AI cost calculator"
-      size="lg"
-      footer={
-        <>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => appendGroup(emptyGroup())}
-          >
-            <LuPlus className="size-4 me-1.5" /> Add model
-          </Button>
-          <Button
-            type="submit"
-            form="ai-cost-calculator-form"
-            disabled={calculateMutation.isPending}
-          >
-            {calculateMutation.isPending && (
-              <LuLoaderCircle className="size-4 me-1.5 animate-spin" />
-            )}
-            {calculateMutation.isPending ? 'Calculating…' : 'Calculate'}
-          </Button>
-        </>
-      }
-    >
-      <form id="ai-cost-calculator-form" onSubmit={submit} noValidate className="space-y-4">
-        <p className="text-sm text-default-500">
-          Pick a provider and model, then add token-count rows under it — multiple rows for the same
-          model are summed together. This doesn't look at any tenant's real usage.
-        </p>
-
-        <div className="max-h-[45vh] space-y-4 overflow-y-auto pe-1">
-          {groupFields.map((groupField, groupIndex) => (
-            <ModelGroupCard
-              key={groupField.id}
-              control={form.control}
-              groupIndex={groupIndex}
-              setValue={form.setValue}
-              errors={form.formState.errors}
-              availableModels={availableModels}
-              canRemoveGroup={groupFields.length > 1}
-              onRemoveGroup={() => removeGroup(groupIndex)}
-            />
-          ))}
-        </div>
-
-        {results.length > 0 && (
-          <div className="overflow-x-auto rounded-lg border border-default-200">
-            <table className="min-w-full divide-y divide-default-200">
-              <thead className="bg-default-150">
-                <tr className="text-sm font-normal text-default-700">
-                  <th className="px-3.5 py-2.5 text-start">Model</th>
-                  <th className="px-3.5 py-2.5 text-start">Total tokens</th>
-                  <th className="px-3.5 py-2.5 text-start">Cost</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-default-200">
-                {results.map((result, index) => (
-                  <tr key={`${result.model}-${index}`} className="text-sm text-default-800">
-                    <td className="px-3.5 py-2.5">
-                      {result.provider} / {result.model}
-                    </td>
-                    <td className="px-3.5 py-2.5 tabular-nums">
-                      {result.totalTokens.toLocaleString()}
-                    </td>
-                    <td className="px-3.5 py-2.5 tabular-nums">
-                      {result.usdCost === null ? (
-                        <span className="text-default-400">No price entered</span>
-                      ) : (
-                        `$${result.usdCost.toFixed(4)}`
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="text-sm font-medium text-default-900">
-                  <td className="px-3.5 py-2.5" colSpan={2}>
-                    Total
-                  </td>
-                  <td className="px-3.5 py-2.5 tabular-nums">${totalUsdCost.toFixed(4)}</td>
-                </tr>
-              </tfoot>
-            </table>
+    <>
+      <Modal
+        open={open}
+        onOpenChange={next => {
+          onOpenChange(next);
+          if (!next) reset();
+        }}
+        title="AI cost calculator"
+        size="lg"
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => appendGroup(emptyGroup())}
+            >
+              <LuPlus className="size-4 me-1.5" /> Add model
+            </Button>
+            <Button
+              type="submit"
+              form="ai-cost-calculator-form"
+              disabled={calculateMutation.isPending}
+            >
+              {calculateMutation.isPending && (
+                <LuLoaderCircle className="size-4 me-1.5 animate-spin" />
+              )}
+              {calculateMutation.isPending ? 'Calculating…' : 'Calculate'}
+            </Button>
+          </>
+        }
+      >
+        <form id="ai-cost-calculator-form" onSubmit={submit} noValidate className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <p className="text-sm text-default-500">
+              Pick a provider and model, then add token-count rows under it, multiple rows for the
+              same model are summed together. This doesn't look at any tenant's real usage.
+            </p>
+            <button
+              type="button"
+              onClick={() => setAddPricingOpen(true)}
+              className="shrink-0 text-sm text-primary hover:underline"
+            >
+              Set AI pricing
+            </button>
           </div>
-        )}
-      </form>
-    </Modal>
+
+          <div className="max-h-[45vh] space-y-4 overflow-y-auto pe-1">
+            {groupFields.map((groupField, groupIndex) => (
+              <ModelGroupCard
+                key={groupField.id}
+                control={form.control}
+                groupIndex={groupIndex}
+                setValue={form.setValue}
+                errors={form.formState.errors}
+                availableModels={availableModels}
+                canRemoveGroup={groupFields.length > 1}
+                onRemoveGroup={() => removeGroup(groupIndex)}
+              />
+            ))}
+          </div>
+
+          {results.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-default-200">
+              <table className="min-w-full divide-y divide-default-200">
+                <thead className="bg-default-150">
+                  <tr className="text-sm font-normal text-default-700">
+                    <th className="px-3.5 py-2.5 text-start">Model</th>
+                    <th className="px-3.5 py-2.5 text-start">Total tokens</th>
+                    <th className="px-3.5 py-2.5 text-start">Cost</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-default-200">
+                  {results.map((result, index) => (
+                    <tr key={`${result.model}-${index}`} className="text-sm text-default-800">
+                      <td className="px-3.5 py-2.5">
+                        {result.provider} / {result.model}
+                      </td>
+                      <td className="px-3.5 py-2.5 tabular-nums">
+                        {result.totalTokens.toLocaleString()}
+                      </td>
+                      <td className="px-3.5 py-2.5 tabular-nums">
+                        {result.usdCost === null ? (
+                          <span className="text-default-400">No price entered</span>
+                        ) : (
+                          `$${result.usdCost.toFixed(4)}`
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="text-sm font-medium text-default-900">
+                    <td className="px-3.5 py-2.5" colSpan={2}>
+                      Total
+                    </td>
+                    <td className="px-3.5 py-2.5 tabular-nums">${totalUsdCost.toFixed(4)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </form>
+      </Modal>
+
+      <AiAddPricingDialog
+        open={addPricingOpen}
+        onOpenChange={setAddPricingOpen}
+        availableModels={availableModels}
+      />
+    </>
   );
 }

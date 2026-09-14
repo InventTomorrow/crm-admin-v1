@@ -18,9 +18,11 @@ import {
 } from 'react-icons/lu';
 import { Link } from 'react-router';
 import { rangeFromPreset, useMetrics, type Preset } from '../dashboard.hooks';
+import { AiPricingWidget } from './AiPricingWidget';
 import { GrowthChart, TenantsByStatusChart, UsersDonutChart } from './charts';
 import { DateRangeFilter } from './DateRangeFilter';
 import { RecentUsersWidget } from './RecentUsersWidget';
+import { SubscriptionsByPlanWidget } from './SubscriptionsByPlanWidget';
 
 export function DashboardView() {
   const [preset, setPreset] = useState<Preset>('7d');
@@ -197,6 +199,36 @@ export function DashboardView() {
             </div>
             <div className="card-body">
               <RecentUsersWidget users={data.recentUsers ?? []} />
+            </div>
+          </div>
+        </div>
+
+        {/* AI model pricing — a snapshot, not range-scoped; full history is on the settings page */}
+        <div className="col-span-12 xl:col-span-5">
+          <div className="card h-full">
+            <div className="card-header flex items-center justify-between">
+              <h6 className="card-title">AI model pricing</h6>
+              <Link to="/settings/ai-pricing" className="text-sm text-primary hover:underline">
+                View all
+              </Link>
+            </div>
+            <div className="card-body">
+              <AiPricingWidget />
+            </div>
+          </div>
+        </div>
+
+        {/* Subscriptions by plan — a snapshot, not range-scoped */}
+        <div className="col-span-12 xl:col-span-7">
+          <div className="card h-full">
+            <div className="card-header flex items-center justify-between">
+              <h6 className="card-title">Subscriptions by plan</h6>
+              <Link to="/plans" className="text-sm text-primary hover:underline">
+                View all
+              </Link>
+            </div>
+            <div className="card-body">
+              <SubscriptionsByPlanWidget />
             </div>
           </div>
         </div>

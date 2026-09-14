@@ -5,6 +5,7 @@ import {
   addModelPricing,
   calculateHypotheticalCost,
   getExchangeRate,
+  getPricingHistory,
   listCurrentPricing,
   updateExchangeRate,
   type AddModelPricingInput,
@@ -13,6 +14,14 @@ import {
 
 export function useCurrentPricing() {
   return useQuery({ queryKey: ['ai-pricing'], queryFn: listCurrentPricing });
+}
+
+export function usePricingHistory(provider: string, model: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['ai-pricing', 'history', provider, model],
+    queryFn: () => getPricingHistory(provider, model),
+    enabled,
+  });
 }
 
 export function useAddModelPricing() {

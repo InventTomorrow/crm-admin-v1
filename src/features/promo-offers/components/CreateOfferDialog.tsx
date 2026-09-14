@@ -71,16 +71,20 @@ export function CreateOfferDialog({ open, onOpenChange }: CreateOfferDialogProps
           <div className="flex items-start gap-2.5 rounded border border-warning/30 bg-warning/10 p-3 text-sm text-default-700">
             <LuTriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
             <span>
-              <strong className="font-semibold">
-                {runningOffer.discountPercent}% off
-              </strong>{' '}
-              is already running. Starting a new offer ends it immediately — only one
-              offer is ever live.
+              <strong className="font-semibold">{runningOffer.discountPercent}% off</strong> is
+              already running. Starting a new offer ends it immediately — only one offer is ever
+              live.
             </span>
           </div>
         )}
 
-        <Field label="Title" htmlFor="offer-title" required error={form.formState.errors.title?.message} hint="Shown on the banner and dialog, e.g. “Eid special”.">
+        <Field
+          label="Title"
+          htmlFor="offer-title"
+          required
+          error={form.formState.errors.title?.message}
+          hint="Shown on the banner and dialog, e.g. “Eid special”."
+        >
           <Input
             id="offer-title"
             placeholder="Eid special"
@@ -171,9 +175,7 @@ export function CreateOfferDialog({ open, onOpenChange }: CreateOfferDialogProps
             {Number.isFinite(discountPercent) ? discountPercent : 0}% off every plan
           </strong>{' '}
           until midnight on{' '}
-          <strong className="font-semibold text-default-800">
-            {formatOfferEndDate(endsAt)}
-          </strong>{' '}
+          <strong className="font-semibold text-default-800">{formatOfferEndDate(endsAt)}</strong>{' '}
           (Pakistan time).
         </div>
       </form>

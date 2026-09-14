@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { ApexOptions } from 'apexcharts';
 import ApexChartClient from '@/components/client-wrapper/ApexChartClient';
 import { useChartColors } from '@/components/charts/useChartColors';
-import type { Metrics, TenantStatus } from '@/lib/types';
+import type { Metrics, Plan, TenantStatus } from '@/lib/types';
 
 /** Tenants + users growth over the selected range (smooth gradient areas). */
 export function GrowthChart({ series }: { series: Metrics['series'] }) {
@@ -126,6 +126,62 @@ export function TenantsByStatusChart({
         ))}
       </div>
     </div>
+  );
+}
+
+const PLAN_BAR_HEIGHT = 42;
+const PLAN_CHART_MIN_HEIGHT = 180;
+
+/** Active + trialing subscriber count per plan, as a horizontal bar per plan. */
+export function SubscriptionsByPlanChart({ plans }: { plans: Plan[] }) {
+  const chartColors = useChartColors();
+
+  const palette = [
+    chartColors.primary,
+    chartColors.info,
+    chartColors.success,
+    chartColors.warning,
+    chartColors.danger,
+  ];
+  const categories = plans.map(plan => plan.name);
+  const counts = plans.map(plan => plan._count?.subscriptions ?? 0);
+  const colors = plans.map((_, index) => palette[index % palette.length]);
+
+  const getOptions = useCallback(
+    (): ApexOptions => ({
+      chart: { type: 'bar', toolbar: { show: false }, foreColor: chartColors.foreground },
+      colors,
+      plotOptions: {
+        bar: { horizontal: true, distributed: true, borderRadius: 4, barHeight: '55%' },
+      },
+      states: { active: { filter: { type: 'none' } } },
+      dataLabels: {
+        enabled: true,
+        formatter: (value: number) => String(value),
+        style: { colors: [chartColors.foreground] },
+        offsetX: 10,
+      },
+      legend: { show: false },
+      grid: { borderColor: chartColors.border, strokeDashArray: 3 },
+      xaxis: {
+        categories,
+        labels: { formatter: value => String(Math.round(Number(value))) },
+        axisBorder: { show: false },
+        axisTicks: { show: false },
+      },
+      tooltip: { theme: chartColors.mode },
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- categories/colors derive from plans
+    [chartColors, plans]
+  );
+
+  return (
+    <ApexChartClient
+      type="bar"
+      height={Math.max(PLAN_CHART_MIN_HEIGHT, plans.length * PLAN_BAR_HEIGHT)}
+      getOptions={getOptions}
+      series={[{ name: 'Subscriptions', data: counts }]}
+    />
   );
 }
 
