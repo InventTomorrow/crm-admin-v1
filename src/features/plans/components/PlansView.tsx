@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { SystemPermissions } from '@/lib/permissions';
+import { Select } from '@/components/ui/select';
 import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
-import type { Plan } from '@/lib/types';
-import { useDebounce } from '@/lib/useDebounce';
-import { useDeletePlan, usePlans } from '../plans.hooks';
+import type { BusinessVertical, Plan, PlanTier } from '@/lib/types';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { BUSINESS_VERTICALS, PLAN_TIERS } from '@/lib/plan';
+import { useDeletePlan, usePlans, usePlansPage } from '../plans.hooks';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import { MigratePlanDialog } from './MigratePlanDialog';
@@ -28,22 +30,28 @@ function deletionWarning(plan: Plan | null): string {
 }
 
 export function PlansView() {
-  const { data, isLoading, isError, error, refetch } = usePlans();
   const deleteMutation = useDeletePlan();
   const { can, canAny } = usePermissions();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
-  const search = useDebounce(searchInput, 300);
+  const listQuery = useListQueryState({
+    filters: { tier: 'ALL', businessVertical: 'ALL', isActive: 'ALL' },
+  });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
   const [planPendingDeletion, setPlanPendingDeletion] = useState<Plan | null>(null);
   const [planPendingMigration, setPlanPendingMigration] = useState<Plan | null>(null);
 
-  // GET /admin/plans returns the full catalogue — filter + paginate client-side.
-  const allPlans = data ?? [];
-  const filteredPlans = search
-    ? allPlans.filter(plan => plan.name.toLowerCase().includes(search.toLowerCase()))
-    : allPlans;
-  const pageRows = filteredPlans.slice((page - 1) * pageSize, page * pageSize);
+  const { data, isLoading, isFetching, isError, error, refetch } = usePlansPage({
+    page,
+    limit: pageSize,
+    ...(search ? { search } : {}),
+    ...(filters.tier === 'ALL' ? {} : { tier: filters.tier as PlanTier }),
+    ...(filters.businessVertical === 'ALL'
+      ? {}
+      : { businessVertical: filters.businessVertical as BusinessVertical }),
+    ...(filters.isActive === 'ALL' ? {} : { isActive: filters.isActive as 'true' | 'false' }),
+  });
+
+  // The migrate dialog picks a target from the whole catalogue, not this page.
+  const { data: allPlans = [] } = usePlans();
 
   const columns = useMemo<ColumnDef<Plan, unknown>[]>(
     () => [
@@ -211,27 +219,64 @@ export function PlansView() {
 
       <DataTable
         columns={columns}
-        data={pageRows}
-        total={filteredPlans.length}
+        data={data?.items ?? []}
+        total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search plans…"
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by plan name or tagline…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
-        emptyMessage="No plans yet."
+        emptyMessage="No plans match these filters."
         getRowId={plan => plan.id}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
+        toolbarFilters={
+          <>
+            <Select
+              value={filters.tier}
+              onChange={event => listQuery.setFilter('tier', event.target.value)}
+              className="form-input-sm w-36"
+              aria-label="Filter by tier"
+            >
+              <option value="ALL">All tiers</option>
+              {PLAN_TIERS.map(tier => (
+                <option key={tier} value={tier}>
+                  {tier}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filters.businessVertical}
+              onChange={event => listQuery.setFilter('businessVertical', event.target.value)}
+              className="form-input-sm w-44"
+              aria-label="Filter by category"
+            >
+              <option value="ALL">All categories</option>
+              {BUSINESS_VERTICALS.map(vertical => (
+                <option key={vertical} value={vertical}>
+                  {vertical.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filters.isActive}
+              onChange={event => listQuery.setFilter('isActive', event.target.value)}
+              className="form-input-sm w-32"
+              aria-label="Filter by state"
+            >
+              <option value="ALL">Any state</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </Select>
+          </>
+        }
       />
     </>
   );

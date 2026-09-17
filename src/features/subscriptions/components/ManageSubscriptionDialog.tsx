@@ -4,7 +4,7 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
-import { listPlans } from '@/features/plans/plans.api';
+import { usePlans } from '@/features/plans/plans.hooks';
 import { formatDate } from '@/lib/format';
 import {
   addPlanPeriods,
@@ -15,7 +15,6 @@ import {
 } from '@/lib/planFormat';
 import { ToggleRow } from '@/components/ui/switch';
 import type { Plan, Subscription } from '@/lib/types';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { LuLoaderCircle } from 'react-icons/lu';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '../subscriptions.api';
@@ -60,7 +59,7 @@ export function ManageSubscriptionDialog({
   const [paymentReference, setPaymentReference] = useState('');
   const [discountReason, setDiscountReason] = useState('');
 
-  const plansQuery = useQuery({ queryKey: ['plans'], queryFn: listPlans, enabled: open });
+  const plansQuery = usePlans({}, { enabled: open });
   const plans = plansQuery.data ?? [];
   const selectedPlan = plans.find(plan => plan.id === planId) ?? null;
 

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
@@ -18,6 +18,7 @@ export function useNewsletterSubscribers(params: {
   return useQuery({
     queryKey: ['newsletter-subscribers', params.page, params.limit, params.status, params.search],
     queryFn: () => listSubscribers(params),
+    placeholderData: keepPreviousData,
   });
 }
 

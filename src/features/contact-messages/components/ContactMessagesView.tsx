@@ -11,7 +11,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
-import { useDebounce } from '@/lib/useDebounce';
+import { useListQueryState } from '@/lib/useListQueryState';
 import type { ContactMessage, ContactMessageStatus } from '../contact-messages.api';
 import {
   useContactMessages,
@@ -33,19 +33,17 @@ const STATUS_LABEL: Record<ContactMessageStatus, string> = {
 };
 
 export function ContactMessagesView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [statusFilter, setStatusFilter] = useState<ContactMessageStatus | 'ALL'>('ALL');
-  const [searchInput, setSearchInput] = useState('');
+  const listQuery = useListQueryState({ filters: { status: 'ALL' }, defaultPageSize: 20 });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as ContactMessageStatus | 'ALL';
   const [openedMessage, setOpenedMessage] = useState<ContactMessage | null>(null);
   const [messagePendingDeletion, setMessagePendingDeletion] = useState<ContactMessage | null>(null);
-  const search = useDebounce(searchInput, 350);
 
   const { can } = usePermissions();
   const canManageMessage = can(SystemPermissions.CONTACT_MESSAGES_MANAGE);
   const canDeleteMessage = can(SystemPermissions.CONTACT_MESSAGES_DELETE);
 
-  const { data, isLoading, isError, error, refetch } = useContactMessages({
+  const { data, isLoading, isFetching, isError, error, refetch } = useContactMessages({
     page,
     limit: pageSize,
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
@@ -137,30 +135,24 @@ export function ContactMessagesView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
+        onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name, email or subject…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
         emptyMessage="No messages yet."
         getRowId={message => message.id}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
           <Select
             value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as ContactMessageStatus | 'ALL');
-              setPage(1);
-            }}
+            onChange={event => listQuery.setFilter('status', event.target.value)}
             className="form-input-sm w-40"
             aria-label="Filter by status"
           >

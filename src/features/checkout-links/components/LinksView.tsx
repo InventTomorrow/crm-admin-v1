@@ -11,6 +11,8 @@ import { Tabs } from '@/components/ui/tabs';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { CreateCheckoutLinkDialog } from './CreateCheckoutLinkDialog';
 import type { CheckoutLink, CheckoutLinkSource, CheckoutLinkStatus } from '../links.api';
 import { useCheckoutLinks, useRevokeCheckoutLink } from '../links.hooks';
@@ -29,19 +31,25 @@ const LINK_STATUS_TONE: Record<CheckoutLinkStatus, BadgeTone> = {
 };
 
 export function LinksView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [statusFilter, setStatusFilter] = useState<CheckoutLinkStatus | 'ALL'>('ALL');
-  const [sourceFilter, setSourceFilter] = useState<CheckoutLinkSource | 'ALL'>('ADMIN');
+  // `source` lives here too so the tab selection survives a refresh with
+  // everything else.
+  const listQuery = useListQueryState({
+    filters: { status: 'ALL', source: 'ADMIN', planId: 'ALL' },
+  });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as CheckoutLinkStatus | 'ALL';
+  const sourceFilter = filters.source as CheckoutLinkSource | 'ALL';
   const [linkPendingRevocation, setLinkPendingRevocation] = useState<CheckoutLink | null>(null);
   const { can } = usePermissions();
   const canRevokeLink = can(SystemPermissions.CHECKOUT_LINKS_REVOKE);
 
-  const { data, isLoading, isError, error, refetch } = useCheckoutLinks({
+  const { data, isLoading, isFetching, isError, error, refetch } = useCheckoutLinks({
     page,
     limit: pageSize,
+    ...(search ? { search } : {}),
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(sourceFilter === 'ALL' ? {} : { source: sourceFilter }),
+    ...(filters.planId === 'ALL' ? {} : { planId: filters.planId }),
   });
   const revokeMutation = useRevokeCheckoutLink();
 
@@ -132,10 +140,7 @@ export function LinksView() {
       <Tabs
         tabs={SOURCE_TABS}
         active={sourceFilter}
-        onChange={key => {
-          setSourceFilter(key as CheckoutLinkSource | 'ALL');
-          setPage(1);
-        }}
+        onChange={key => listQuery.setFilter('source', key)}
       />
 
       <DataTable
@@ -144,33 +149,39 @@ export function LinksView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by customer, email or token…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
         emptyMessage="No checkout links yet."
         getRowId={link => link.id}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
-          <Select
-            value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as CheckoutLinkStatus | 'ALL');
-              setPage(1);
-            }}
-            className="form-input-sm w-40"
-            aria-label="Filter by status"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="USED">Used</option>
-            <option value="REVOKED">Revoked</option>
-            <option value="EXPIRED">Expired</option>
-          </Select>
+          <>
+            <Select
+              value={statusFilter}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
+              className="form-input-sm w-40"
+              aria-label="Filter by status"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="USED">Used</option>
+              <option value="REVOKED">Revoked</option>
+              <option value="EXPIRED">Expired</option>
+            </Select>
+            <PlanFilterSelect
+              value={filters.planId}
+              onChange={planId => listQuery.setFilter('planId', planId)}
+            />
+          </>
         }
       />
 

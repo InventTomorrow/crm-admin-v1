@@ -23,6 +23,7 @@ import {
   LuChevronsLeft,
   LuChevronsRight,
   LuChevronsUpDown,
+  LuFilterX,
   LuLayoutGrid,
   LuRows3,
   LuSearch,
@@ -78,6 +79,8 @@ export interface DataTableProps<TData> {
   sorting?: SortingState;
   onSortingChange?: (sorting: SortingState) => void;
   isLoading?: boolean;
+  /** A background refetch (filter change on cached data) — dims instead of blanking. */
+  isFetching?: boolean;
   isError?: boolean;
   error?: unknown;
   onRetry?: () => void;
@@ -85,6 +88,9 @@ export interface DataTableProps<TData> {
   enableSelection?: boolean;
   /** Filter controls (selects) rendered next to the search input. */
   toolbarFilters?: ReactNode;
+  /** How many filters are narrowing the list; with `onResetFilters`, shows Clear. */
+  activeFilterCount?: number;
+  onResetFilters?: () => void;
   /** Primary action rendered at the toolbar's end (e.g. a create button). */
   toolbarAction?: ReactNode;
   /** Rendered when one or more rows are selected. Receives the selected row ids
@@ -121,12 +127,15 @@ export function DataTable<TData>({
   sorting: controlledSorting,
   onSortingChange,
   isLoading,
+  isFetching = false,
   isError,
   error,
   onRetry,
   emptyMessage = 'No results.',
   enableSelection = false,
   toolbarFilters,
+  activeFilterCount = 0,
+  onResetFilters,
   toolbarAction,
   renderBulkActions,
   getRowId,
@@ -276,6 +285,11 @@ export function DataTable<TData>({
               </div>
             )}
             {toolbarFilters}
+            {onResetFilters && activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={onResetFilters}>
+                <LuFilterX className="size-4 me-1" /> Clear ({activeFilterCount})
+              </Button>
+            )}
           </div>
         )}
 
@@ -364,133 +378,143 @@ export function DataTable<TData>({
       ) : data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
-        <AnimatePresence mode="wait" initial={false}>
-          {view === 'grid' && renderGridItem ? (
-            <motion.div key="grid" {...VIEW_TRANSITION}>
-              <div className={cn('grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3', gridClassName)}>
-                {data.map((row, index) => (
-                  <motion.div
-                    key={getRowId ? getRowId(row) : index}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.22, delay: Math.min(index, 8) * 0.035 }}
-                  >
-                    {renderGridItem(row)}
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="table" {...VIEW_TRANSITION} className="overflow-x-auto">
-              <div className="min-w-full inline-block align-middle">
-                <table className="min-w-full divide-y divide-default-200">
-                  <thead className="bg-default-150">
-                    {table.getHeaderGroups().map(headerGroup => (
-                      <tr
-                        key={headerGroup.id}
-                        className="text-sm font-normal text-default-700 whitespace-nowrap"
-                      >
-                        {headerGroup.headers.map(header => {
-                          const canSort = header.column.getCanSort();
-                          const sortDirection = header.column.getIsSorted();
-                          return (
-                            <th
-                              key={header.id}
-                              className={cn(
-                                'text-start',
-                                header.column.id === 'select' ? 'ps-4' : 'px-3.5 py-3'
-                              )}
-                              aria-sort={
-                                sortDirection === 'asc'
-                                  ? 'ascending'
-                                  : sortDirection === 'desc'
-                                    ? 'descending'
-                                    : undefined
-                              }
-                            >
-                              {header.isPlaceholder ? null : canSort ? (
-                                <button
-                                  type="button"
-                                  className="group inline-flex items-center gap-1.5 hover:text-default-900"
-                                  onClick={header.column.getToggleSortingHandler()}
-                                >
-                                  {flexRender(header.column.columnDef.header, header.getContext())}
-                                  {sortDirection === 'asc' ? (
-                                    <LuArrowUp className="size-3.5 text-primary" />
-                                  ) : sortDirection === 'desc' ? (
-                                    <LuArrowDown className="size-3.5 text-primary" />
-                                  ) : (
-                                    <LuChevronsUpDown className="size-3.5 text-default-400 opacity-0 transition-opacity group-hover:opacity-100" />
-                                  )}
-                                </button>
-                              ) : (
-                                flexRender(header.column.columnDef.header, header.getContext())
-                              )}
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </thead>
-                  <tbody className="divide-y divide-default-200">
-                    {table.getRowModel().rows.map((row, rowIndex) => {
-                      const rowId = getRowId
-                        ? getRowId(row.original)
-                        : (row.id ?? String(row.index));
-                      const isExpanded = !!expandedRows[rowId];
-                      const isEven = alternatingRows && rowIndex % 2 === 1;
-
-                      const handleRowClick = () => {
-                        if (expandOnRowClick && renderExpandedRow) {
-                          setExpandedRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
-                        } else if (onRowClick) {
-                          onRowClick(row.original);
-                        }
-                      };
-
-                      return (
-                        <Fragment key={row.id}>
-                          <tr
-                            className={cn(
-                              'text-sm font-normal text-default-800 whitespace-nowrap',
-                              ((expandOnRowClick && renderExpandedRow) || onRowClick) &&
-                                'cursor-pointer hover:bg-default-50',
-                              isExpanded
-                                ? 'bg-primary/5 border-s-2 border-s-primary'
-                                : isEven && 'bg-default-50',
-                              getRowClassName?.(row.original)
-                            )}
-                            onClick={handleRowClick}
-                          >
-                            {row.getVisibleCells().map(cell => (
-                              <td
-                                key={cell.id}
+        // Dimmed rather than swapped for a skeleton: the rows already on screen
+        // stay readable while a search or filter change is in flight.
+        <div
+          className={cn('transition-opacity', isFetching && 'pointer-events-none opacity-60')}
+          aria-busy={isFetching}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {view === 'grid' && renderGridItem ? (
+              <motion.div key="grid" {...VIEW_TRANSITION}>
+                <div className={cn('grid gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3', gridClassName)}>
+                  {data.map((row, index) => (
+                    <motion.div
+                      key={getRowId ? getRowId(row) : index}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.22, delay: Math.min(index, 8) * 0.035 }}
+                    >
+                      {renderGridItem(row)}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="table" {...VIEW_TRANSITION} className="overflow-x-auto">
+                <div className="min-w-full inline-block align-middle">
+                  <table className="min-w-full divide-y divide-default-200">
+                    <thead className="bg-default-150">
+                      {table.getHeaderGroups().map(headerGroup => (
+                        <tr
+                          key={headerGroup.id}
+                          className="text-sm font-normal text-default-700 whitespace-nowrap"
+                        >
+                          {headerGroup.headers.map(header => {
+                            const canSort = header.column.getCanSort();
+                            const sortDirection = header.column.getIsSorted();
+                            return (
+                              <th
+                                key={header.id}
                                 className={cn(
-                                  cell.column.id === 'select' ? 'py-3 ps-4' : 'px-3.5 py-3'
+                                  'text-start',
+                                  header.column.id === 'select' ? 'ps-4' : 'px-3.5 py-3'
                                 )}
+                                aria-sort={
+                                  sortDirection === 'asc'
+                                    ? 'ascending'
+                                    : sortDirection === 'desc'
+                                      ? 'descending'
+                                      : undefined
+                                }
                               >
-                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                              </td>
-                            ))}
-                          </tr>
-                          {isExpanded && renderExpandedRow && (
-                            <tr>
-                              <td colSpan={table.getVisibleFlatColumns().length} className="p-0">
-                                <div className="border-b border-default-200 bg-default-50 p-4">
-                                  {renderExpandedRow(row.original)}
-                                </div>
-                              </td>
+                                {header.isPlaceholder ? null : canSort ? (
+                                  <button
+                                    type="button"
+                                    className="group inline-flex items-center gap-1.5 hover:text-default-900"
+                                    onClick={header.column.getToggleSortingHandler()}
+                                  >
+                                    {flexRender(
+                                      header.column.columnDef.header,
+                                      header.getContext()
+                                    )}
+                                    {sortDirection === 'asc' ? (
+                                      <LuArrowUp className="size-3.5 text-primary" />
+                                    ) : sortDirection === 'desc' ? (
+                                      <LuArrowDown className="size-3.5 text-primary" />
+                                    ) : (
+                                      <LuChevronsUpDown className="size-3.5 text-default-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  flexRender(header.column.columnDef.header, header.getContext())
+                                )}
+                              </th>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </thead>
+                    <tbody className="divide-y divide-default-200">
+                      {table.getRowModel().rows.map((row, rowIndex) => {
+                        const rowId = getRowId
+                          ? getRowId(row.original)
+                          : (row.id ?? String(row.index));
+                        const isExpanded = !!expandedRows[rowId];
+                        const isEven = alternatingRows && rowIndex % 2 === 1;
+
+                        const handleRowClick = () => {
+                          if (expandOnRowClick && renderExpandedRow) {
+                            setExpandedRows(prev => ({ ...prev, [rowId]: !prev[rowId] }));
+                          } else if (onRowClick) {
+                            onRowClick(row.original);
+                          }
+                        };
+
+                        return (
+                          <Fragment key={row.id}>
+                            <tr
+                              className={cn(
+                                'text-sm font-normal text-default-800 whitespace-nowrap',
+                                ((expandOnRowClick && renderExpandedRow) || onRowClick) &&
+                                  'cursor-pointer hover:bg-default-50',
+                                isExpanded
+                                  ? 'bg-primary/5 border-s-2 border-s-primary'
+                                  : isEven && 'bg-default-50',
+                                getRowClassName?.(row.original)
+                              )}
+                              onClick={handleRowClick}
+                            >
+                              {row.getVisibleCells().map(cell => (
+                                <td
+                                  key={cell.id}
+                                  className={cn(
+                                    cell.column.id === 'select' ? 'py-3 ps-4' : 'px-3.5 py-3'
+                                  )}
+                                >
+                                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                              ))}
                             </tr>
-                          )}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                            {isExpanded && renderExpandedRow && (
+                              <tr>
+                                <td colSpan={table.getVisibleFlatColumns().length} className="p-0">
+                                  <div className="border-b border-default-200 bg-default-50 p-4">
+                                    {renderExpandedRow(row.original)}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       )}
 
       {/* Footer / pagination */}

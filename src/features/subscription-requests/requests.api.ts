@@ -34,11 +34,17 @@ export interface SubscriptionRequest {
   link?: { id: string; token: string } | null;
 }
 
-export async function listSubscriptionRequests(params: {
-  page: number;
-  limit: number;
+export interface RequestListFilters {
+  /** Matches customer name/email/phone, business name, payment reference and owner email. */
+  search?: string;
   status?: SubscriptionRequestStatus;
-}): Promise<Paged<SubscriptionRequest>> {
+  planId?: string;
+  paymentMethod?: string;
+}
+
+export async function listSubscriptionRequests(
+  params: RequestListFilters & { page: number; limit: number }
+): Promise<Paged<SubscriptionRequest>> {
   const { data } = await apiClient.get<ApiEnvelope<SubscriptionRequest[]>>(
     '/admin/subscription-requests',
     { params }

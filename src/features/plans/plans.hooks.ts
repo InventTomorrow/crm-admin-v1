@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
@@ -7,14 +7,30 @@ import {
   getPlan,
   listActiveSubscribers,
   listPlans,
+  listPlansPage,
   migrateSubscribers,
   updatePlan,
   type MigrateSubscribersInput,
   type PlanInput,
+  type PlanListFilters,
 } from './plans.api';
 
-export function usePlans() {
-  return useQuery({ queryKey: ['plans'], queryFn: listPlans });
+/** Full catalogue — plan pickers and the dashboard widget depend on it. */
+export function usePlans(filters: PlanListFilters = {}, options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: ['plans', 'all', filters],
+    queryFn: () => listPlans(filters),
+    ...(options.enabled === undefined ? {} : { enabled: options.enabled }),
+  });
+}
+
+/** Paginated + filtered catalogue for the plans table. */
+export function usePlansPage(params: PlanListFilters & { page: number; limit: number }) {
+  return useQuery({
+    queryKey: ['plans', 'page', params],
+    queryFn: () => listPlansPage(params),
+    placeholderData: keepPreviousData,
+  });
 }
 
 /** Fetches one plan directly — the edit page must not rely on the list cache. */

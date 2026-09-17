@@ -1,11 +1,19 @@
-import { useState } from 'react';
 import { Link } from 'react-router';
 import type { IconType } from 'react-icons/lib';
-import { LuBuilding2, LuCheckCheck, LuCircleAlert, LuInbox, LuUserPlus } from 'react-icons/lu';
+import {
+  LuBuilding2,
+  LuCheckCheck,
+  LuCircleAlert,
+  LuFilterX,
+  LuInbox,
+  LuSearch,
+  LuUserPlus,
+} from 'react-icons/lu';
 import { Select } from '@/components/ui/select';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { formatDateTime, formatRelative } from '@/lib/format';
+import { useListQueryState } from '@/lib/useListQueryState';
 import { cn } from '@/lib/utils';
 import type { AdminNotificationType } from '../notifications.api';
 import { useNotifications, useNotificationsSeen } from '../notifications.hooks';
@@ -33,14 +41,24 @@ const TYPE_LABEL: Record<AdminNotificationType, string> = {
 };
 
 export function NotificationsView() {
-  const [typeFilter, setTypeFilter] = useState<AdminNotificationType | 'ALL'>('ALL');
+  // The feed is assembled in memory from four sources and capped at 50, so it
+  // filters here rather than on the server.
+  const listQuery = useListQueryState({ filters: { type: 'ALL', unread: 'ALL' } });
+  const { search, searchInput, filters } = listQuery;
+  const typeFilter = filters.type as AdminNotificationType | 'ALL';
   const { data: notifications = [], isLoading, isError, error, refetch } = useNotifications(50);
   const { isUnread, markAllSeen } = useNotificationsSeen();
 
-  const visibleNotifications =
-    typeFilter === 'ALL'
-      ? notifications
-      : notifications.filter(notification => notification.type === typeFilter);
+  const searchTerm = search.toLowerCase();
+  const visibleNotifications = notifications.filter(notification => {
+    if (typeFilter !== 'ALL' && notification.type !== typeFilter) return false;
+    if (filters.unread === 'true' && !isUnread(notification.createdAt)) return false;
+    if (!searchTerm) return true;
+    return (
+      notification.title.toLowerCase().includes(searchTerm) ||
+      notification.body.toLowerCase().includes(searchTerm)
+    );
+  });
   const unreadCount = notifications.filter(notification => isUnread(notification.createdAt)).length;
 
   return (
@@ -59,20 +77,47 @@ export function NotificationsView() {
 
       <div className="card">
         <div className="card-header flex flex-wrap items-center justify-between gap-3">
-          <h6 className="card-title">Activity feed</h6>
-          <Select
-            value={typeFilter}
-            onChange={event => setTypeFilter(event.target.value as AdminNotificationType | 'ALL')}
-            className="form-input-sm w-52"
-            aria-label="Filter by type"
-          >
-            <option value="ALL">All types</option>
-            {(Object.keys(TYPE_LABEL) as AdminNotificationType[]).map(notificationType => (
-              <option key={notificationType} value={notificationType}>
-                {TYPE_LABEL[notificationType]}
-              </option>
-            ))}
-          </Select>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={event => listQuery.setSearchInput(event.target.value)}
+              placeholder="Search activity…"
+              className="form-input form-input-sm ps-9 min-w-56"
+            />
+            <div className="absolute inset-y-0 start-0 flex items-center ps-3">
+              <LuSearch className="size-3.5 text-default-500" />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={typeFilter}
+              onChange={event => listQuery.setFilter('type', event.target.value)}
+              className="form-input-sm w-52"
+              aria-label="Filter by type"
+            >
+              <option value="ALL">All types</option>
+              {(Object.keys(TYPE_LABEL) as AdminNotificationType[]).map(notificationType => (
+                <option key={notificationType} value={notificationType}>
+                  {TYPE_LABEL[notificationType]}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filters.unread}
+              onChange={event => listQuery.setFilter('unread', event.target.value)}
+              className="form-input-sm w-36"
+              aria-label="Filter by read state"
+            >
+              <option value="ALL">Read and unread</option>
+              <option value="true">Unread only</option>
+            </Select>
+            {listQuery.activeCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={listQuery.resetAll}>
+                <LuFilterX className="size-4 me-1" /> Clear ({listQuery.activeCount})
+              </Button>
+            )}
+          </div>
         </div>
 
         {isLoading ? (

@@ -1,23 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
   createCheckoutLink,
   listCheckoutLinks,
   revokeCheckoutLink,
-  type CheckoutLinkSource,
-  type CheckoutLinkStatus,
+  type CheckoutLinkListFilters,
 } from './links.api';
 
-export function useCheckoutLinks(params: {
-  page: number;
-  limit: number;
-  status?: CheckoutLinkStatus;
-  source?: CheckoutLinkSource;
-}) {
+export function useCheckoutLinks(
+  params: CheckoutLinkListFilters & { page: number; limit: number }
+) {
   return useQuery({
-    queryKey: ['checkout-links', params.page, params.limit, params.status, params.source],
+    queryKey: ['checkout-links', params],
     queryFn: () => listCheckoutLinks(params),
+    placeholderData: keepPreviousData,
   });
 }
 

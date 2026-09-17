@@ -1,5 +1,15 @@
 import type { BadgeTone } from '@/components/ui/badge';
-import type { SubscriptionStatus } from './types';
+import type { BusinessVertical, PlanTier, SubscriptionStatus } from './types';
+
+/** Filter dropdown options. Mirror of the server's BusinessVertical enum. */
+export const BUSINESS_VERTICALS: BusinessVertical[] = [
+  'ECOMMERCE',
+  'RESTAURANT',
+  'MARKETING_AGENCY',
+  'HEALTHCARE',
+];
+
+export const PLAN_TIERS: PlanTier[] = ['TRIAL', 'STARTER', 'GROWTH', 'AGENCY', 'RESELLER'];
 
 /** The shape both the users list and the dashboard widget carry. */
 export interface PlanSummary {

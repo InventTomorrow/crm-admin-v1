@@ -11,8 +11,11 @@ import {
   LuTrash2,
 } from 'react-icons/lu';
 import { Link } from 'react-router';
+import { ListToolbar } from '@/components/ListControls';
 import { PageHeader } from '@/components/PageHeader';
 import { PermissionGuard } from '@/components/PermissionGuard';
+import { Select } from '@/components/ui/select';
+import { useListQueryState } from '@/lib/useListQueryState';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -24,11 +27,22 @@ import {
   useReorderPaymentAccounts,
 } from '../accounts.hooks';
 import { maskAccountNumber } from '../mask';
-import { accountDisplayName, PAYMENT_METHOD_LABELS, type PaymentAccount } from '../types';
+import {
+  accountDisplayName,
+  PAYMENT_METHODS,
+  PAYMENT_METHOD_LABELS,
+  type PaymentAccount,
+} from '../types';
 import { PaymentAccountForm } from './PaymentAccountForm';
 
 export function PaymentAccountsView() {
-  const { data: accounts = [], isLoading } = usePaymentAccounts();
+  const listQuery = useListQueryState({ filters: { method: 'ALL', isActive: 'ALL' } });
+  const { search, searchInput, filters } = listQuery;
+  const { data: accounts = [], isLoading } = usePaymentAccounts({
+    ...(search ? { search } : {}),
+    ...(filters.method === 'ALL' ? {} : { method: filters.method }),
+    ...(filters.isActive === 'ALL' ? {} : { isActive: filters.isActive as 'true' | 'false' }),
+  });
   const deleteMutation = useDeletePaymentAccount();
   const reorderMutation = useReorderPaymentAccounts();
   const { can } = usePermissions();
@@ -54,7 +68,11 @@ export function PaymentAccountsView() {
     reorderMutation.mutate(orderedIds);
   };
 
-  const canReorder = canEditSettings && accounts.length > 1;
+  // Reordering a filtered list would swap an account with whatever happens to
+  // be next in the filtered view, not its real neighbour, and `applyOrder`
+  // would renumber only the ids it was sent. So it's off while filtering.
+  const isFiltered = listQuery.activeCount > 0;
+  const canReorder = canEditSettings && accounts.length > 1 && !isFiltered;
 
   return (
     <>
@@ -91,6 +109,41 @@ export function PaymentAccountsView() {
         />
       )}
 
+      <ListToolbar
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by title, number or bank…"
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
+        filters={
+          <>
+            <Select
+              value={filters.method}
+              onChange={event => listQuery.setFilter('method', event.target.value)}
+              className="form-input-sm w-40"
+              aria-label="Filter by method"
+            >
+              <option value="ALL">All methods</option>
+              {PAYMENT_METHODS.map(method => (
+                <option key={method} value={method}>
+                  {PAYMENT_METHOD_LABELS[method] ?? method}
+                </option>
+              ))}
+            </Select>
+            <Select
+              value={filters.isActive}
+              onChange={event => listQuery.setFilter('isActive', event.target.value)}
+              className="form-input-sm w-40"
+              aria-label="Filter by checkout visibility"
+            >
+              <option value="ALL">Live and hidden</option>
+              <option value="true">Live on checkout</option>
+              <option value="false">Hidden</option>
+            </Select>
+          </>
+        }
+      />
+
       {isLoading && <p className="text-sm text-default-500">Loading…</p>}
 
       {!isLoading && accounts.length === 0 && (
@@ -99,9 +152,13 @@ export function PaymentAccountsView() {
             <span className="mx-auto flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <LuBuilding className="size-5" />
             </span>
-            <h5 className="mt-3 font-medium text-default-800">No payment accounts yet</h5>
+            <h5 className="mt-3 font-medium text-default-800">
+              {isFiltered ? 'No accounts match these filters' : 'No payment accounts yet'}
+            </h5>
             <p className="mt-1 text-sm text-default-500">
-              Until one is added, the checkout page has nowhere to tell customers to send the money.
+              {isFiltered
+                ? 'Clear the search or filters to see the full list.'
+                : 'Until one is added, the checkout page has nowhere to tell customers to send the money.'}
             </p>
           </div>
         </div>
@@ -110,6 +167,13 @@ export function PaymentAccountsView() {
       {canReorder && (
         <p className="mb-3 text-xs text-default-500">
           Customers see the accounts in this order — use the arrows to change it.
+        </p>
+      )}
+
+      {canEditSettings && isFiltered && accounts.length > 1 && (
+        <p className="mb-3 text-xs text-default-500">
+          Reordering is unavailable while the list is filtered — clear the filters to change the
+          order customers see.
         </p>
       )}
 

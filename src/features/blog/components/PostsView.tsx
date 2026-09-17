@@ -9,7 +9,7 @@ import { PermissionGuard } from '@/components/PermissionGuard';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
 import type { BlogPostListItem, BlogPostStatus } from '@/lib/types';
-import { useDebounce } from '@/lib/useDebounce';
+import { useListQueryState } from '@/lib/useListQueryState';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import {
@@ -33,14 +33,15 @@ const STATUS_TONE: Record<BlogPostStatus, BadgeTone> = {
 };
 
 export function PostsView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<BlogPostStatus | ''>('');
-  const [categoryFilter, setCategoryFilter] = useState('');
+  const listQuery = useListQueryState({
+    filters: { status: '', categoryId: '' },
+    searchDelay: 300,
+  });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as BlogPostStatus | '';
+  const categoryFilter = filters.categoryId;
   const [postPendingDeletion, setPostPendingDeletion] = useState<BlogPostListItem | null>(null);
 
-  const search = useDebounce(searchInput, 300);
   const { can } = usePermissions();
   const canEditPost = can(SystemPermissions.BLOG_EDIT);
   const canPublishPost = can(SystemPermissions.BLOG_PUBLISH);
@@ -49,7 +50,7 @@ export function PostsView() {
   const deleteMutation = useDeletePost();
   const statusMutation = useUpdatePostStatus();
 
-  const { data, isLoading, isError, error, refetch } = usePosts({
+  const { data, isLoading, isFetching, isError, error, refetch } = usePosts({
     page,
     limit: pageSize,
     ...(search ? { search } : {}),
@@ -219,18 +220,13 @@ export function PostsView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
-        searchPlaceholder="Search posts…"
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by title, slug or tag…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
@@ -252,16 +248,15 @@ export function PostsView() {
             onDelete={setPostPendingDeletion}
           />
         )}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
           <>
             <Select
               value={statusFilter}
               className="w-auto"
               aria-label="Filter by status"
-              onChange={event => {
-                setStatusFilter(event.target.value as BlogPostStatus | '');
-                setPage(1);
-              }}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
             >
               <option value="">All statuses</option>
               <option value="PUBLISHED">Published</option>
@@ -272,10 +267,7 @@ export function PostsView() {
               value={categoryFilter}
               className="w-auto"
               aria-label="Filter by category"
-              onChange={event => {
-                setCategoryFilter(event.target.value);
-                setPage(1);
-              }}
+              onChange={event => listQuery.setFilter('categoryId', event.target.value)}
             >
               <option value="">All categories</option>
               {categories.map(category => (

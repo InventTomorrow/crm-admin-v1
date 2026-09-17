@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import type {
@@ -18,7 +18,9 @@ import {
 
 export function useSubscriptions(params: {
   page: number;
+  search?: string;
   status?: SubscriptionStatus;
+  planId?: string;
   limit?: number;
   sortBy?: SubscriptionSortField;
   sortOrder?: 'asc' | 'desc';
@@ -26,10 +28,29 @@ export function useSubscriptions(params: {
   const limit = params.limit ?? 20;
   const sortBy = params.sortBy ?? 'createdAt';
   const sortOrder = params.sortOrder ?? 'desc';
+  const search = params.search || undefined;
   return useQuery({
-    queryKey: ['subscriptions', params.page, params.status ?? 'ALL', limit, sortBy, sortOrder],
+    queryKey: [
+      'subscriptions',
+      params.page,
+      search ?? '',
+      params.status ?? 'ALL',
+      params.planId ?? 'ALL',
+      limit,
+      sortBy,
+      sortOrder,
+    ],
     queryFn: () =>
-      listSubscriptions({ page: params.page, limit, status: params.status, sortBy, sortOrder }),
+      listSubscriptions({
+        page: params.page,
+        limit,
+        search,
+        status: params.status,
+        planId: params.planId,
+        sortBy,
+        sortOrder,
+      }),
+    placeholderData: keepPreviousData,
   });
 }
 

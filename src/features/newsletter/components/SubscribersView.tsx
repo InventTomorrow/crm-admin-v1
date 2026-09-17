@@ -10,7 +10,7 @@ import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { formatDate } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
-import { useDebounce } from '@/lib/useDebounce';
+import { useListQueryState } from '@/lib/useListQueryState';
 import type { NewsletterSubscriber, NewsletterSubscriberStatus } from '../newsletter.api';
 import {
   useDeleteSubscriber,
@@ -25,18 +25,16 @@ const STATUS_TONE: Record<NewsletterSubscriberStatus, BadgeTone> = {
 };
 
 export function SubscribersView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
-  const [statusFilter, setStatusFilter] = useState<NewsletterSubscriberStatus | 'ALL'>('ALL');
-  const [searchInput, setSearchInput] = useState('');
+  const listQuery = useListQueryState({ filters: { status: 'ALL' }, defaultPageSize: 20 });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as NewsletterSubscriberStatus | 'ALL';
   const [subscriberPendingDeletion, setSubscriberPendingDeletion] =
     useState<NewsletterSubscriber | null>(null);
-  const search = useDebounce(searchInput, 350);
 
   const { can } = usePermissions();
   const canDeleteSubscriber = can(SystemPermissions.NEWSLETTER_DELETE);
 
-  const { data, isLoading, isError, error, refetch } = useNewsletterSubscribers({
+  const { data, isLoading, isFetching, isError, error, refetch } = useNewsletterSubscribers({
     page,
     limit: pageSize,
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
@@ -124,30 +122,24 @@ export function SubscribersView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
+        onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by email…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
         emptyMessage="No subscribers yet."
         getRowId={subscriber => subscriber.id}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
           <Select
             value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as NewsletterSubscriberStatus | 'ALL');
-              setPage(1);
-            }}
+            onChange={event => listQuery.setFilter('status', event.target.value)}
             className="form-input-sm w-40"
             aria-label="Filter by status"
           >

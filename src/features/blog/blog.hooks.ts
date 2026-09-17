@@ -14,7 +14,9 @@ import {
   deletePost,
   getPost,
   listAuthors,
+  listAuthorsPage,
   listCategories,
+  listCategoriesPage,
   listPosts,
   updateAuthor,
   updateCategory,
@@ -24,6 +26,7 @@ import {
   type CategoryInput,
   type ListPostsParams,
   type PostInput,
+  type TaxonomyListParams,
 } from './blog.api';
 
 export function usePosts(params: ListPostsParams) {
@@ -86,8 +89,19 @@ export function useDeletePost() {
   });
 }
 
+/** Full list, for the post editor's and list view's category pickers. */
 export function useBlogCategories() {
-  return useQuery({ queryKey: ['blog-categories'], queryFn: listCategories });
+  return useQuery({ queryKey: ['blog-categories', 'all'], queryFn: () => listCategories() });
+}
+
+export function useBlogCategoriesPage(
+  params: TaxonomyListParams & { page: number; limit: number }
+) {
+  return useQuery({
+    queryKey: ['blog-categories', 'page', params],
+    queryFn: () => listCategoriesPage(params),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useSaveCategory() {
@@ -117,8 +131,17 @@ export function useDeleteCategory() {
 
 // ─── Author Hooks ────────────────────────────────────────────────────────────
 
+/** Full list, for the post editor's author picker. */
 export function useBlogAuthors() {
-  return useQuery({ queryKey: ['blog-authors'], queryFn: listAuthors });
+  return useQuery({ queryKey: ['blog-authors', 'all'], queryFn: () => listAuthors() });
+}
+
+export function useBlogAuthorsPage(params: TaxonomyListParams & { page: number; limit: number }) {
+  return useQuery({
+    queryKey: ['blog-authors', 'page', params],
+    queryFn: () => listAuthorsPage(params),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useSaveAuthor() {

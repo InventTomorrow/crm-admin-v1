@@ -9,8 +9,11 @@ import type {
 } from '@/lib/types';
 
 export interface SubscriptionListFilters {
+  /** Matches owner name/email and plan name. */
+  search?: string;
   status?: SubscriptionStatus;
   ownerUserId?: string;
+  planId?: string;
   sortBy?: SubscriptionSortField;
   sortOrder?: 'asc' | 'desc';
 }

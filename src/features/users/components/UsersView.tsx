@@ -11,7 +11,7 @@ import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { isOnPaidPlan } from '@/lib/plan';
 import type { SystemRole, UserListItem, UserSortField } from '@/lib/types';
-import { useDebounce } from '@/lib/useDebounce';
+import { useListQueryState } from '@/lib/useListQueryState';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import {
@@ -72,13 +72,11 @@ function deletionWarning(user: UserListItem | null): string {
 }
 
 export function UsersView() {
-  const [typeFilter, setTypeFilter] = useState<UserTypeFilter>('all');
-  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>('active');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
+  const listQuery = useListQueryState({ filters: { type: 'all', status: 'active' } });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const typeFilter = filters.type as UserTypeFilter;
+  const statusFilter = filters.status as UserStatusFilter;
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
-  const search = useDebounce(searchInput, 350);
   const { can, canAny } = usePermissions();
 
   const activeSort = sorting[0];
@@ -97,7 +95,7 @@ export function UsersView() {
     sortOrder,
   } as const;
 
-  const { data, isLoading, isError, error, refetch } = useUsers({
+  const { data, isLoading, isFetching, isError, error, refetch } = useUsers({
     ...listFilters,
     page,
     limit: pageSize,
@@ -471,25 +469,20 @@ export function UsersView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         sorting={sorting}
         onSortingChange={nextSorting => {
           setSorting(nextSorting);
           // A re-sorted list reshuffles every page, so page 1 is the only
           // meaningful place to land.
-          setPage(1);
+          listQuery.setPage(1);
         }}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
+        onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name, email or phone…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
@@ -536,14 +529,13 @@ export function UsersView() {
             {exportMutation.isPending ? 'Exporting…' : 'Export'}
           </Button>
         }
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
           <>
             <Select
               value={typeFilter}
-              onChange={event => {
-                setTypeFilter(event.target.value as UserTypeFilter);
-                setPage(1);
-              }}
+              onChange={event => listQuery.setFilter('type', event.target.value)}
               className="form-input-sm w-36"
               aria-label="Filter by user type"
             >
@@ -553,10 +545,7 @@ export function UsersView() {
             </Select>
             <Select
               value={statusFilter}
-              onChange={event => {
-                setStatusFilter(event.target.value as UserStatusFilter);
-                setPage(1);
-              }}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
               className="form-input-sm w-36"
               aria-label="Filter by account status"
             >

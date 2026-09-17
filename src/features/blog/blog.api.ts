@@ -76,9 +76,25 @@ export async function deletePost(id: string) {
   await apiClient.delete(`/admin/blog/posts/${id}`);
 }
 
-export async function listCategories(): Promise<BlogCategory[]> {
-  const { data } = await apiClient.get<ApiEnvelope<BlogCategory[]>>('/admin/blog/categories');
+export interface TaxonomyListParams {
+  search?: string;
+}
+
+/** Full list — the post editor's category picker depends on getting all of them. */
+export async function listCategories(params: TaxonomyListParams = {}): Promise<BlogCategory[]> {
+  const { data } = await apiClient.get<ApiEnvelope<BlogCategory[]>>('/admin/blog/categories', {
+    params,
+  });
   return data.data;
+}
+
+export async function listCategoriesPage(
+  params: TaxonomyListParams & { page: number; limit: number }
+): Promise<Paged<BlogCategory>> {
+  const { data } = await apiClient.get<ApiEnvelope<BlogCategory[]>>('/admin/blog/categories', {
+    params,
+  });
+  return { items: data.data, meta: data.meta! };
 }
 
 export interface CategoryInput {
@@ -117,9 +133,21 @@ export interface AuthorInput {
   avatarUrl?: string | null;
 }
 
-export async function listAuthors(): Promise<BlogAuthor[]> {
-  const { data } = await apiClient.get<ApiEnvelope<BlogAuthor[]>>('/admin/blog/authors');
+/** Full list — the post editor's author picker depends on getting all of them. */
+export async function listAuthors(params: TaxonomyListParams = {}): Promise<BlogAuthor[]> {
+  const { data } = await apiClient.get<ApiEnvelope<BlogAuthor[]>>('/admin/blog/authors', {
+    params,
+  });
   return data.data;
+}
+
+export async function listAuthorsPage(
+  params: TaxonomyListParams & { page: number; limit: number }
+): Promise<Paged<BlogAuthor>> {
+  const { data } = await apiClient.get<ApiEnvelope<BlogAuthor[]>>('/admin/blog/authors', {
+    params,
+  });
+  return { items: data.data, meta: data.meta! };
 }
 
 export async function createAuthor(input: AuthorInput): Promise<BlogAuthor> {

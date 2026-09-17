@@ -1,21 +1,20 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
   approveSubscriptionRequest,
   listSubscriptionRequests,
   rejectSubscriptionRequest,
-  type SubscriptionRequestStatus,
+  type RequestListFilters,
 } from './requests.api';
 
-export function useSubscriptionRequests(params: {
-  page: number;
-  limit: number;
-  status?: SubscriptionRequestStatus;
-}) {
+export function useSubscriptionRequests(
+  params: RequestListFilters & { page: number; limit: number }
+) {
   return useQuery({
-    queryKey: ['subscription-requests', params.page, params.limit, params.status],
+    queryKey: ['subscription-requests', params],
     queryFn: () => listSubscriptionRequests(params),
+    placeholderData: keepPreviousData,
   });
 }
 

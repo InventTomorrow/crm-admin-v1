@@ -4,11 +4,10 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Select } from '@/components/ui/select';
-import { listPlans } from '@/features/plans/plans.api';
+import { usePlans } from '@/features/plans/plans.hooks';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
 import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@/lib/planFormat';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { LuLoaderCircle, LuPlus } from 'react-icons/lu';
@@ -39,7 +38,7 @@ export function CreateSubscriptionDialog() {
   });
   const { errors } = form.formState;
 
-  const plansQuery = useQuery({ queryKey: ['plans'], queryFn: listPlans, enabled: open });
+  const plansQuery = usePlans({}, { enabled: open });
   const plans = plansQuery.data ?? [];
 
   const ownerUserId = form.watch('ownerUserId');

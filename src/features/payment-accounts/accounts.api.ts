@@ -1,8 +1,22 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
 import type { PaymentAccount, PaymentAccountInput } from './types';
 
-export async function listPaymentAccounts(): Promise<PaymentAccount[]> {
-  const { data } = await apiClient.get<ApiEnvelope<PaymentAccount[]>>('/admin/payment-accounts');
+export interface PaymentAccountFilters {
+  search?: string;
+  method?: string;
+  isActive?: 'true' | 'false';
+}
+
+/**
+ * Never paginated — the list carries a manual display order, and a move across
+ * a page boundary would be impossible to express.
+ */
+export async function listPaymentAccounts(
+  filters: PaymentAccountFilters = {}
+): Promise<PaymentAccount[]> {
+  const { data } = await apiClient.get<ApiEnvelope<PaymentAccount[]>>('/admin/payment-accounts', {
+    params: filters,
+  });
   return data.data;
 }
 

@@ -24,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
 import type { SubscriptionListItem, SubscriptionSortField, SubscriptionStatus } from '@/lib/types';
 import { CreateSubscriptionDialog } from './CreateSubscriptionDialog';
@@ -49,9 +51,9 @@ const SORTABLE_COLUMNS: SubscriptionSortField[] = [
 ];
 
 export function SubscriptionsView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [statusFilter, setStatusFilter] = useState<SubscriptionStatus | 'ALL'>('ALL');
+  const listQuery = useListQueryState({ filters: { status: 'ALL', planId: 'ALL' } });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as SubscriptionStatus | 'ALL';
   const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
   const [subscriptionUnderReview, setSubscriptionUnderReview] =
     useState<SubscriptionListItem | null>(null);
@@ -72,9 +74,11 @@ export function SubscriptionsView() {
   ) as SubscriptionSortField;
   const sortOrder = activeSort?.desc === false ? 'asc' : 'desc';
 
-  const { data, isLoading, isError, error, refetch } = useSubscriptions({
+  const { data, isLoading, isFetching, isError, error, refetch } = useSubscriptions({
     page,
+    search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
+    ...(filters.planId === 'ALL' ? {} : { planId: filters.planId }),
     limit: pageSize,
     sortBy,
     sortOrder,
@@ -310,41 +314,47 @@ export function SubscriptionsView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         sorting={sorting}
         onSortingChange={nextSorting => {
           setSorting(nextSorting);
           // A re-sorted list reshuffles every page, so page 1 is the only
           // meaningful place to land.
-          setPage(1);
+          listQuery.setPage(1);
         }}
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by account or plan…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
         emptyMessage="No subscriptions found."
         getRowId={subscription => subscription.id}
         onRowClick={subscription => setSubscriptionUnderReview(subscription)}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
-          <Select
-            value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as SubscriptionStatus | 'ALL');
-              setPage(1);
-            }}
-            className="form-input-sm w-40"
-            aria-label="Filter by status"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="TRIALING">Trialing</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PAST_DUE">Past due</option>
-            <option value="CANCELLED">Cancelled</option>
-          </Select>
+          <>
+            <Select
+              value={statusFilter}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
+              className="form-input-sm w-40"
+              aria-label="Filter by status"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="TRIALING">Trialing</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PAST_DUE">Past due</option>
+              <option value="CANCELLED">Cancelled</option>
+            </Select>
+            <PlanFilterSelect
+              value={filters.planId}
+              onChange={planId => listQuery.setFilter('planId', planId)}
+            />
+          </>
         }
       />
 

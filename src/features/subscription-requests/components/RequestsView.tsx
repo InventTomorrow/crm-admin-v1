@@ -6,6 +6,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { formatDate } from '@/lib/format';
 import { formatPlanPrice } from '@/lib/planFormat';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
+import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@/features/subscriptions/subscriptions.api';
 import { ReviewRequestDialog } from './ReviewRequestDialog';
 import type { SubscriptionRequest, SubscriptionRequestStatus } from '../requests.api';
 import { useSubscriptionRequests } from '../requests.hooks';
@@ -20,18 +23,22 @@ const REQUEST_STATUS_TONE: Record<SubscriptionRequestStatus, BadgeTone> = {
 
 /** Workflow 2 queue — customer-submitted requests awaiting admin approval. */
 export function RequestsView() {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  // Defaults to the queue that needs action.
-  const [statusFilter, setStatusFilter] = useState<SubscriptionRequestStatus | 'ALL'>(
-    'PENDING_APPROVAL'
-  );
+  // Status defaults to the queue that needs action, so it stays out of the URL
+  // until the admin chooses something else.
+  const listQuery = useListQueryState({
+    filters: { status: 'PENDING_APPROVAL', planId: 'ALL', paymentMethod: 'ALL' },
+  });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as SubscriptionRequestStatus | 'ALL';
   const [requestUnderReview, setRequestUnderReview] = useState<SubscriptionRequest | null>(null);
 
-  const { data, isLoading, isError, error, refetch } = useSubscriptionRequests({
+  const { data, isLoading, isFetching, isError, error, refetch } = useSubscriptionRequests({
     page,
     limit: pageSize,
+    ...(search ? { search } : {}),
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
+    ...(filters.planId === 'ALL' ? {} : { planId: filters.planId }),
+    ...(filters.paymentMethod === 'ALL' ? {} : { paymentMethod: filters.paymentMethod }),
   });
 
   const columns = useMemo<ColumnDef<SubscriptionRequest, unknown>[]>(
@@ -127,34 +134,53 @@ export function RequestsView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by customer, email or reference…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
         emptyMessage="No subscription requests found."
         getRowId={request => request.id}
         onRowClick={request => setRequestUnderReview(request)}
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
-          <Select
-            value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as SubscriptionRequestStatus | 'ALL');
-              setPage(1);
-            }}
-            className="form-input-sm w-44"
-            aria-label="Filter by status"
-          >
-            <option value="PENDING_APPROVAL">Pending approval</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="EXPIRED">Expired</option>
-            <option value="ALL">All statuses</option>
-          </Select>
+          <>
+            <Select
+              value={statusFilter}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
+              className="form-input-sm w-44"
+              aria-label="Filter by status"
+            >
+              <option value="PENDING_APPROVAL">Pending approval</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+              <option value="EXPIRED">Expired</option>
+              <option value="ALL">All statuses</option>
+            </Select>
+            <PlanFilterSelect
+              value={filters.planId}
+              onChange={planId => listQuery.setFilter('planId', planId)}
+            />
+            <Select
+              value={filters.paymentMethod}
+              onChange={event => listQuery.setFilter('paymentMethod', event.target.value)}
+              className="form-input-sm w-40"
+              aria-label="Filter by payment method"
+            >
+              <option value="ALL">All methods</option>
+              {PAYMENT_METHODS.map(method => (
+                <option key={method} value={method}>
+                  {PAYMENT_METHOD_LABELS[method]}
+                </option>
+              ))}
+            </Select>
+          </>
         }
       />
 

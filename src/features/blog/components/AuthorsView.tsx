@@ -12,7 +12,9 @@ import type { BlogAuthor } from '@/lib/types';
 import { useState } from 'react';
 import { LuArrowLeft, LuPlus, LuSquarePen, LuTrash2, LuUser } from 'react-icons/lu';
 import { Link } from 'react-router';
-import { useBlogAuthors, useDeleteAuthor, useSaveAuthor } from '../blog.hooks';
+import { ListPagination, ListToolbar } from '@/components/ListControls';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { useBlogAuthorsPage, useDeleteAuthor, useSaveAuthor } from '../blog.hooks';
 
 interface AuthorDraft {
   id?: string;
@@ -25,7 +27,14 @@ interface AuthorDraft {
 const emptyDraft: AuthorDraft = { name: '', title: '', bio: '', avatarUrl: '' };
 
 export function AuthorsView() {
-  const { data: authors = [], isLoading } = useBlogAuthors();
+  const listQuery = useListQueryState({ defaultPageSize: 12 });
+  const { page, pageSize, search, searchInput } = listQuery;
+  const { data, isLoading } = useBlogAuthorsPage({
+    page,
+    limit: pageSize,
+    ...(search ? { search } : {}),
+  });
+  const authors = data?.items ?? [];
   const saveMutation = useSaveAuthor();
   const deleteMutation = useDeleteAuthor();
   const { can, canAny } = usePermissions();
@@ -73,12 +82,22 @@ export function AuthorsView() {
         }
       />
 
+      <ListToolbar
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search by name or role…"
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {isLoading && <p className="text-sm text-default-500">Loading…</p>}
 
         {!isLoading && authors.length === 0 && (
           <p className="text-sm text-default-500">
-            No authors yet. Create an author to attribute articles to real team members.
+            {search
+              ? 'No authors match that search.'
+              : 'No authors yet. Create an author to attribute articles to real team members.'}
           </p>
         )}
 
@@ -152,6 +171,14 @@ export function AuthorsView() {
           </div>
         ))}
       </div>
+
+      <ListPagination
+        page={page}
+        pageSize={pageSize}
+        total={data?.meta.total ?? 0}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
+      />
 
       <Modal
         open={!!draft}

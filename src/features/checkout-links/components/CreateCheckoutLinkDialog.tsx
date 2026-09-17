@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useQuery } from '@tanstack/react-query';
 import { Controller, useForm } from 'react-hook-form';
 import { LuCopy, LuLoaderCircle, LuPlus } from 'react-icons/lu';
 import { toast } from 'sonner';
@@ -9,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { SearchSelectOption } from '@/components/ui/search-select';
 import { Modal } from '@/components/ui/modal';
-import { listPlans } from '@/features/plans/plans.api';
+import { usePlans } from '@/features/plans/plans.hooks';
 import { CrmUserSearchSelect } from '@/features/users/components/CrmUserSearchSelect';
 import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@/lib/planFormat';
 import { useCreateCheckoutLink } from '../links.hooks';
@@ -42,7 +41,7 @@ export function CreateCheckoutLinkDialog() {
   });
   const { errors } = form.formState;
 
-  const plansQuery = useQuery({ queryKey: ['plans'], queryFn: listPlans, enabled: open });
+  const plansQuery = usePlans({}, { enabled: open });
   const plans = plansQuery.data ?? [];
 
   // The customer is quoted the whole span, so the admin sees that total here

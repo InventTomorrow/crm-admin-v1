@@ -1,8 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import type { DateRange } from '@/features/dashboard/dashboard.hooks';
-import type { TenantDetail, TenantStatus } from '@/lib/types';
+import type { BusinessVertical, TenantDetail, TenantStatus } from '@/lib/types';
 import {
   bulkUpdateTenantStatus,
   getPermissionCatalog,
@@ -18,18 +18,28 @@ export function useTenants(params: {
   page: number;
   search: string;
   status?: TenantStatus;
+  businessVertical?: BusinessVertical;
   limit?: number;
 }) {
   const limit = params.limit ?? 20;
   return useQuery({
-    queryKey: ['tenants', params.page, params.search, params.status ?? 'ALL', limit],
+    queryKey: [
+      'tenants',
+      params.page,
+      params.search,
+      params.status ?? 'ALL',
+      params.businessVertical ?? 'ALL',
+      limit,
+    ],
     queryFn: () =>
       listTenants({
         page: params.page,
         limit,
         search: params.search || undefined,
         status: params.status,
+        businessVertical: params.businessVertical,
       }),
+    placeholderData: keepPreviousData,
   });
 }
 

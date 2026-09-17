@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
@@ -7,13 +7,18 @@ import {
   listPaymentAccounts,
   reorderPaymentAccounts,
   updatePaymentAccount,
+  type PaymentAccountFilters,
 } from './accounts.api';
 import type { PaymentAccount, PaymentAccountInput } from './types';
 
 const keys = { all: ['payment-accounts'] as const };
 
-export function usePaymentAccounts() {
-  return useQuery({ queryKey: keys.all, queryFn: listPaymentAccounts });
+export function usePaymentAccounts(filters: PaymentAccountFilters = {}) {
+  return useQuery({
+    queryKey: [...keys.all, filters],
+    queryFn: () => listPaymentAccounts(filters),
+    placeholderData: keepPreviousData,
+  });
 }
 
 export function useSavePaymentAccount() {
@@ -37,22 +42,26 @@ export function useReorderPaymentAccounts() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (orderedIds: string[]) => reorderPaymentAccounts(orderedIds),
+    // The filters are part of the query key, so this patches every cached
+    // variation rather than one exact key.
     onMutate: async (orderedIds: string[]) => {
       await queryClient.cancelQueries({ queryKey: keys.all });
-      const previousAccounts = queryClient.getQueryData<PaymentAccount[]>(keys.all);
+      const snapshots = queryClient.getQueriesData<PaymentAccount[]>({ queryKey: keys.all });
 
-      if (previousAccounts) {
-        const byId = new Map(previousAccounts.map(account => [account.id, account]));
-        const reordered = orderedIds
+      queryClient.setQueriesData<PaymentAccount[]>({ queryKey: keys.all }, cached => {
+        if (!cached) return cached;
+        const byId = new Map(cached.map(account => [account.id, account]));
+        return orderedIds
           .map(id => byId.get(id))
           .filter((account): account is PaymentAccount => !!account);
-        queryClient.setQueryData(keys.all, reordered);
-      }
+      });
 
-      return { previousAccounts };
+      return { snapshots };
     },
     onError: (error, _orderedIds, context) => {
-      if (context?.previousAccounts) queryClient.setQueryData(keys.all, context.previousAccounts);
+      context?.snapshots.forEach(([queryKey, cached]) =>
+        queryClient.setQueryData(queryKey, cached)
+      );
       toast.error(apiMessage(error));
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: keys.all }),

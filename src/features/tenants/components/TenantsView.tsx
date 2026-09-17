@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { LuBan, LuCircleCheck, LuCircleSlash, LuUsers } from 'react-icons/lu';
@@ -10,26 +10,28 @@ import { Badge } from '@/components/ui/badge';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
+import { BUSINESS_VERTICALS } from '@/lib/plan';
 import { TENANT_STATUS_TONE } from '@/lib/statusTones';
-import type { TenantListItem, TenantStatus } from '@/lib/types';
-import { useDebounce } from '@/lib/useDebounce';
+import type { BusinessVertical, TenantListItem, TenantStatus } from '@/lib/types';
+import { useListQueryState } from '@/lib/useListQueryState';
 import { useBulkTenantStatus, useTenants } from '../tenants.hooks';
 import { Button } from '@/components/ui/button';
 
 export function TenantsView() {
   const navigate = useNavigate();
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<TenantStatus | 'ALL'>('ALL');
-  const search = useDebounce(searchInput, 350);
+  const listQuery = useListQueryState({ filters: { status: 'ALL', businessVertical: 'ALL' } });
+  const { page, pageSize, search, searchInput, filters } = listQuery;
+  const statusFilter = filters.status as TenantStatus | 'ALL';
   const { can } = usePermissions();
   const canChangeStatus = can(SystemPermissions.TENANTS_STATUS_CHANGE);
 
-  const { data, isLoading, isError, error, refetch } = useTenants({
+  const { data, isLoading, isFetching, isError, error, refetch } = useTenants({
     page,
     search,
     status: statusFilter === 'ALL' ? undefined : statusFilter,
+    ...(filters.businessVertical === 'ALL'
+      ? {}
+      : { businessVertical: filters.businessVertical as BusinessVertical }),
     limit: pageSize,
   });
   const bulkStatusMutation = useBulkTenantStatus();
@@ -162,18 +164,13 @@ export function TenantsView() {
         total={data?.meta.total ?? 0}
         page={page}
         pageSize={pageSize}
-        onPageChange={setPage}
-        onPageSizeChange={size => {
-          setPageSize(size);
-          setPage(1);
-        }}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
         search={searchInput}
-        onSearchChange={value => {
-          setSearchInput(value);
-          setPage(1);
-        }}
+        onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name or owner email…"
         isLoading={isLoading}
+        isFetching={isFetching}
         isError={isError}
         error={error}
         onRetry={refetch}
@@ -228,21 +225,35 @@ export function TenantsView() {
               )
             : undefined
         }
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
         toolbarFilters={
-          <Select
-            value={statusFilter}
-            onChange={event => {
-              setStatusFilter(event.target.value as TenantStatus | 'ALL');
-              setPage(1);
-            }}
-            className="form-input-sm w-36"
-            aria-label="Filter by status"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="SUSPENDED">Suspended</option>
-            <option value="CHURNED">Churned</option>
-          </Select>
+          <>
+            <Select
+              value={statusFilter}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
+              className="form-input-sm w-36"
+              aria-label="Filter by status"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="SUSPENDED">Suspended</option>
+              <option value="CHURNED">Churned</option>
+            </Select>
+            <Select
+              value={filters.businessVertical}
+              onChange={event => listQuery.setFilter('businessVertical', event.target.value)}
+              className="form-input-sm w-44"
+              aria-label="Filter by business category"
+            >
+              <option value="ALL">All categories</option>
+              {BUSINESS_VERTICALS.map(vertical => (
+                <option key={vertical} value={vertical}>
+                  {vertical.replace(/_/g, ' ')}
+                </option>
+              ))}
+            </Select>
+          </>
         }
       />
     </>

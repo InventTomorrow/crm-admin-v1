@@ -34,12 +34,17 @@ export interface CheckoutLink {
   owner?: { id: string; email: string; firstName: string | null; lastName: string | null } | null;
 }
 
-export async function listCheckoutLinks(params: {
-  page: number;
-  limit: number;
+export interface CheckoutLinkListFilters {
+  /** Matches customer name/email/phone, link token and owner email. */
+  search?: string;
   status?: CheckoutLinkStatus;
   source?: CheckoutLinkSource;
-}): Promise<Paged<CheckoutLink>> {
+  planId?: string;
+}
+
+export async function listCheckoutLinks(
+  params: CheckoutLinkListFilters & { page: number; limit: number }
+): Promise<Paged<CheckoutLink>> {
   const { data } = await apiClient.get<ApiEnvelope<CheckoutLink[]>>('/admin/checkout-links', {
     params,
   });

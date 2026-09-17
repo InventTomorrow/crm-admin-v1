@@ -12,7 +12,9 @@ import type { BlogCategory } from '@/lib/types';
 import { useState } from 'react';
 import { LuArrowLeft, LuPlus, LuSquarePen, LuTrash2 } from 'react-icons/lu';
 import { Link } from 'react-router';
-import { useBlogCategories, useDeleteCategory, useSaveCategory } from '../blog.hooks';
+import { ListPagination, ListToolbar } from '@/components/ListControls';
+import { useListQueryState } from '@/lib/useListQueryState';
+import { useBlogCategoriesPage, useDeleteCategory, useSaveCategory } from '../blog.hooks';
 
 interface CategoryDraft {
   id?: string;
@@ -23,7 +25,14 @@ interface CategoryDraft {
 const emptyDraft: CategoryDraft = { name: '', description: '' };
 
 export function CategoriesView() {
-  const { data: categories = [], isLoading } = useBlogCategories();
+  const listQuery = useListQueryState({ defaultPageSize: 12 });
+  const { page, pageSize, search, searchInput } = listQuery;
+  const { data, isLoading } = useBlogCategoriesPage({
+    page,
+    limit: pageSize,
+    ...(search ? { search } : {}),
+  });
+  const categories = data?.items ?? [];
   const saveMutation = useSaveCategory();
   const deleteMutation = useDeleteCategory();
   const { can, canAny } = usePermissions();
@@ -66,12 +75,22 @@ export function CategoriesView() {
         }
       />
 
+      <ListToolbar
+        search={searchInput}
+        onSearchChange={listQuery.setSearchInput}
+        searchPlaceholder="Search categories…"
+        activeFilterCount={listQuery.activeCount}
+        onResetFilters={listQuery.resetAll}
+      />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {isLoading && <p className="text-sm text-default-500">Loading…</p>}
 
         {!isLoading && categories.length === 0 && (
           <p className="text-sm text-default-500">
-            No categories yet. Create one before writing your first post.
+            {search
+              ? 'No categories match that search.'
+              : 'No categories yet. Create one before writing your first post.'}
           </p>
         )}
 
@@ -128,6 +147,14 @@ export function CategoriesView() {
           </div>
         ))}
       </div>
+
+      <ListPagination
+        page={page}
+        pageSize={pageSize}
+        total={data?.meta.total ?? 0}
+        onPageChange={listQuery.setPage}
+        onPageSizeChange={listQuery.setPageSize}
+      />
 
       <Modal
         open={!!draft}
