@@ -41,18 +41,14 @@ function Field({
   );
 }
 
-/** Two-up tile grid; each `Field` becomes its own bordered card. */
-function FieldGrid({ children, className }: { children: ReactNode; className?: string }) {
+function ProfileRow({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <dl
-      className={cn(
-        'grid grid-cols-1 gap-2 sm:grid-cols-2',
-        '[&>div]:rounded-lg [&>div]:border [&>div]:border-default-200 [&>div]:bg-card',
-        className
-      )}
-    >
-      {children}
-    </dl>
+    <div className="flex min-w-0 items-center justify-between gap-3 py-1">
+      <dt className="shrink-0 text-default-500">{label}</dt>
+      <dd className="flex min-w-0 flex-wrap items-center justify-end gap-x-2 gap-y-1 text-end font-medium text-default-800">
+        {value}
+      </dd>
+    </div>
   );
 }
 
@@ -156,38 +152,90 @@ export function UserDetailPanel({ userId }: { userId: string }) {
       )}
 
       {/* Identity + headline counts, so the sheet answers "who is this" at a glance */}
-      <section className="flex items-center gap-4 rounded-lg border border-default-200 p-4">
-        <UserAvatar
-          firstName={user.firstName}
-          lastName={user.lastName}
-          email={user.email}
-          avatarUrl={user.avatarUrl}
-          hasPaidPlan={isOnPaidPlan(user.activeSubscription)}
-          className="size-14 text-lg"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-default-800">
-            {formatFullName(user.firstName, user.lastName)}
-          </p>
-          <p className="truncate text-sm text-default-500">{user.originalEmail ?? user.email}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Badge tone={planTone(user.activeSubscription)}>
-              {planLabel(user.activeSubscription)}
-            </Badge>
-            <Badge tone="neutral">
-              {membershipCount} workspace{membershipCount === 1 ? '' : 's'}
-            </Badge>
-            {ownedTenantCount > 0 && <Badge tone="info">Owns {ownedTenantCount}</Badge>}
-            {ownedTenantCount > 0 && (
-              <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
-            )}
-            {whatsappNumbers && whatsappNumbers.length > 0 && (
-              <Badge tone="success">
-                {whatsappNumbers.filter(number => number.isActive).length} WhatsApp connected
+      <section className="rounded-lg border border-default-200 p-4">
+        <div className="flex items-center gap-4">
+          <UserAvatar
+            firstName={user.firstName}
+            lastName={user.lastName}
+            email={user.email}
+            avatarUrl={user.avatarUrl}
+            hasPaidPlan={isOnPaidPlan(user.activeSubscription)}
+            className="size-14 text-lg"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-default-800">
+              {formatFullName(user.firstName, user.lastName)}
+            </p>
+            <p className="truncate text-sm text-default-500">{user.originalEmail ?? user.email}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge tone={planTone(user.activeSubscription)}>
+                {planLabel(user.activeSubscription)}
               </Badge>
-            )}
+              <Badge tone="neutral">
+                {membershipCount} workspace{membershipCount === 1 ? '' : 's'}
+              </Badge>
+              {ownedTenantCount > 0 && <Badge tone="info">Owns {ownedTenantCount}</Badge>}
+              {ownedTenantCount > 0 && (
+                <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
+              )}
+              {whatsappNumbers && whatsappNumbers.length > 0 && (
+                <Badge tone="success">
+                  {whatsappNumbers.filter(number => number.isActive).length} WhatsApp connected
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
+
+        <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-default-200 pt-2 text-sm sm:grid-cols-2 sm:[&>div:nth-child(odd)]:border-e sm:[&>div:nth-child(odd)]:border-default-200 sm:[&>div:nth-child(odd)]:pe-6">
+          <ProfileRow
+            label="Phone"
+            value={
+              user.phone ? (
+                <a href={`tel:${user.phone}`} className="hover:text-primary">
+                  {user.phone}
+                </a>
+              ) : (
+                <span className="font-normal text-default-400">Not provided</span>
+              )
+            }
+          />
+          <ProfileRow label="Joined" value={formatDate(user.createdAt)} />
+          <ProfileRow label="Last login" value={formatRelative(user.lastLoginAt)} />
+          <ProfileRow
+            label="Email verified"
+            value={
+              user.emailVerifiedAt ? (
+                <span className="flex items-center gap-1 text-success">
+                  <LuCircleCheck className="size-3.5" />
+                  {formatDate(user.emailVerifiedAt)}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-danger">
+                  <LuCircleX className="size-3.5" />
+                  Not verified
+                </span>
+              )
+            }
+          />
+          <ProfileRow
+            label="Onboarding"
+            value={<Badge tone="neutral">{user.onboardingStatus}</Badge>}
+          />
+          <ProfileRow
+            label="System role"
+            value={
+              user.systemMembership ? (
+                <Badge tone="primary">{user.systemMembership.role}</Badge>
+              ) : (
+                <span className="font-normal text-default-500">CRM user only</span>
+              )
+            }
+          />
+          {user.isTester && (
+            <ProfileRow label="Tester" value={<Badge tone="warning">Exempt from limits</Badge>} />
+          )}
+        </dl>
       </section>
 
       {/* Current plan */}
@@ -275,70 +323,6 @@ export function UserDetailPanel({ userId }: { userId: string }) {
         )}
       </section>
 
-      {/* Profile */}
-      <section>
-        <SectionHeading>Profile</SectionHeading>
-        <FieldGrid>
-          <Field
-            label="Email"
-            className="sm:col-span-2"
-            value={<span className="break-all">{user.originalEmail ?? user.email}</span>}
-          />
-          <Field
-            label="Phone"
-            value={
-              user.phone ? (
-                <a href={`tel:${user.phone}`} className="hover:text-primary">
-                  {user.phone}
-                </a>
-              ) : (
-                <span className="text-default-400">Not provided</span>
-              )
-            }
-          />
-          <Field label="Joined" value={formatDate(user.createdAt)} />
-          <Field label="Last login" value={formatRelative(user.lastLoginAt)} />
-          <Field
-            label="Email verified"
-            value={
-              user.emailVerifiedAt ? (
-                <span className="flex items-center gap-1.5 text-success">
-                  <LuCircleCheck className="size-3.5" />
-                  {formatDate(user.emailVerifiedAt)}
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-danger">
-                  <LuCircleX className="size-3.5" />
-                  Not verified
-                </span>
-              )
-            }
-          />
-          <Field label="Onboarding" value={<Badge tone="neutral">{user.onboardingStatus}</Badge>} />
-          <Field
-            label="System role"
-            value={
-              user.systemMembership ? (
-                <>
-                  <Badge tone="primary">{user.systemMembership.role}</Badge>
-                  <span className="text-xs font-normal text-default-400">
-                    since {formatDate(user.systemMembership.createdAt)}
-                  </span>
-                </>
-              ) : (
-                <span className="font-normal text-default-500">CRM user only</span>
-              )
-            }
-          />
-          {user.isTester && (
-            <Field
-              label="Tester account"
-              value={<Badge tone="warning">Exempt from plan limits</Badge>}
-            />
-          )}
-        </FieldGrid>
-      </section>
-
       {/* Memberships */}
       <section>
         <SectionHeading>
@@ -378,7 +362,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             <Input
               value={tenantSearch}
               onChange={event => setTenantSearch(event.target.value)}
-              placeholder="Filter tenants…"
+              placeholder="Filter workspaces…"
               className="form-input-sm"
             />
             <Select
