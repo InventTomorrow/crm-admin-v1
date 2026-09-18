@@ -35,7 +35,7 @@ const TYPE_ICON_CLASS: Record<AdminNotificationType, string> = {
 
 const TYPE_LABEL: Record<AdminNotificationType, string> = {
   SUBSCRIPTION_REQUEST: 'Subscription requests',
-  TENANT_CREATED: 'New tenants',
+  TENANT_CREATED: 'New workspaces',
   USER_REGISTERED: 'New users',
   SUBSCRIPTION_PAST_DUE: 'Past-due subscriptions',
 };

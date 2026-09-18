@@ -48,7 +48,7 @@ export function GrowthChart({ series }: { series: Metrics['series'] }) {
       height={280}
       getOptions={getOptions}
       series={[
-        { name: 'Tenants', data: tenantCounts },
+        { name: 'Workspaces', data: tenantCounts },
         { name: 'Users', data: userCounts },
       ]}
     />
@@ -111,7 +111,7 @@ export function TenantsByStatusChart({
         type="bar"
         height={180}
         getOptions={getOptions}
-        series={[{ name: 'Tenants', data: counts }]}
+        series={[{ name: 'Workspaces', data: counts }]}
       />
       {/* Status dot legend */}
       <div className="mt-2 flex flex-wrap justify-center gap-4 text-xs text-default-500">

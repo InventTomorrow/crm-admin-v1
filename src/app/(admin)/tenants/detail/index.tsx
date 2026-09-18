@@ -5,9 +5,9 @@ import { TenantDetailView } from '@/features/tenants/components/TenantDetailView
 const TenantDetailPage = () => {
   return (
     <>
-      <PageMeta title="Tenant" />
+      <PageMeta title="Workspace" />
       <main>
-        <PageBreadcrumb title="Tenant" subtitle="Tenants" />
+        <PageBreadcrumb title="Workspace" subtitle="Workspaces" />
         <TenantDetailView />
       </main>
     </>

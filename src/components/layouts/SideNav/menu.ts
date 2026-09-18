@@ -56,7 +56,7 @@ export const menuItemsData: MenuItemType[] = [
   },
   {
     key: 'tenants',
-    label: 'Tenants',
+    label: 'Workspaces',
     href: '/tenants',
     icon: LuBuilding2,
     permission: SystemPermissions.TENANTS_VIEW,

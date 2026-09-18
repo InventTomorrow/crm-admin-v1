@@ -44,7 +44,7 @@ export function AiPricingSettingsCard() {
       <div className="card-body space-y-6">
         <p className="text-sm text-default-500">
           No provider publishes a pricing API rates below are entered here manually and used to cost
-          every tenant's AI usage. Adding a price never edits an existing one: it's a new rate
+          every workspace's AI usage. Adding a price never edits an existing one: it's a new rate
           effective from now, so past usage still costs at the rate that was active then.
         </p>
 

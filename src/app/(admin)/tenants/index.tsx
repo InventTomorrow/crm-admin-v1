@@ -4,7 +4,7 @@ import { TenantsView } from '@/features/tenants/components/TenantsView';
 const TenantsPage = () => {
   return (
     <>
-      <PageMeta title="Tenants" />
+      <PageMeta title="Workspaces" />
       <main>
         <TenantsView />
       </main>

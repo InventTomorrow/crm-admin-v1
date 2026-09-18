@@ -60,7 +60,7 @@ export const appRoutes: AppRoute[] = [
   { path: '/users', name: 'Users', element: <Users />, permission: SystemPermissions.USERS_VIEW },
   {
     path: '/tenants',
-    name: 'Tenants',
+    name: 'Workspaces',
     element: <Tenants />,
     permission: SystemPermissions.TENANTS_VIEW,
   },

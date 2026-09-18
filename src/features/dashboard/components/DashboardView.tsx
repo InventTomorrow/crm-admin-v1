@@ -96,7 +96,7 @@ export function DashboardView() {
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <KpiCard
-            label="New tenants"
+            label="New workspaces"
             value={data.newTenants}
             sub="in selected range"
             icon={LuBuilding2}
@@ -160,7 +160,7 @@ export function DashboardView() {
         </div>
         <div className="col-span-12 sm:col-span-6 xl:col-span-4">
           <KpiCard
-            label="Tenants"
+            label="Workspaces"
             value={totalTenants}
             sub={`${activeTenants} active · ${suspendedTenants} suspended`}
             icon={LuBuilding2}
@@ -180,7 +180,7 @@ export function DashboardView() {
         <div className="col-span-12 xl:col-span-5">
           <div className="card h-full">
             <div className="card-header">
-              <h6 className="card-title">Tenants by status</h6>
+              <h6 className="card-title">Workspaces by status</h6>
             </div>
             <div className="card-body">
               <TenantsByStatusChart tenantsByStatus={tenantsByStatus} />

@@ -25,14 +25,14 @@ export function RolePermissionsView({ tenantId }: { tenantId: string }) {
   const roles = rolesQuery.data ?? [];
   const groupedPermissions = groupByDomain(catalogQuery.data ?? []);
   if (roles.length === 0) {
-    return <p className="text-sm text-default-500">No roles for this tenant.</p>;
+    return <p className="text-sm text-default-500">No roles for this workspace.</p>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-md border border-default-200 bg-default-50 px-3 py-2 text-xs text-default-500">
         <LuLock className="size-3.5" /> Read-only — workspace roles &amp; permissions are managed by
-        the tenant owner.
+        the workspace owner.
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

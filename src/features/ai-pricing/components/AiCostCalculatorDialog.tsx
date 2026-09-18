@@ -206,7 +206,7 @@ function ModelGroupCard({
 
 /**
  * Hypothetical cost for arbitrary token counts against whatever pricing is
- * currently on file — not tied to any tenant's real usage. Grouped by model:
+ * currently on file — not tied to any workspace's real usage. Grouped by model:
  * pick a provider+model once per card, then stack as many token-count rows
  * under it as needed (e.g. several separate calls) — they're summed together
  * for that model rather than asking for the model again on every row.
@@ -281,7 +281,7 @@ export function AiCostCalculatorDialog({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <p className="text-sm text-default-500">
               Pick a provider and model, then add token-count rows under it, multiple rows for the
-              same model are summed together. This doesn't look at any tenant's real usage.
+              same model are summed together. This doesn't look at any workspace's real usage.
             </p>
             <button
               type="button"

@@ -55,7 +55,7 @@ export function TenantDetailView() {
             className="-ms-2 mb-2"
             onClick={() => navigate('/tenants')}
           >
-            <LuArrowLeft className="size-4 me-1 rtl:rotate-180" /> Tenants
+            <LuArrowLeft className="size-4 me-1 rtl:rotate-180" /> Workspaces
           </Button>
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -80,7 +80,7 @@ export function TenantDetailView() {
                 onChange={event => statusMutation.mutate(event.target.value as TenantStatus)}
                 disabled={statusMutation.isPending}
                 className="w-40"
-                aria-label="Change tenant status"
+                aria-label="Change workspace status"
               >
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Suspended</option>
