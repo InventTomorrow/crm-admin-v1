@@ -8,8 +8,9 @@ import { usePermissions } from '@/features/auth/auth.hooks';
 import { PermissionGuard } from '@/components/PermissionGuard';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
-import type { BlogPostListItem, BlogPostStatus } from '@/lib/types';
+import type { BlogPostListItem, BlogPostSortField, BlogPostStatus } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import {
@@ -32,6 +33,14 @@ const STATUS_TONE: Record<BlogPostStatus, BadgeTone> = {
   ARCHIVED: 'warning',
 };
 
+const POST_SORTABLE_COLUMNS: BlogPostSortField[] = [
+  'title',
+  'category',
+  'status',
+  'published',
+  'read',
+];
+
 export function PostsView() {
   const listQuery = useListQueryState({
     filters: { status: '', categoryId: '' },
@@ -50,9 +59,15 @@ export function PostsView() {
   const deleteMutation = useDeletePost();
   const statusMutation = useUpdatePostStatus();
 
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<BlogPostSortField>({
+    listQuery,
+    sortableFields: POST_SORTABLE_COLUMNS,
+  });
+
   const { data, isLoading, isFetching, isError, error, refetch } = usePosts({
     page,
     limit: pageSize,
+    ...(sortBy ? { sortBy, sortOrder } : {}),
     ...(search ? { search } : {}),
     ...(statusFilter ? { status: statusFilter } : {}),
     ...(categoryFilter ? { categoryId: categoryFilter } : {}),
@@ -62,6 +77,7 @@ export function PostsView() {
     () => [
       {
         id: 'title',
+        accessorFn: post => post.title,
         header: 'Post',
         cell: ({ row }) => (
           <div className="flex items-center gap-3">
@@ -222,6 +238,8 @@ export function PostsView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by title, slug or tag…"

@@ -4,8 +4,10 @@ import type {
   BlogCategory,
   BlogPostDetail,
   BlogPostListItem,
+  BlogPostSortField,
   BlogPostStatus,
   Paged,
+  SortOrder,
 } from '@/lib/types';
 
 /** Mirrors the server's postInputSchema (admin/blog/blog.dto.ts). */
@@ -34,6 +36,8 @@ export interface ListPostsParams {
   search?: string;
   status?: BlogPostStatus;
   categoryId?: string;
+  sortBy?: BlogPostSortField;
+  sortOrder?: SortOrder;
 }
 
 export async function listPosts(params: ListPostsParams): Promise<Paged<BlogPostListItem>> {

@@ -12,10 +12,23 @@ import { formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { BUSINESS_VERTICALS } from '@/lib/plan';
 import { TENANT_STATUS_TONE } from '@/lib/statusTones';
-import type { BusinessVertical, TenantListItem, TenantStatus } from '@/lib/types';
+import type { BusinessVertical, TenantListItem, TenantSortField, TenantStatus } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import { useBulkTenantStatus, useTenants } from '../tenants.hooks';
 import { Button } from '@/components/ui/button';
+
+const TENANT_SORTABLE_COLUMNS: TenantSortField[] = [
+  'name',
+  'owner',
+  'plan',
+  'revenue',
+  'aiUsage',
+  'aiCost',
+  'members',
+  'status',
+  'createdAt',
+];
 
 export function TenantsView() {
   const navigate = useNavigate();
@@ -24,6 +37,11 @@ export function TenantsView() {
   const statusFilter = filters.status as TenantStatus | 'ALL';
   const { can } = usePermissions();
   const canChangeStatus = can(SystemPermissions.TENANTS_STATUS_CHANGE);
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<TenantSortField>({
+    listQuery,
+    sortableFields: TENANT_SORTABLE_COLUMNS,
+    defaultSort: { id: 'createdAt', desc: true },
+  });
 
   const { data, isLoading, isFetching, isError, error, refetch } = useTenants({
     page,
@@ -33,6 +51,8 @@ export function TenantsView() {
       ? {}
       : { businessVertical: filters.businessVertical as BusinessVertical }),
     limit: pageSize,
+    sortBy,
+    sortOrder,
   });
   const bulkStatusMutation = useBulkTenantStatus();
 
@@ -123,12 +143,12 @@ export function TenantsView() {
 
   return (
     <>
-      <PageHeader title="Tenants" description="Workspaces, owners and teams" />
+      <PageHeader title="Workspaces" description="Workspaces, owners and teams" />
 
       {/* KPI cards */}
       <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         <KpiCard
-          label="Total Tenants"
+          label="Total Workspaces"
           value={totalData?.meta.total}
           icon={LuUsers}
           variant="brand"
@@ -140,7 +160,7 @@ export function TenantsView() {
           value={activeData?.meta.total}
           icon={LuCircleCheck}
           isLoading={kpiLoading}
-          sub="live tenants"
+          sub="live workspaces"
         />
         <KpiCard
           label="Suspended"
@@ -166,6 +186,8 @@ export function TenantsView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name or owner email…"
@@ -174,7 +196,7 @@ export function TenantsView() {
         isError={isError}
         error={error}
         onRetry={refetch}
-        emptyMessage="No tenants found."
+        emptyMessage="No workspaces found."
         enableSelection={canChangeStatus}
         getRowId={tenant => tenant.id}
         onRowClick={tenant => navigate(`/tenants/${tenant.id}`)}

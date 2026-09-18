@@ -1,5 +1,5 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { Paged } from '@/lib/types';
+import type { ContactMessageSortField, Paged, SortOrder } from '@/lib/types';
 
 export const CONTACT_MESSAGE_STATUSES = ['NEW', 'IN_PROGRESS', 'RESOLVED'] as const;
 export type ContactMessageStatus = (typeof CONTACT_MESSAGE_STATUSES)[number];
@@ -24,12 +24,18 @@ export interface ContactMessageStats {
   resolved: number;
 }
 
-export async function listContactMessages(params: {
+export interface ListContactMessagesParams {
   page: number;
   limit: number;
   status?: ContactMessageStatus;
   search?: string;
-}): Promise<Paged<ContactMessage>> {
+  sortBy?: ContactMessageSortField;
+  sortOrder?: SortOrder;
+}
+
+export async function listContactMessages(
+  params: ListContactMessagesParams
+): Promise<Paged<ContactMessage>> {
   const { data } = await apiClient.get<ApiEnvelope<ContactMessage[]>>('/admin/contact-messages', {
     params,
   });

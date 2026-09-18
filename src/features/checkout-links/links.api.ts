@@ -1,5 +1,5 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { Paged, PlanDuration, PlanTier } from '@/lib/types';
+import type { CheckoutLinkSortField, Paged, PlanDuration, PlanTier, SortOrder } from '@/lib/types';
 
 export const LINK_STATUSES = ['ACTIVE', 'USED', 'REVOKED', 'EXPIRED'] as const;
 export type CheckoutLinkStatus = (typeof LINK_STATUSES)[number];
@@ -40,6 +40,8 @@ export interface CheckoutLinkListFilters {
   status?: CheckoutLinkStatus;
   source?: CheckoutLinkSource;
   planId?: string;
+  sortBy?: CheckoutLinkSortField;
+  sortOrder?: SortOrder;
 }
 
 export async function listCheckoutLinks(

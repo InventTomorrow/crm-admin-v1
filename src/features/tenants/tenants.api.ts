@@ -2,9 +2,11 @@ import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
 import type {
   BusinessVertical,
   Paged,
+  SortOrder,
   TenantAiUsage,
   TenantDetail,
   TenantListItem,
+  TenantSortField,
   TenantStatus,
   WhatsAppConnectionItem,
   WorkspaceRole,
@@ -16,6 +18,8 @@ export async function listTenants(params: {
   search?: string;
   status?: TenantStatus;
   businessVertical?: BusinessVertical;
+  sortBy?: TenantSortField;
+  sortOrder?: SortOrder;
 }): Promise<Paged<TenantListItem>> {
   const { data } = await apiClient.get<ApiEnvelope<TenantListItem[]>>('/admin/tenants', { params });
   return { items: data.data, meta: data.meta! };

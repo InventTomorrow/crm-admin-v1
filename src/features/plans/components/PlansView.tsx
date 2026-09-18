@@ -11,8 +11,9 @@ import { PermissionGuard } from '@/components/PermissionGuard';
 import { SystemPermissions } from '@/lib/permissions';
 import { Select } from '@/components/ui/select';
 import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
-import type { BusinessVertical, Plan, PlanTier } from '@/lib/types';
+import type { BusinessVertical, Plan, PlanSortField, PlanTier } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import { BUSINESS_VERTICALS, PLAN_TIERS } from '@/lib/plan';
 import { useDeletePlan, usePlans, usePlansPage } from '../plans.hooks';
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,20 @@ import { MigratePlanDialog } from './MigratePlanDialog';
 function deletionWarning(plan: Plan | null): string {
   const totalSubscriberCount = plan?.totalSubscriberCount ?? 0;
   if (totalSubscriberCount === 0)
-    return 'This cannot be undone. Tenants on this plan may be affected.';
+    return 'This cannot be undone. Workspaces on this plan may be affected.';
   return `This plan has ${totalSubscriberCount} subscription record${
     totalSubscriberCount === 1 ? '' : 's'
   } tied to it, including past ones. Deleting will be rejected — deactivate the plan instead.`;
 }
+
+const PLAN_SORTABLE_COLUMNS: PlanSortField[] = [
+  'name',
+  'tier',
+  'price',
+  'category',
+  'state',
+  'subs',
+];
 
 export function PlansView() {
   const deleteMutation = useDeletePlan();
@@ -38,10 +48,15 @@ export function PlansView() {
   const { page, pageSize, search, searchInput, filters } = listQuery;
   const [planPendingDeletion, setPlanPendingDeletion] = useState<Plan | null>(null);
   const [planPendingMigration, setPlanPendingMigration] = useState<Plan | null>(null);
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<PlanSortField>({
+    listQuery,
+    sortableFields: PLAN_SORTABLE_COLUMNS,
+  });
 
   const { data, isLoading, isFetching, isError, error, refetch } = usePlansPage({
     page,
     limit: pageSize,
+    ...(sortBy ? { sortBy, sortOrder } : {}),
     ...(search ? { search } : {}),
     ...(filters.tier === 'ALL' ? {} : { tier: filters.tier as PlanTier }),
     ...(filters.businessVertical === 'ALL'
@@ -225,6 +240,8 @@ export function PlansView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by plan name or tagline…"

@@ -11,7 +11,9 @@ import { Sheet } from '@/components/ui/sheet';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
+import type { ContactMessageSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import type { ContactMessage, ContactMessageStatus } from '../contact-messages.api';
 import {
   useContactMessages,
@@ -32,6 +34,13 @@ const STATUS_LABEL: Record<ContactMessageStatus, string> = {
   RESOLVED: 'Resolved',
 };
 
+const MESSAGE_SORTABLE_COLUMNS: ContactMessageSortField[] = [
+  'name',
+  'subject',
+  'status',
+  'createdAt',
+];
+
 export function ContactMessagesView() {
   const listQuery = useListQueryState({ filters: { status: 'ALL' }, defaultPageSize: 20 });
   const { page, pageSize, search, searchInput, filters } = listQuery;
@@ -43,9 +52,19 @@ export function ContactMessagesView() {
   const canManageMessage = can(SystemPermissions.CONTACT_MESSAGES_MANAGE);
   const canDeleteMessage = can(SystemPermissions.CONTACT_MESSAGES_DELETE);
 
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<ContactMessageSortField>(
+    {
+      listQuery,
+      sortableFields: MESSAGE_SORTABLE_COLUMNS,
+      defaultSort: { id: 'createdAt', desc: true },
+    }
+  );
+
   const { data, isLoading, isFetching, isError, error, refetch } = useContactMessages({
     page,
     limit: pageSize,
+    sortBy,
+    sortOrder,
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(search ? { search } : {}),
   });
@@ -137,6 +156,8 @@ export function ContactMessagesView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name, email or subject…"

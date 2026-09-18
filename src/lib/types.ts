@@ -337,8 +337,21 @@ export interface Subscription {
   currentPeriodEnd: string | null;
   cancelledAt: string | null;
   createdAt: string;
-  owner?: { id: string; email: string; firstName: string | null; lastName: string | null };
-  plan?: { id: string; name: string; tier: PlanTier; price: number; currency: string };
+  owner?: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    avatarUrl?: string | null;
+  };
+  plan?: {
+    id: string;
+    name: string;
+    tier: PlanTier;
+    price: number;
+    currency: string;
+    isTrial?: boolean;
+  };
 }
 
 /**
@@ -359,6 +372,38 @@ export type SubscriptionSortField =
   | 'plan'
   | 'price'
   | 'paid';
+
+export type SortOrder = 'asc' | 'desc';
+
+// Server-side sort keys; each mirrors its list DTO's `sortBy` enum.
+export type TenantSortField =
+  | 'name'
+  | 'owner'
+  | 'plan'
+  | 'revenue'
+  | 'aiUsage'
+  | 'aiCost'
+  | 'members'
+  | 'status'
+  | 'createdAt';
+export type PlanSortField = 'name' | 'tier' | 'price' | 'category' | 'state' | 'subs';
+export type SubscriptionRequestSortField =
+  | 'customer'
+  | 'account'
+  | 'plan'
+  | 'paid'
+  | 'submitted'
+  | 'status';
+export type CheckoutLinkSortField =
+  | 'customer'
+  | 'account'
+  | 'plan'
+  | 'expires'
+  | 'status'
+  | 'createdAt';
+export type BlogPostSortField = 'title' | 'category' | 'status' | 'published' | 'read';
+export type NewsletterSubscriberSortField = 'email' | 'status' | 'source' | 'createdAt';
+export type ContactMessageSortField = 'name' | 'subject' | 'status' | 'createdAt';
 
 /** Platform revenue — what subscribers pay us. Never workspace order revenue. */
 export interface SubscriptionRevenue {

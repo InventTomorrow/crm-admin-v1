@@ -6,7 +6,9 @@ import { PageHeader } from '@/components/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
 import { formatDate } from '@/lib/format';
 import { formatPlanPrice } from '@/lib/planFormat';
+import type { SubscriptionRequestSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { PAYMENT_METHODS, PAYMENT_METHOD_LABELS } from '@/features/subscriptions/subscriptions.api';
 import { ReviewRequestDialog } from './ReviewRequestDialog';
@@ -22,6 +24,15 @@ const REQUEST_STATUS_TONE: Record<SubscriptionRequestStatus, BadgeTone> = {
 };
 
 /** Workflow 2 queue — customer-submitted requests awaiting admin approval. */
+const REQUEST_SORTABLE_COLUMNS: SubscriptionRequestSortField[] = [
+  'customer',
+  'account',
+  'plan',
+  'paid',
+  'submitted',
+  'status',
+];
+
 export function RequestsView() {
   // Status defaults to the queue that needs action, so it stays out of the URL
   // until the admin chooses something else.
@@ -32,9 +43,18 @@ export function RequestsView() {
   const statusFilter = filters.status as SubscriptionRequestStatus | 'ALL';
   const [requestUnderReview, setRequestUnderReview] = useState<SubscriptionRequest | null>(null);
 
+  const { sorting, onSortingChange, sortBy, sortOrder } =
+    useServerSorting<SubscriptionRequestSortField>({
+      listQuery,
+      sortableFields: REQUEST_SORTABLE_COLUMNS,
+      defaultSort: { id: 'submitted', desc: true },
+    });
+
   const { data, isLoading, isFetching, isError, error, refetch } = useSubscriptionRequests({
     page,
     limit: pageSize,
+    sortBy,
+    sortOrder,
     ...(search ? { search } : {}),
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(filters.planId === 'ALL' ? {} : { planId: filters.planId }),
@@ -136,6 +156,8 @@ export function RequestsView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by customer, email or reference…"

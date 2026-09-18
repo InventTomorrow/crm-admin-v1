@@ -11,7 +11,9 @@ import { Tabs } from '@/components/ui/tabs';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate } from '@/lib/format';
+import type { CheckoutLinkSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { CreateCheckoutLinkDialog } from './CreateCheckoutLinkDialog';
 import type { CheckoutLink, CheckoutLinkSource, CheckoutLinkStatus } from '../links.api';
@@ -30,6 +32,14 @@ const LINK_STATUS_TONE: Record<CheckoutLinkStatus, BadgeTone> = {
   EXPIRED: 'warning',
 };
 
+const LINK_SORTABLE_COLUMNS: CheckoutLinkSortField[] = [
+  'customer',
+  'account',
+  'plan',
+  'expires',
+  'status',
+];
+
 export function LinksView() {
   // `source` lives here too so the tab selection survives a refresh with
   // everything else.
@@ -43,9 +53,17 @@ export function LinksView() {
   const { can } = usePermissions();
   const canRevokeLink = can(SystemPermissions.CHECKOUT_LINKS_REVOKE);
 
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<CheckoutLinkSortField>({
+    listQuery,
+    sortableFields: LINK_SORTABLE_COLUMNS,
+    defaultSort: { id: 'createdAt', desc: true },
+  });
+
   const { data, isLoading, isFetching, isError, error, refetch } = useCheckoutLinks({
     page,
     limit: pageSize,
+    sortBy,
+    sortOrder,
     ...(search ? { search } : {}),
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(sourceFilter === 'ALL' ? {} : { source: sourceFilter }),
@@ -151,6 +169,8 @@ export function LinksView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by customer, email or token…"

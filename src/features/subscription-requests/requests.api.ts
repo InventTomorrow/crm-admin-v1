@@ -1,5 +1,12 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { BusinessVertical, Paged, PlanTier, Subscription } from '@/lib/types';
+import type {
+  BusinessVertical,
+  Paged,
+  PlanTier,
+  SortOrder,
+  Subscription,
+  SubscriptionRequestSortField,
+} from '@/lib/types';
 
 export const REQUEST_STATUSES = ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'EXPIRED'] as const;
 export type SubscriptionRequestStatus = (typeof REQUEST_STATUSES)[number];
@@ -40,6 +47,8 @@ export interface RequestListFilters {
   status?: SubscriptionRequestStatus;
   planId?: string;
   paymentMethod?: string;
+  sortBy?: SubscriptionRequestSortField;
+  sortOrder?: SortOrder;
 }
 
 export async function listSubscriptionRequests(

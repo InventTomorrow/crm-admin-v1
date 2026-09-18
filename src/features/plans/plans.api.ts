@@ -1,5 +1,13 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
-import type { BusinessVertical, Paged, Plan, PlanDuration, PlanTier } from '@/lib/types';
+import type {
+  BusinessVertical,
+  Paged,
+  Plan,
+  PlanDuration,
+  PlanSortField,
+  PlanTier,
+  SortOrder,
+} from '@/lib/types';
 
 /** Mirrors the server's planInputSchema (admin/plans/plans.dto.ts). */
 export interface PlanInput {
@@ -54,6 +62,13 @@ export interface PlanListFilters {
   isTrial?: 'true' | 'false';
 }
 
+export interface PlanPageParams extends PlanListFilters {
+  page: number;
+  limit: number;
+  sortBy?: PlanSortField;
+  sortOrder?: SortOrder;
+}
+
 /** The whole catalogue — what plan pickers and the dashboard widget need. */
 export async function listPlans(filters: PlanListFilters = {}): Promise<Plan[]> {
   const { data } = await apiClient.get<ApiEnvelope<Plan[]>>('/admin/plans', { params: filters });
@@ -61,9 +76,7 @@ export async function listPlans(filters: PlanListFilters = {}): Promise<Plan[]> 
 }
 
 /** One page of the catalogue. Sending page/limit is what makes the server page. */
-export async function listPlansPage(
-  params: PlanListFilters & { page: number; limit: number }
-): Promise<Paged<Plan>> {
+export async function listPlansPage(params: PlanPageParams): Promise<Paged<Plan>> {
   const { data } = await apiClient.get<ApiEnvelope<Plan[]>>('/admin/plans', { params });
   return { items: data.data, meta: data.meta! };
 }

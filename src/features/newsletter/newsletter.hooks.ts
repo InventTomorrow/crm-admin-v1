@@ -6,17 +6,12 @@ import {
   downloadSubscribersCsv,
   getNewsletterStats,
   listSubscribers,
-  type NewsletterSubscriberStatus,
+  type ListSubscribersParams,
 } from './newsletter.api';
 
-export function useNewsletterSubscribers(params: {
-  page: number;
-  limit: number;
-  status?: NewsletterSubscriberStatus;
-  search?: string;
-}) {
+export function useNewsletterSubscribers(params: ListSubscribersParams) {
   return useQuery({
-    queryKey: ['newsletter-subscribers', params.page, params.limit, params.status, params.search],
+    queryKey: ['newsletter-subscribers', params],
     queryFn: () => listSubscribers(params),
     placeholderData: keepPreviousData,
   });

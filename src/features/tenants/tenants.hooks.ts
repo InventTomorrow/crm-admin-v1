@@ -2,7 +2,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import type { DateRange } from '@/features/dashboard/dashboard.hooks';
-import type { BusinessVertical, TenantDetail, TenantStatus } from '@/lib/types';
+import type {
+  BusinessVertical,
+  SortOrder,
+  TenantDetail,
+  TenantSortField,
+  TenantStatus,
+} from '@/lib/types';
 import {
   bulkUpdateTenantStatus,
   getPermissionCatalog,
@@ -20,6 +26,8 @@ export function useTenants(params: {
   status?: TenantStatus;
   businessVertical?: BusinessVertical;
   limit?: number;
+  sortBy?: TenantSortField;
+  sortOrder?: SortOrder;
 }) {
   const limit = params.limit ?? 20;
   return useQuery({
@@ -30,6 +38,8 @@ export function useTenants(params: {
       params.status ?? 'ALL',
       params.businessVertical ?? 'ALL',
       limit,
+      params.sortBy,
+      params.sortOrder,
     ],
     queryFn: () =>
       listTenants({
@@ -38,6 +48,8 @@ export function useTenants(params: {
         search: params.search || undefined,
         status: params.status,
         businessVertical: params.businessVertical,
+        sortBy: params.sortBy,
+        sortOrder: params.sortOrder,
       }),
     placeholderData: keepPreviousData,
   });
@@ -85,7 +97,7 @@ export function useBulkTenantStatus() {
       bulkUpdateTenantStatus(ids, status),
     onSuccess: updatedCount => {
       qc.invalidateQueries({ queryKey: ['tenants'] });
-      toast.success(`${updatedCount} tenant${updatedCount === 1 ? '' : 's'} updated`);
+      toast.success(`${updatedCount} workspace${updatedCount === 1 ? '' : 's'} updated`);
     },
     onError: error => toast.error(apiMessage(error)),
   });

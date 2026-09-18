@@ -13,6 +13,7 @@ import {
   type MigrateSubscribersInput,
   type PlanInput,
   type PlanListFilters,
+  type PlanPageParams,
 } from './plans.api';
 
 /** Full catalogue — plan pickers and the dashboard widget depend on it. */
@@ -25,7 +26,7 @@ export function usePlans(filters: PlanListFilters = {}, options: { enabled?: boo
 }
 
 /** Paginated + filtered catalogue for the plans table. */
-export function usePlansPage(params: PlanListFilters & { page: number; limit: number }) {
+export function usePlansPage(params: PlanPageParams) {
   return useQuery({
     queryKey: ['plans', 'page', params],
     queryFn: () => listPlansPage(params),

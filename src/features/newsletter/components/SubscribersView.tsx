@@ -10,7 +10,11 @@ import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { formatDate } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
+import type { NewsletterSubscriberSortField } from '@/lib/types';
+import { ExportDialog } from '@/components/ExportDialog';
+import { datedFileName } from '@/lib/exportFileName';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import type { NewsletterSubscriber, NewsletterSubscriberStatus } from '../newsletter.api';
 import {
   useDeleteSubscriber,
@@ -24,6 +28,13 @@ const STATUS_TONE: Record<NewsletterSubscriberStatus, BadgeTone> = {
   UNSUBSCRIBED: 'neutral',
 };
 
+const SUBSCRIBER_SORTABLE_COLUMNS: NewsletterSubscriberSortField[] = [
+  'email',
+  'status',
+  'source',
+  'createdAt',
+];
+
 export function SubscribersView() {
   const listQuery = useListQueryState({ filters: { status: 'ALL' }, defaultPageSize: 20 });
   const { page, pageSize, search, searchInput, filters } = listQuery;
@@ -34,15 +45,25 @@ export function SubscribersView() {
   const { can } = usePermissions();
   const canDeleteSubscriber = can(SystemPermissions.NEWSLETTER_DELETE);
 
+  const { sorting, onSortingChange, sortBy, sortOrder } =
+    useServerSorting<NewsletterSubscriberSortField>({
+      listQuery,
+      sortableFields: SUBSCRIBER_SORTABLE_COLUMNS,
+      defaultSort: { id: 'createdAt', desc: true },
+    });
+
   const { data, isLoading, isFetching, isError, error, refetch } = useNewsletterSubscribers({
     page,
     limit: pageSize,
+    sortBy,
+    sortOrder,
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(search ? { search } : {}),
   });
   const { data: stats } = useNewsletterStats();
   const deleteMutation = useDeleteSubscriber();
   const exportMutation = useExportSubscribers();
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
 
   const columns = useMemo<ColumnDef<NewsletterSubscriber, unknown>[]>(
     () => [
@@ -106,13 +127,27 @@ export function SubscribersView() {
           can(SystemPermissions.NEWSLETTER_EXPORT) ? (
             <Button
               variant="outline"
-              onClick={() => exportMutation.mutate()}
+              onClick={() => setIsExportDialogOpen(true)}
               disabled={exportMutation.isPending}
             >
               <LuDownload className="size-4 me-1" />
-              {exportMutation.isPending ? 'Exporting…' : 'Export CSV'}
+              Export CSV
             </Button>
           ) : undefined
+        }
+      />
+
+      <ExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        defaultFileName={datedFileName('newsletter-subscribers')}
+        recordCount={stats?.subscribed ?? 0}
+        recordLabel="subscribers"
+        scopeDescription="every currently subscribed email"
+        note="Unsubscribed emails are never exported, regardless of the filters above."
+        isExporting={exportMutation.isPending}
+        onExport={fileName =>
+          exportMutation.mutate(fileName, { onSuccess: () => setIsExportDialogOpen(false) })
         }
       />
 
@@ -124,6 +159,8 @@ export function SubscribersView() {
         pageSize={pageSize}
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
+        sorting={sorting}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by email…"

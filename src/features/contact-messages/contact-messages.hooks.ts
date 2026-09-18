@@ -6,17 +6,12 @@ import {
   getContactMessageStats,
   listContactMessages,
   updateContactMessageStatus,
-  type ContactMessageStatus,
+  type ListContactMessagesParams,
 } from './contact-messages.api';
 
-export function useContactMessages(params: {
-  page: number;
-  limit: number;
-  status?: ContactMessageStatus;
-  search?: string;
-}) {
+export function useContactMessages(params: ListContactMessagesParams) {
   return useQuery({
-    queryKey: ['contact-messages', params.page, params.limit, params.status, params.search],
+    queryKey: ['contact-messages', params],
     queryFn: () => listContactMessages(params),
     placeholderData: keepPreviousData,
   });

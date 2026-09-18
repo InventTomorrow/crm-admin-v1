@@ -7,12 +7,14 @@ import { DataTable } from '@/components/ui/data-table';
 import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
 import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
+import { usePlans } from '@/features/plans/plans.hooks';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { isOnPaidPlan } from '@/lib/plan';
 import type { SystemRole, UserListItem, UserSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
-import type { ColumnDef, SortingState } from '@tanstack/react-table';
+import { useServerSorting } from '@/lib/useServerSorting';
+import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
 import {
   LuBuilding2,
@@ -34,12 +36,19 @@ import {
   useUsers,
   useWipeUserWorkspaces,
 } from '../users.hooks';
+import { ExportDialog } from '@/components/ExportDialog';
+import { datedFileName } from '@/lib/exportFileName';
 import { CreateUserDialog } from './CreateUserDialog';
 import { UserAvatar } from './UserAvatar';
 import { UserDetailSheet } from './UserDetailSheet';
 
 type UserTypeFilter = 'all' | 'system' | 'crm';
 type UserStatusFilter = 'active' | 'deleted' | 'all';
+
+const ALL_PLANS = 'all';
+
+// Mirrors the server's UsersService.EXPORT_ROW_LIMIT.
+const USER_EXPORT_ROW_LIMIT = 10_000;
 
 /** Column ids double as the server's sort keys, so the two can never drift. */
 const SORTABLE_COLUMNS: UserSortField[] = [
@@ -72,24 +81,28 @@ function deletionWarning(user: UserListItem | null): string {
 }
 
 export function UsersView() {
-  const listQuery = useListQueryState({ filters: { type: 'all', status: 'active' } });
+  const listQuery = useListQueryState({
+    filters: { type: 'all', status: 'active', planId: ALL_PLANS },
+  });
   const { page, pageSize, search, searchInput, filters } = listQuery;
   const typeFilter = filters.type as UserTypeFilter;
   const statusFilter = filters.status as UserStatusFilter;
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
+  const planFilter = filters.planId === ALL_PLANS ? undefined : filters.planId;
   const { can, canAny } = usePermissions();
+  // The plans list is guarded by plans:view, so the filter only shows for roles holding it.
+  const canFilterByPlan = can(SystemPermissions.PLANS_VIEW);
+  const { data: plans } = usePlans({}, { enabled: canFilterByPlan });
 
-  const activeSort = sorting[0];
-  const sortBy = (
-    activeSort && SORTABLE_COLUMNS.includes(activeSort.id as UserSortField)
-      ? activeSort.id
-      : 'createdAt'
-  ) as UserSortField;
-  const sortOrder = activeSort?.desc === false ? 'asc' : 'desc';
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<UserSortField>({
+    listQuery,
+    sortableFields: SORTABLE_COLUMNS,
+    defaultSort: { id: 'createdAt', desc: true },
+  });
 
   const listFilters = {
     type: typeFilter,
     status: statusFilter,
+    planId: planFilter,
     search,
     sortBy,
     sortOrder,
@@ -100,6 +113,7 @@ export function UsersView() {
     page,
     limit: pageSize,
   });
+  const matchingUserCount = data?.meta.total ?? 0;
   const roleMutation = useSetSystemRole();
   const deleteMutation = useDeleteUser();
   const restoreMutation = useRestoreUser();
@@ -107,6 +121,8 @@ export function UsersView() {
   const exportMutation = useExportUsers();
   const bulkDeleteMutation = useBulkDeleteUsers();
 
+  // `ids` undefined = every row matching the filters; set = only those rows.
+  const [pendingExport, setPendingExport] = useState<{ ids?: string[] } | null>(null);
   const [userPendingDeletion, setUserPendingDeletion] = useState<UserListItem | null>(null);
   const [userPendingRestore, setUserPendingRestore] = useState<UserListItem | null>(null);
   const [userPendingWipe, setUserPendingWipe] = useState<UserListItem | null>(null);
@@ -472,12 +488,7 @@ export function UsersView() {
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
         sorting={sorting}
-        onSortingChange={nextSorting => {
-          setSorting(nextSorting);
-          // A re-sorted list reshuffles every page, so page 1 is the only
-          // meaningful place to land.
-          listQuery.setPage(1);
-        }}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by name, email or phone…"
@@ -500,7 +511,12 @@ export function UsersView() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportMutation.mutate({ ...listFilters, ids: selectedIds })}
+              onClick={() =>
+                // Ticking every matching row is the same as exporting them all.
+                setPendingExport(
+                  selectedIds.length >= matchingUserCount ? {} : { ids: selectedIds }
+                )
+              }
               disabled={exportMutation.isPending}
             >
               <LuDownload className="size-4" />
@@ -522,11 +538,11 @@ export function UsersView() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportMutation.mutate(listFilters)}
-            disabled={exportMutation.isPending || data?.meta.total === 0}
+            onClick={() => setPendingExport({})}
+            disabled={exportMutation.isPending || matchingUserCount === 0}
           >
             <LuDownload className="size-4" />
-            {exportMutation.isPending ? 'Exporting…' : 'Export'}
+            Export
           </Button>
         }
         activeFilterCount={listQuery.activeCount}
@@ -553,7 +569,51 @@ export function UsersView() {
               <option value="deleted">Deleted</option>
               <option value="all">All statuses</option>
             </Select>
+            {canFilterByPlan && (
+              <Select
+                value={filters.planId}
+                onChange={event => listQuery.setFilter('planId', event.target.value)}
+                className="form-input-sm w-40"
+                aria-label="Filter by plan"
+              >
+                <option value={ALL_PLANS}>All plans</option>
+                {plans?.map(plan => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </Select>
+            )}
           </>
+        }
+      />
+
+      <ExportDialog
+        open={pendingExport !== null}
+        onOpenChange={isOpen => !isOpen && setPendingExport(null)}
+        defaultFileName={datedFileName(pendingExport?.ids ? 'users-selected' : 'users')}
+        recordCount={
+          pendingExport?.ids?.length ?? Math.min(matchingUserCount, USER_EXPORT_ROW_LIMIT)
+        }
+        recordLabel="users"
+        scopeDescription={
+          pendingExport?.ids
+            ? 'selected rows only'
+            : listQuery.activeCount > 0
+              ? 'all matching the current search and filters'
+              : 'all users'
+        }
+        note={
+          !pendingExport?.ids && matchingUserCount > USER_EXPORT_ROW_LIMIT
+            ? `Exports are capped at the first ${USER_EXPORT_ROW_LIMIT.toLocaleString()} rows.`
+            : undefined
+        }
+        isExporting={exportMutation.isPending}
+        onExport={fileName =>
+          exportMutation.mutate(
+            { ...listFilters, ...(pendingExport?.ids ? { ids: pendingExport.ids } : {}), fileName },
+            { onSuccess: () => setPendingExport(null) }
+          )
         }
       />
 

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { ColumnDef, SortingState } from '@tanstack/react-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
   LuCircleAlert,
   LuCircleCheck,
@@ -25,9 +25,11 @@ import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { useListQueryState } from '@/lib/useListQueryState';
+import { useServerSorting } from '@/lib/useServerSorting';
 import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { SUBSCRIPTION_STATUS_TONE } from '@/lib/statusTones';
 import type { SubscriptionListItem, SubscriptionSortField, SubscriptionStatus } from '@/lib/types';
+import { UserAvatar } from '@/features/users/components/UserAvatar';
 import { CreateSubscriptionDialog } from './CreateSubscriptionDialog';
 import { ManageSubscriptionDialog } from './ManageSubscriptionDialog';
 import { SubscriptionDetailSheet } from './SubscriptionDetailSheet';
@@ -54,7 +56,6 @@ export function SubscriptionsView() {
   const listQuery = useListQueryState({ filters: { status: 'ALL', planId: 'ALL' } });
   const { page, pageSize, search, searchInput, filters } = listQuery;
   const statusFilter = filters.status as SubscriptionStatus | 'ALL';
-  const [sorting, setSorting] = useState<SortingState>([{ id: 'createdAt', desc: true }]);
   const [subscriptionUnderReview, setSubscriptionUnderReview] =
     useState<SubscriptionListItem | null>(null);
   const [subscriptionBeingManaged, setSubscriptionBeingManaged] =
@@ -66,13 +67,11 @@ export function SubscriptionsView() {
   const canCancelSubscription = can(SystemPermissions.SUBSCRIPTIONS_CANCEL);
   const canDeleteSubscription = can(SystemPermissions.SUBSCRIPTIONS_DELETE);
 
-  const activeSort = sorting[0];
-  const sortBy = (
-    activeSort && SORTABLE_COLUMNS.includes(activeSort.id as SubscriptionSortField)
-      ? activeSort.id
-      : 'createdAt'
-  ) as SubscriptionSortField;
-  const sortOrder = activeSort?.desc === false ? 'asc' : 'desc';
+  const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<SubscriptionSortField>({
+    listQuery,
+    sortableFields: SORTABLE_COLUMNS,
+    defaultSort: { id: 'createdAt', desc: true },
+  });
 
   const { data, isLoading, isFetching, isError, error, refetch } = useSubscriptions({
     page,
@@ -105,13 +104,25 @@ export function SubscriptionsView() {
             row.original.owner?.firstName ?? null,
             row.original.owner?.lastName ?? null
           );
+          const owner = row.original.owner;
           return (
-            <div className="min-w-0">
-              <div className="truncate font-medium">
-                {ownerName === '—' ? (row.original.owner?.email ?? '—') : ownerName}
-              </div>
-              <div className="truncate text-xs text-default-500">
-                {row.original.owner?.email ?? ''}
+            <div className="flex min-w-0 items-center gap-3">
+              {owner && (
+                <UserAvatar
+                  firstName={owner.firstName}
+                  lastName={owner.lastName}
+                  email={owner.email}
+                  avatarUrl={owner.avatarUrl ?? null}
+                  hasPaidPlan={
+                    row.original.status === 'ACTIVE' && row.original.plan?.isTrial === false
+                  }
+                />
+              )}
+              <div className="min-w-0">
+                <div className="truncate font-medium">
+                  {ownerName === '—' ? (owner?.email ?? '—') : ownerName}
+                </div>
+                <div className="truncate text-xs text-default-500">{owner?.email ?? ''}</div>
               </div>
             </div>
           );
@@ -246,7 +257,7 @@ export function SubscriptionsView() {
         description={
           revenue
             ? `${revenue.activeSubscriptions} live · ${formatMoneyPKR(revenue.collected)} collected`
-            : 'Tenant subscriptions & billing state'
+            : 'Workspace subscriptions & billing state'
         }
         action={
           <div className="flex items-center gap-2">
@@ -317,12 +328,7 @@ export function SubscriptionsView() {
         onPageChange={listQuery.setPage}
         onPageSizeChange={listQuery.setPageSize}
         sorting={sorting}
-        onSortingChange={nextSorting => {
-          setSorting(nextSorting);
-          // A re-sorted list reshuffles every page, so page 1 is the only
-          // meaningful place to land.
-          listQuery.setPage(1);
-        }}
+        onSortingChange={onSortingChange}
         search={searchInput}
         onSearchChange={listQuery.setSearchInput}
         searchPlaceholder="Search by account or plan…"
