@@ -15,7 +15,7 @@ interface TabsProps {
 /** React-state tab strip — content is conditionally rendered by the caller. */
 export function Tabs({ tabs, active, onChange }: TabsProps) {
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-default-200" role="tablist">
+    <div className="flex gap-1 overflow-x-auto overflow-y-hidden border-b border-default-200" role="tablist">
       {tabs.map(tab => (
         <button
           key={tab.key}
