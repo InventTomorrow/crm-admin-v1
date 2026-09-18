@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
+import { clearAllListState } from '@/lib/listStateStorage';
 import { permissionsForRole, type SystemPermission } from '@/lib/permissions';
 import {
   changePassword,
@@ -63,7 +64,10 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => qc.clear(),
+    onSuccess: () => {
+      qc.clear();
+      clearAllListState();
+    },
   });
 }
 

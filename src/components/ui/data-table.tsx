@@ -221,6 +221,12 @@ export function DataTable<TData>({
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
+  // A restored page can outlive its rows (deletions, fewer matches) — step back to the last real page.
+  useEffect(() => {
+    if (isLoading || isFetching || isError) return;
+    if (page > pageCount) onPageChange(pageCount);
+  }, [page, pageCount, isLoading, isFetching, isError, onPageChange]);
+
   const table = useReactTable({
     data,
     columns: tableColumns,

@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
+import { readListState, writeListState, type ListParamSnapshot } from './listStateStorage';
 import { useDebounce } from './useDebounce';
 
 const DEFAULT_PAGE_SIZE = 10;
 const DEFAULT_SEARCH_DELAY = 350;
+
+export interface ListSort {
+  id: string;
+  desc: boolean;
+}
 
 export interface ListQueryStateOptions<TFilterKey extends string> {
   /** Filter keys mapped to the value that means "not filtering". */
@@ -22,10 +28,13 @@ export interface ListQueryState<TFilterKey extends string> {
   /** Debounced; this is what queries and the URL see. */
   search: string;
   filters: Record<TFilterKey, string>;
+  /** Null until a column is clicked — callers fall back to their default order. */
+  sort: ListSort | null;
   setPage: (page: number) => void;
   setPageSize: (size: number) => void;
   setSearchInput: (value: string) => void;
   setFilter: (key: TFilterKey, value: string) => void;
+  setSort: (sort: ListSort | null) => void;
   /** Clears the search box and every filter, and returns to page 1. */
   resetAll: () => void;
   /** How many filters (plus the search) are currently narrowing the list. */
@@ -33,13 +42,17 @@ export interface ListQueryState<TFilterKey extends string> {
 }
 
 /**
- * One place for the page / page-size / search / filter state every admin list
- * needs, mirrored into the URL so a filtered view survives a refresh, the back
+ * One place for the page / page-size / search / filter / sort state every admin
+ * list needs, mirrored into the URL so a view survives a refresh, the back
  * button and being pasted to someone else.
  *
+ * The URL is also saved per list for the tab's lifetime: arriving with a bare
+ * URL (e.g. from the sidebar) restores the last page, filters and sort. A URL
+ * that already carries list params always wins over the saved copy.
+ *
  * Defaults are kept out of the query string, so an untouched list has a clean
- * URL. Changing the search or any filter resets to page 1 — paging is only
- * meaningful against a fixed result set.
+ * URL. Changing the search, a filter or the sort resets to page 1 — paging is
+ * only meaningful against a fixed result set.
  */
 export function useListQueryState<TFilterKey extends string = never>(
   options: ListQueryStateOptions<TFilterKey> = {}
@@ -52,20 +65,13 @@ export function useListQueryState<TFilterKey extends string = never>(
   } = options;
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const { pathname } = useLocation();
+  const listKey = namespace ? `${pathname}#${namespace}` : pathname;
+
   const paramName = useCallback(
     (key: string) => (namespace ? `${namespace}_${key}` : key),
     [namespace]
   );
-
-  const page = Number(searchParams.get(paramName('page')) ?? 1) || 1;
-  const pageSize =
-    Number(searchParams.get(paramName('size')) ?? defaultPageSize) || defaultPageSize;
-  const searchFromUrl = searchParams.get(paramName('q')) ?? '';
-
-  // The box stays instant while the URL and the query only take the settled
-  // value, so typing never floods history or fires a request per keystroke.
-  const [searchInput, setSearchInput] = useState(searchFromUrl);
-  const search = useDebounce(searchInput, searchDelay);
 
   const filterKeys = useMemo(
     () => Object.keys(filterDefaults) as TFilterKey[],
@@ -73,14 +79,55 @@ export function useListQueryState<TFilterKey extends string = never>(
     [JSON.stringify(filterDefaults)]
   );
 
+  const ownedParamNames = useMemo(
+    () => ['page', 'size', 'q', 'sort', 'dir', ...filterKeys].map(paramName),
+    [filterKeys, paramName]
+  );
+
+  const snapshotOf = useCallback(
+    (params: URLSearchParams): ListParamSnapshot => {
+      const snapshot: ListParamSnapshot = {};
+      for (const name of ownedParamNames) {
+        const value = params.get(name);
+        if (value !== null) snapshot[name] = value;
+      }
+      return snapshot;
+    },
+    [ownedParamNames]
+  );
+
+  // Read once on mount: the saved copy stands in for the URL until it has been written back.
+  const [pendingRestore, setPendingRestore] = useState<ListParamSnapshot | null>(() =>
+    Object.keys(snapshotOf(searchParams)).length > 0 ? null : readListState(listKey)
+  );
+
+  const readParam = useCallback(
+    (name: string): string | null =>
+      pendingRestore ? (pendingRestore[name] ?? null) : searchParams.get(name),
+    [pendingRestore, searchParams]
+  );
+
+  const page = Number(readParam(paramName('page')) ?? 1) || 1;
+  const pageSize = Number(readParam(paramName('size')) ?? defaultPageSize) || defaultPageSize;
+  const searchFromUrl = readParam(paramName('q')) ?? '';
+  const sortId = readParam(paramName('sort'));
+  const sort: ListSort | null = sortId
+    ? { id: sortId, desc: readParam(paramName('dir')) !== 'asc' }
+    : null;
+
+  // The box stays instant while the URL and the query only take the settled
+  // value, so typing never floods history or fires a request per keystroke.
+  const [searchInput, setSearchInput] = useState(searchFromUrl);
+  const search = useDebounce(searchInput, searchDelay);
+
   const filters = useMemo(() => {
     const resolved = {} as Record<TFilterKey, string>;
     for (const key of filterKeys) {
-      resolved[key] = searchParams.get(paramName(key)) ?? filterDefaults[key];
+      resolved[key] = readParam(paramName(key)) ?? filterDefaults[key];
     }
     return resolved;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filterDefaults is static per call site
-  }, [searchParams, filterKeys, paramName]);
+  }, [readParam, filterKeys, paramName]);
 
   /** Writes params, dropping any that fell back to their default. */
   const applyParams = useCallback(
@@ -99,6 +146,24 @@ export function useListQueryState<TFilterKey extends string = never>(
     },
     [setSearchParams]
   );
+
+  // Write the restored copy into the URL, replacing the entry so Back doesn't land on the bare URL.
+  useEffect(() => {
+    if (pendingRestore) applyParams(pendingRestore, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once, for the mount-time restore only
+  }, []);
+
+  // Drop the stand-in only once the URL actually carries the params, so no render sees defaults.
+  useEffect(() => {
+    if (pendingRestore && Object.keys(snapshotOf(searchParams)).length > 0) {
+      setPendingRestore(null);
+    }
+  }, [pendingRestore, searchParams, snapshotOf]);
+
+  useEffect(() => {
+    if (pendingRestore) return;
+    writeListState(listKey, snapshotOf(searchParams));
+  }, [pendingRestore, searchParams, listKey, snapshotOf]);
 
   const setPage = useCallback(
     (nextPage: number) =>
@@ -122,6 +187,16 @@ export function useListQueryState<TFilterKey extends string = never>(
         [paramName('page')]: null,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- filterDefaults is static per call site
+    [applyParams, paramName]
+  );
+
+  const setSort = useCallback(
+    (nextSort: ListSort | null) =>
+      applyParams({
+        [paramName('sort')]: nextSort?.id ?? null,
+        [paramName('dir')]: nextSort ? (nextSort.desc ? 'desc' : 'asc') : null,
+        [paramName('page')]: null,
+      }),
     [applyParams, paramName]
   );
 
@@ -161,10 +236,12 @@ export function useListQueryState<TFilterKey extends string = never>(
     searchInput,
     search,
     filters,
+    sort,
     setPage,
     setPageSize,
     setSearchInput,
     setFilter,
+    setSort,
     resetAll,
     activeCount,
   };

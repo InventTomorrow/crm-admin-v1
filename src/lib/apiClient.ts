@@ -1,4 +1,5 @@
 import axios, { AxiosError, type AxiosRequestConfig } from 'axios';
+import { clearAllListState } from './listStateStorage';
 
 /**
  * Axios instance for the admin portal. In dev, requests go to `/api/v1` and are
@@ -58,6 +59,8 @@ apiClient.interceptors.response.use(
         return apiClient(original);
       } catch (refreshErr) {
         flush(refreshErr);
+        // The next sign-in may be a different admin on this machine.
+        clearAllListState();
         if (!window.location.pathname.startsWith('/login')) {
           window.location.href = '/login';
         }
