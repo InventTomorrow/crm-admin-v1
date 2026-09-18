@@ -14,6 +14,7 @@ export interface UserListFilters {
   search?: string;
   type: 'all' | 'system' | 'crm';
   status?: 'active' | 'deleted' | 'all';
+  planId?: string;
   sortBy?: UserSortField;
   sortOrder?: 'asc' | 'desc';
 }
@@ -29,15 +30,17 @@ export async function listUsers(
  * Downloads a CSV of every row matching the current filters — the whole result
  * set, not the visible page. `ids` narrows it to the current row selection.
  */
-export async function exportUsers(params: UserListFilters & { ids?: string[] }): Promise<void> {
-  const { ids, ...filters } = params;
+export async function exportUsers(
+  params: UserListFilters & { ids?: string[]; fileName?: string }
+): Promise<void> {
+  const { ids, fileName, ...filters } = params;
   const response = await apiClient.get('/admin/users/export', {
     params: { ...filters, ...(ids?.length ? { ids: ids.join(',') } : {}) },
     responseType: 'blob',
   });
   downloadBlob(
     response.data as Blob,
-    filenameFromDisposition(response.headers['content-disposition'], 'users.csv')
+    fileName ?? filenameFromDisposition(response.headers['content-disposition'], 'users.csv')
   );
 }
 

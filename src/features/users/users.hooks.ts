@@ -26,6 +26,7 @@ export function useUsers(params: {
   search: string;
   limit?: number;
   status?: UserStatus;
+  planId?: string;
   sortBy?: UserSortField;
   sortOrder?: 'asc' | 'desc';
 }) {
@@ -34,7 +35,17 @@ export function useUsers(params: {
   const sortBy = params.sortBy ?? 'createdAt';
   const sortOrder = params.sortOrder ?? 'desc';
   return useQuery({
-    queryKey: ['users', params.type, status, params.page, params.search, limit, sortBy, sortOrder],
+    queryKey: [
+      'users',
+      params.type,
+      status,
+      params.planId,
+      params.page,
+      params.search,
+      limit,
+      sortBy,
+      sortOrder,
+    ],
     queryFn: () =>
       listUsers({
         page: params.page,
@@ -42,6 +53,7 @@ export function useUsers(params: {
         search: params.search || undefined,
         type: params.type,
         status,
+        planId: params.planId,
         sortBy,
         sortOrder,
       }),
@@ -50,7 +62,8 @@ export function useUsers(params: {
 
 export function useExportUsers() {
   return useMutation({
-    mutationFn: (params: UserListFilters & { ids?: string[] }) => exportUsers(params),
+    mutationFn: (params: UserListFilters & { ids?: string[]; fileName?: string }) =>
+      exportUsers(params),
     onSuccess: () => toast.success('Export downloaded'),
     onError: error => toast.error(apiMessage(error)),
   });
