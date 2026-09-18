@@ -56,7 +56,7 @@ const NotificationsDropdown = () => {
         )}
       </button>
 
-      <div className="hs-dropdown-menu w-100 max-w-[calc(100vw-1rem)] p-0">
+      <div className="hs-dropdown-menu w-100 max-w-[calc(100vw-1rem)] border-default-200 p-0 shadow-lg">
         <div className="flex items-center justify-between gap-2 border-b border-default-200 p-4">
           <h3 className="text-base text-default-800">Notifications</h3>
           {unreadCount > 0 && (

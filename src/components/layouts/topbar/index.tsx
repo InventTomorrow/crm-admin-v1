@@ -143,7 +143,7 @@ const Topbar = () => {
                   )
                 : '…'}
             </button>
-            <div className="hs-dropdown-menu min-w-56">
+            <div className="hs-dropdown-menu min-w-56 border-default-200 shadow-lg">
               <div className="p-2">
                 <div className="flex items-center gap-3">
                   <div className="flex size-11 shrink-0 items-center justify-center rounded bg-primary/10 font-semibold text-primary">

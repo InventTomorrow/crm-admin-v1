@@ -46,11 +46,12 @@ Sidenav Menu
         @apply ms-auto text-sm transition-all rtl:rotate-180 hs-accordion-active:rotate-90;
       }
 
-      &:is(.open, .active, :active, :focus) {
+      /* Not :focus — a clicked group toggle keeps focus and would look like a second active item. */
+      &:is(.active, :active) {
         color: var(--sidenav-item-active-color);
       }
 
-      &:is(:hover) {
+      &:is(:hover, :focus-visible) {
         color: var(--sidenav-item-hover-color);
       }
 
@@ -71,11 +72,12 @@ Sidenav Menu
 
   > .menu-item {
     > .menu-link {
-      &:is(.open, .active, :active, :focus) {
+      &:is(.active, :active) {
         background-color: var(--sidenav-item-active-bg);
       }
 
-      &:is(:hover) {
+      /* Keyboard focus still gets a visible state, just not the active one. */
+      &:is(:hover, :focus-visible) {
         background-color: var(--sidenav-item-hover-bg);
       }
     }
