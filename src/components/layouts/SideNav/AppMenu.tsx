@@ -1,3 +1,4 @@
+import { useLayoutContext } from '@/context/useLayoutContext';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { useAdminSidebarCounts } from '@/lib/useAdminSidebarCounts';
 import { useEffect, useMemo, useState } from 'react';
@@ -51,8 +52,10 @@ const dropEmptySections = (items: MenuItemType[]): MenuItemType[] =>
 
 const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
   const { pathname } = useLocation();
+  const { sidenav } = useLayoutContext();
   const Icon = item.icon;
 
+  const isCollapsed = sidenav.size === 'sm';
   const isActive = isItemActive(item, pathname);
   const [isOpen, setIsOpen] = useState(isActive);
 
@@ -62,23 +65,29 @@ const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
     }
   }, [isActive]);
 
+  const renderChildren = () =>
+    item.children?.map((child: MenuItemType) =>
+      child.children ? (
+        <MenuItemWithChildren key={child.key} item={child} />
+      ) : (
+        <MenuItem key={child.key} item={child} />
+      )
+    );
+
   return (
     <li className={`menu-item hs-accordion ${isActive ? 'active' : ''}`}>
+      {/* Icon/text/arrow must be direct children — the collapsed-rail CSS targets `.menu-link > *`. */}
       <button
         type="button"
         onClick={() => setIsOpen(prev => !prev)}
-        className={`hs-accordion-toggle menu-link flex w-full items-center justify-between text-left h-9 ${
-          isActive ? 'active' : ''
-        }`}
+        className={`hs-accordion-toggle menu-link text-left ${isActive ? 'active' : ''}`}
       >
-        <div className="flex items-center gap-2">
-          {Icon && (
-            <span className="menu-icon">
-              <Icon />
-            </span>
-          )}
-          <span className="menu-text">{item.label}</span>
-        </div>
+        {Icon && (
+          <span className="menu-icon">
+            <Icon />
+          </span>
+        )}
+        <span className="menu-text">{item.label}</span>
         <span
           className={`menu-arrow transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
         >
@@ -86,25 +95,24 @@ const MenuItemWithChildren = ({ item }: { item: MenuItemType }) => {
         </span>
       </button>
 
-      <AnimatePresence initial={false}>
-        {isOpen && (
-          <motion.ul
-            className="sub-menu hs-accordion-content space-y-1 overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeInOut' }}
-          >
-            {item.children?.map((child: MenuItemType) =>
-              child.children ? (
-                <MenuItemWithChildren key={child.key} item={child} />
-              ) : (
-                <MenuItem key={child.key} item={child} />
-              )
-            )}
-          </motion.ul>
-        )}
-      </AnimatePresence>
+      {/* Collapsed rail shows the submenu as a hover flyout, so it must stay in the DOM. */}
+      {isCollapsed ? (
+        <ul className="sub-menu space-y-1">{renderChildren()}</ul>
+      ) : (
+        <AnimatePresence initial={false}>
+          {isOpen && (
+            <motion.ul
+              className="sub-menu hs-accordion-content space-y-1 overflow-hidden"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeInOut' }}
+            >
+              {renderChildren()}
+            </motion.ul>
+          )}
+        </AnimatePresence>
+      )}
     </li>
   );
 };
