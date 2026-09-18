@@ -1,5 +1,7 @@
 import { LuArrowRight, LuCheck } from 'react-icons/lu';
+import { useLayoutContext } from '@/context/useLayoutContext';
 import { cn } from '@/lib/utils';
+import { getSystemTheme } from '@/utils/layout';
 import { formatPlanLimit, formatPlanPeriod, formatPlanPrice } from '@/lib/planFormat';
 import type { PlanFormValues } from '../plan-form.schema';
 
@@ -19,14 +21,34 @@ const LANDING = {
   mint3: '#F1F8F2',
 } as const;
 
-const APP = {
-  accent: '#1DAA61',
-  accentSoft: 'rgba(29, 170, 97, 0.10)',
-  ink: '#111B21',
-  inkSoft: '#3B4A54',
-  line: '#E9EDEF',
-  surface2: '#F7F8FA',
+// Light and html.dark values from client/src/app/globals.css.
+const APP_PALETTES = {
+  light: {
+    accent: '#1DAA61',
+    ink: '#111B21',
+    inkSoft: '#3B4A54',
+    line: '#E9EDEF',
+    frame: '#F0F2F5',
+    surface: '#FFFFFF',
+    surface2: '#F7F8FA',
+  },
+  dark: {
+    accent: '#1DAA61',
+    ink: '#E9EDEF',
+    inkSoft: '#D1D7DB',
+    line: '#2F3B44',
+    frame: '#111B21',
+    surface: '#202C33',
+    surface2: '#2A3942',
+  },
 } as const;
+
+type AppPalette = (typeof APP_PALETTES)[keyof typeof APP_PALETTES];
+
+function useIsDarkTheme(): boolean {
+  const { theme } = useLayoutContext();
+  return (theme === 'system' ? getSystemTheme() : theme) === 'dark';
+}
 
 export type PreviewSurface = 'landing' | 'app';
 
@@ -57,14 +79,25 @@ export function PlanPreviewCard({
   const planName = values.name.trim() || 'Plan name';
   const ctaLabel = values.ctaLabel.trim() || `Start with ${values.name.trim() || 'this plan'}`;
 
+  const isDarkTheme = useIsDarkTheme();
+  const appPalette = isDarkTheme ? APP_PALETTES.dark : APP_PALETTES.light;
   const shared = { values, planName, period, features, hasOffer, discountPercentage, ctaLabel };
 
+  // The landing page has no dark mode, so its light card sits on admin's own backdrop when dark.
+  const landingFrameClass = isDarkTheme ? 'bg-default-100' : '';
   return (
     <div
-      className="rounded-xl p-4"
-      style={{ background: surface === 'landing' ? LANDING.mint3 : '#F0F2F5' }}
+      className={cn('rounded-xl p-4', surface === 'landing' && landingFrameClass)}
+      style={{
+        background:
+          surface === 'landing' ? (isDarkTheme ? undefined : LANDING.mint3) : appPalette.frame,
+      }}
     >
-      {surface === 'landing' ? <LandingCard {...shared} /> : <InAppCard {...shared} />}
+      {surface === 'landing' ? (
+        <LandingCard {...shared} />
+      ) : (
+        <InAppCard {...shared} palette={appPalette} />
+      )}
     </div>
   );
 }
@@ -213,15 +246,23 @@ function LandingCard({
 }
 
 /** Mirrors client/src/features/billing/components/PlanCard.tsx. */
-function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) {
+function InAppCard({
+  values,
+  planName,
+  period,
+  features,
+  ctaLabel,
+  palette,
+}: CardProps & { palette: AppPalette }) {
   const inert = values.isComingSoon;
 
   return (
     <div
-      className={cn('relative flex flex-col rounded-xl border bg-white p-5', inert && 'opacity-60')}
+      className={cn('relative flex flex-col rounded-xl border p-5', inert && 'opacity-60')}
       style={{
-        borderColor: values.isFeatured && !inert ? APP.accent : APP.line,
-        color: APP.ink,
+        background: palette.surface,
+        borderColor: values.isFeatured && !inert ? palette.accent : palette.line,
+        color: palette.ink,
         boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
       }}
     >
@@ -231,7 +272,7 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
           {values.isFeatured && !inert && (
             <span
               className="rounded px-2 py-0.5 text-[11px] font-medium text-white"
-              style={{ background: APP.accent }}
+              style={{ background: palette.accent }}
             >
               Popular
             </span>
@@ -253,7 +294,7 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
         <span className="text-[26px] font-bold">
           {values.isTrial ? 'Free' : formatPlanPrice(values.price, values.currency)}
         </span>
-        <span className="text-[13px]" style={{ color: APP.inkSoft }}>
+        <span className="text-[13px]" style={{ color: palette.inkSoft }}>
           {' '}
           / {period}
         </span>
@@ -266,7 +307,7 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
               <li
                 key={feature}
                 className="flex items-start gap-2 text-[13px]"
-                style={{ color: APP.inkSoft }}
+                style={{ color: palette.inkSoft }}
               >
                 <span className="mt-0.5">✓</span>
                 {feature}
@@ -276,11 +317,19 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
         ) : (
           // The real card falls back to PlanLimitsList when a plan has no
           // bullets, so the limits are what the customer would actually read.
-          <ul className="space-y-2 text-[13px]" style={{ color: APP.inkSoft }}>
-            <LimitRow label="Workspaces" value={values.maxWorkspaces} />
-            <LimitRow label="Team members / workspace" value={values.maxMembersPerWorkspace} />
-            <LimitRow label="Connected channels" value={values.maxChannels} />
-            <LimitRow label="Messages / month" value={values.maxMonthlyMessages} />
+          <ul className="space-y-2 text-[13px]" style={{ color: palette.inkSoft }}>
+            <LimitRow label="Workspaces" value={values.maxWorkspaces} palette={palette} />
+            <LimitRow
+              label="Team members / workspace"
+              value={values.maxMembersPerWorkspace}
+              palette={palette}
+            />
+            <LimitRow label="Connected channels" value={values.maxChannels} palette={palette} />
+            <LimitRow
+              label="Messages / month"
+              value={values.maxMonthlyMessages}
+              palette={palette}
+            />
           </ul>
         )}
       </div>
@@ -289,8 +338,12 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[13px] font-medium"
         style={
           inert
-            ? { border: `1px solid ${APP.line}`, color: APP.inkSoft, background: APP.surface2 }
-            : { background: APP.accent, color: '#fff' }
+            ? {
+                border: `1px solid ${palette.line}`,
+                color: palette.inkSoft,
+                background: palette.surface2,
+              }
+            : { background: palette.accent, color: '#fff' }
         }
       >
         {inert ? 'Coming soon' : ctaLabel}
@@ -300,11 +353,19 @@ function InAppCard({ values, planName, period, features, ctaLabel }: CardProps) 
   );
 }
 
-function LimitRow({ label, value }: { label: string; value: number }) {
+function LimitRow({
+  label,
+  value,
+  palette,
+}: {
+  label: string;
+  value: number;
+  palette: AppPalette;
+}) {
   return (
     <li className="flex items-center justify-between gap-2">
       <span>{label}</span>
-      <span className="font-medium" style={{ color: APP.ink }}>
+      <span className="font-medium" style={{ color: palette.ink }}>
         {formatPlanLimit(value)}
       </span>
     </li>

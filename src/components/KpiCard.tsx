@@ -21,8 +21,14 @@ export function KpiCard({
 }: KpiCardProps) {
   const isBrand = variant === 'brand';
   return (
-    <div className={cn('card', isBrand && 'bg-primary border-primary')}>
-      <div className="card-body">
+    // Own surface + border (not `.card`) so tiles stay distinct when nested inside a card panel.
+    <div
+      className={cn(
+        'rounded-xl border shadow-sm',
+        isBrand ? 'border-primary bg-primary' : 'border-default-200 bg-default-150/40'
+      )}
+    >
+      <div className="p-5">
         <div className="flex items-center gap-3">
           <div
             className={cn(

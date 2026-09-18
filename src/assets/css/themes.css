@@ -55,36 +55,27 @@
   color-scheme: light;
 }
 
-/*
-  Dark ramp. The previous values mapped straight onto Tailwind zinc, which put
-  the page at zinc-950 and cards at zinc-900 — only ~5% apart, so panels sank
-  into the background and the UI read as one flat black sheet. It also gave
-  --default-150 and --default-200 the same value, leaving hover states and
-  borders indistinguishable.
-
-  This ramp keeps the same neutral hue but starts lighter and steps evenly, so
-  page < card < field < border each separate visibly.
-*/
+/* Dark ramp — surfaces copied from client2/src/app/globals.css `.dark` so both apps share one slate look. */
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --color-body-bg: #0e0f12;
-  --color-body-color: #98a0aa;
+  --color-body-bg: var(--color-default-50);
+  --color-body-color: var(--color-default-600);
 
-  --color-card: #17191d;
+  --color-card: var(--color-default-100);
 
-  --color-default-50: #0e0f12;
-  --color-default-100: #17191d;
-  --color-default-150: #1e2126; /* hover surface */
-  --color-default-200: #272b31; /* borders */
-  --color-default-300: #343941;
-  --color-default-400: #4a5058;
-  --color-default-500: #6b727c;
-  --color-default-600: #98a0aa; /* body text */
-  --color-default-700: #b9c0c9;
-  --color-default-800: #d4dae1;
-  --color-default-900: #e9edf1;
-  --color-default-950: #f7f9fb;
+  --color-default-50: oklch(0.2702 0.0275 257.53); /* client2 --background */
+  --color-default-100: oklch(0.3116 0.0337 260.87); /* --card */
+  --color-default-150: oklch(0.3574 0.0331 258.98); /* --muted: hover surface */
+  --color-default-200: oklch(0.3939 0.0314 255.71); /* --border */
+  --color-default-300: oklch(0.4276 0.0322 257.09); /* --input */
+  --color-default-400: oklch(0.6 0.025 257.53); /* hint text — client2's skeleton tone was unreadable as text */
+  --color-default-500: oklch(0.72 0.0201 257.53); /* --muted-foreground */
+  --color-default-600: oklch(0.8 0.016 257.53); /* body text */
+  --color-default-700: oklch(0.87 0.012 257.53);
+  --color-default-800: oklch(0.93 0.006 257.53);
+  --color-default-900: oklch(0.985 0 0); /* --foreground */
+  --color-default-950: oklch(0.985 0 0);
 
   --topbar-background: var(--color-default-100);
 }
@@ -109,4 +100,14 @@ html[data-theme='dark'][data-sidenav-color='light'] {
   --sidenav-item-active-bg: var(--color-zinc-800);
   --sidenav-item-hover-color: var(--color-zinc-300);
   --sidenav-item-hover-bg: var(--color-zinc-800);
+}
+
+/* Dark mode sidenav mirrors client2's --sidebar / --sidebar-accent tokens. */
+html[data-theme='dark'][data-sidenav-color] {
+  --sidenav-background: oklch(0.3116 0.0337 260.87);
+  --sidenav-item-color: oklch(0.72 0.0201 257.53);
+  --sidenav-item-active-color: oklch(0.9 0.1 149);
+  --sidenav-item-active-bg: oklch(0.38 0.07 149);
+  --sidenav-item-hover-color: oklch(0.985 0 0);
+  --sidenav-item-hover-bg: oklch(0.3574 0.0331 258.98);
 }
