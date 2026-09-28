@@ -57,9 +57,12 @@ export function useSavePlan() {
   });
 }
 
+export const DELETE_PLAN_MUTATION_KEY = ['plans', 'delete'] as const;
+
 export function useDeletePlan() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: DELETE_PLAN_MUTATION_KEY,
     mutationFn: (id: string) => deletePlan(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['plans'] });
