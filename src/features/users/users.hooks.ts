@@ -32,7 +32,7 @@ export function useUsers(params: {
 }) {
   const limit = params.limit ?? 10;
   const status = params.status ?? 'active';
-  const sortBy = params.sortBy ?? 'createdAt';
+  const sortBy = params.sortBy ?? 'updatedAt';
   const sortOrder = params.sortOrder ?? 'desc';
   return useQuery({
     queryKey: [
@@ -72,6 +72,7 @@ export function useExportUsers() {
 export function useBulkDeleteUsers() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: DELETE_USER_MUTATION_KEY,
     mutationFn: (ids: string[]) => bulkDeleteUsers(ids),
     onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
@@ -111,9 +112,12 @@ export function useSetSystemRole() {
   });
 }
 
+export const DELETE_USER_MUTATION_KEY = ['users', 'delete'] as const;
+
 export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: DELETE_USER_MUTATION_KEY,
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
