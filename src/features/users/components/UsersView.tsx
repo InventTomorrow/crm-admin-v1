@@ -1,13 +1,16 @@
+import { ExportDialog } from '@/components/ExportDialog';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { RowPendingIndicator } from '@/components/ui/row-pending-indicator';
 import { DataTable } from '@/components/ui/data-table';
 import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
 import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { usePlans } from '@/features/plans/plans.hooks';
+import { datedFileName } from '@/lib/exportFileName';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { isOnPaidPlan } from '@/lib/plan';
@@ -28,6 +31,7 @@ import {
   LuUsers,
 } from 'react-icons/lu';
 import {
+  DELETE_USER_MUTATION_KEY,
   useBulkDeleteUsers,
   useDeleteUser,
   useExportUsers,
@@ -36,8 +40,6 @@ import {
   useUsers,
   useWipeUserWorkspaces,
 } from '../users.hooks';
-import { ExportDialog } from '@/components/ExportDialog';
-import { datedFileName } from '@/lib/exportFileName';
 import { CreateUserDialog } from './CreateUserDialog';
 import { UserAvatar } from './UserAvatar';
 import { UserDetailSheet } from './UserDetailSheet';
@@ -96,7 +98,7 @@ export function UsersView() {
   const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<UserSortField>({
     listQuery,
     sortableFields: SORTABLE_COLUMNS,
-    defaultSort: { id: 'createdAt', desc: true },
+    defaultSort: { id: 'updatedAt', desc: true },
   });
 
   const listFilters = {
@@ -285,7 +287,11 @@ export function UsersView() {
                   );
                 }
                 return (
-                  <span onClick={event => event.stopPropagation()}>
+                  <span
+                    className="inline-flex items-center gap-2"
+                    onClick={event => event.stopPropagation()}
+                  >
+                    <RowPendingIndicator mutationKey={DELETE_USER_MUTATION_KEY} rowId={user.id} />
                     <Dropdown
                       trigger={<LuEllipsis className="size-4" />}
                       triggerLabel="User actions"

@@ -82,6 +82,7 @@ export type UserSortField =
   | 'email'
   | 'phone'
   | 'createdAt'
+  | 'updatedAt'
   | 'lastLoginAt'
   | 'workspaces'
   | 'revenue';
