@@ -11,9 +11,16 @@ import {
   getUserWhatsAppNumbers,
   listUsers,
   restoreUser,
+  revokeUserSessions,
+  resendVerificationEmail,
+  sendPasswordReset,
+  setEmailVerification,
+  setSuspension,
   setSystemRole,
+  updateUser,
   wipeUserWorkspaces,
   type CreateUserInput,
+  type UpdateUserInput,
   type UserListFilters,
 } from './users.api';
 
@@ -108,6 +115,68 @@ export function useSetSystemRole() {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success('Role updated');
     },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateUserInput }) => updateUser(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User updated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSetEmailVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, verified }: { id: string; verified: boolean }) =>
+      setEmailVerification(id, verified),
+    onSuccess: (_result, { verified }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(verified ? 'Email marked as verified' : 'Email marked as unverified');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useResendVerificationEmail() {
+  return useMutation({
+    mutationFn: (id: string) => resendVerificationEmail(id),
+    onSuccess: () => toast.success('Verification email sent'),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSetSuspension() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, suspended }: { id: string; suspended: boolean }) =>
+      setSuspension(id, suspended),
+    onSuccess: (_result, { suspended }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(suspended ? 'Account suspended' : 'Account reactivated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSendPasswordReset() {
+  return useMutation({
+    mutationFn: (id: string) => sendPasswordReset(id),
+    onSuccess: () => toast.success('Password reset email sent'),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useRevokeUserSessions() {
+  return useMutation({
+    mutationFn: (id: string) => revokeUserSessions(id),
+    onSuccess: result => toast.success(`Signed out of ${result.revokedSessions} session(s)`),
     onError: error => toast.error(apiMessage(error)),
   });
 }

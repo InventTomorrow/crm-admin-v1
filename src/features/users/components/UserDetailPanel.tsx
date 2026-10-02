@@ -2,6 +2,7 @@ import { UserDetailAccordionSkeleton } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { usePermissions } from '@/features/auth/auth.hooks';
 import { WhatsAppNumbersTable } from '@/features/whatsapp-numbers/components/WhatsAppNumbersTable';
 import { formatDate, formatFullName, formatMoneyPKR, formatRelative } from '@/lib/format';
 import { isOnPaidPlan, planLabel, planTone } from '@/lib/plan';
@@ -16,9 +17,12 @@ import {
   LuCreditCard,
   LuMessageCircle,
   LuTriangleAlert,
+  LuUserX,
 } from 'react-icons/lu';
 import { useNavigate } from 'react-router';
 import { useUser, useUserWhatsAppNumbers } from '../users.hooks';
+import { USER_ACTION_PERMISSIONS } from '../users.permissions';
+import { UserActionsMenu } from './UserActionsMenu';
 import { UserAvatar } from './UserAvatar';
 
 /** Label-above-value cell — reads as a tile, not a table row. */
@@ -63,6 +67,7 @@ function SectionHeading({ children }: { children: ReactNode }) {
 /** Sheet body — lazily fetches GET /admin/users/:id. */
 export function UserDetailPanel({ userId }: { userId: string }) {
   const navigate = useNavigate();
+  const { canAny } = usePermissions();
   const { data: user, isLoading, isError } = useUser(userId);
   const { data: whatsappNumbers, isLoading: isWhatsAppLoading } = useUserWhatsAppNumbers(userId);
 
@@ -151,6 +156,19 @@ export function UserDetailPanel({ userId }: { userId: string }) {
         </section>
       )}
 
+      {user.suspendedAt && !user.deletedAt && (
+        <section className="rounded-lg border border-warning/30 bg-warning/10 p-4">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-warning">
+            <LuUserX className="size-4" />
+            Account suspended
+          </h4>
+          <p className="mt-1.5 text-sm text-default-600">
+            Suspended {formatRelative(user.suspendedAt)}. They cannot sign in until the account is
+            reactivated; their workspaces keep running for other members.
+          </p>
+        </section>
+      )}
+
       {/* Identity + headline counts, so the sheet answers "who is this" at a glance */}
       <section className="rounded-lg border border-default-200 p-4">
         <div className="flex items-center gap-4">
@@ -185,6 +203,11 @@ export function UserDetailPanel({ userId }: { userId: string }) {
               )}
             </div>
           </div>
+          {canAny(...USER_ACTION_PERMISSIONS) && (
+            <div className="shrink-0 self-start">
+              <UserActionsMenu user={user} appearance="button" />
+            </div>
+          )}
         </div>
 
         <dl className="mt-3 grid grid-cols-1 gap-x-6 border-t border-default-200 pt-2 text-sm sm:grid-cols-2 sm:[&>div:nth-child(odd)]:border-e sm:[&>div:nth-child(odd)]:border-default-200 sm:[&>div:nth-child(odd)]:pe-6">

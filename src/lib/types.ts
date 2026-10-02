@@ -57,6 +57,8 @@ export interface UserListItem {
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
   createdAt: string;
+  /** Set by an admin — the user cannot sign in until it is cleared. */
+  suspendedAt: string | null;
   /** Set when the user deleted their own account — restorable until purge. */
   deletedAt: string | null;
   /** Set once the grace period elapsed — nobody can restore the account after this. */
