@@ -449,7 +449,7 @@ export function DataTable<TData>({
                                     ) : sortDirection === 'desc' ? (
                                       <LuArrowDown className="size-3.5 text-primary" />
                                     ) : (
-                                      <LuChevronsUpDown className="size-3.5 text-default-400 opacity-0 transition-opacity group-hover:opacity-100" />
+                                      <LuChevronsUpDown className="size-3.5 text-default-400 transition-colors group-hover:text-default-600" />
                                     )}
                                   </button>
                                 ) : (

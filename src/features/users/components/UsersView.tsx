@@ -1,44 +1,33 @@
+import { ExportDialog } from '@/components/ExportDialog';
 import { KpiCard } from '@/components/KpiCard';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { RowPendingIndicator } from '@/components/ui/row-pending-indicator';
 import { DataTable } from '@/components/ui/data-table';
-import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
 import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { usePlans } from '@/features/plans/plans.hooks';
+import { datedFileName } from '@/lib/exportFileName';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { isOnPaidPlan } from '@/lib/plan';
-import type { SystemRole, UserListItem, UserSortField } from '@/lib/types';
+import type { UserListItem, UserSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
 import { useServerSorting } from '@/lib/useServerSorting';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
+import { LuBuilding2, LuDownload, LuShieldCheck, LuTrash2, LuUser, LuUsers } from 'react-icons/lu';
 import {
-  LuBuilding2,
-  LuDownload,
-  LuEllipsis,
-  LuRotateCcw,
-  LuShieldCheck,
-  LuShieldOff,
-  LuTrash2,
-  LuUser,
-  LuUsers,
-} from 'react-icons/lu';
-import {
+  DELETE_USER_MUTATION_KEY,
   useBulkDeleteUsers,
-  useDeleteUser,
   useExportUsers,
-  useRestoreUser,
-  useSetSystemRole,
   useUsers,
-  useWipeUserWorkspaces,
 } from '../users.hooks';
-import { ExportDialog } from '@/components/ExportDialog';
-import { datedFileName } from '@/lib/exportFileName';
 import { CreateUserDialog } from './CreateUserDialog';
+import { USER_ACTION_PERMISSIONS } from '../users.permissions';
+import { UserActionsMenu } from './UserActionsMenu';
 import { UserAvatar } from './UserAvatar';
 import { UserDetailSheet } from './UserDetailSheet';
 
@@ -60,26 +49,6 @@ const SORTABLE_COLUMNS: UserSortField[] = [
   'revenue',
 ];
 
-const ROLE_LABEL: Record<SystemRole, string> = {
-  SYSTEM_ADMIN: 'System Admin',
-  SYSTEM_MANAGER: 'System Manager',
-};
-
-/**
- * Confirmation copy for closing an account. The workspace fallout leads, since
- * that is the part the admin cannot see from the row they clicked.
- */
-function deletionWarning(user: UserListItem | null): string {
-  const ownedCount = user?._count.ownedTenants ?? 0;
-  const workspaceFallout =
-    ownedCount > 0
-      ? `The ${ownedCount} workspace${ownedCount === 1 ? '' : 's'} this user owns ${
-          ownedCount === 1 ? 'is' : 'are'
-        } suspended along with the account — every member loses access and any connected WhatsApp number is dropped. `
-      : '';
-  return `${workspaceFallout}Nothing is erased: the account and its workspaces stay restorable until the purge date, after which the closure is permanent.`;
-}
-
 export function UsersView() {
   const listQuery = useListQueryState({
     filters: { type: 'all', status: 'active', planId: ALL_PLANS },
@@ -96,7 +65,7 @@ export function UsersView() {
   const { sorting, onSortingChange, sortBy, sortOrder } = useServerSorting<UserSortField>({
     listQuery,
     sortableFields: SORTABLE_COLUMNS,
-    defaultSort: { id: 'createdAt', desc: true },
+    defaultSort: { id: 'updatedAt', desc: true },
   });
 
   const listFilters = {
@@ -114,23 +83,12 @@ export function UsersView() {
     limit: pageSize,
   });
   const matchingUserCount = data?.meta.total ?? 0;
-  const roleMutation = useSetSystemRole();
-  const deleteMutation = useDeleteUser();
-  const restoreMutation = useRestoreUser();
-  const wipeMutation = useWipeUserWorkspaces();
   const exportMutation = useExportUsers();
   const bulkDeleteMutation = useBulkDeleteUsers();
 
   // `ids` undefined = every row matching the filters; set = only those rows.
   const [pendingExport, setPendingExport] = useState<{ ids?: string[] } | null>(null);
-  const [userPendingDeletion, setUserPendingDeletion] = useState<UserListItem | null>(null);
-  const [userPendingRestore, setUserPendingRestore] = useState<UserListItem | null>(null);
-  const [userPendingWipe, setUserPendingWipe] = useState<UserListItem | null>(null);
   const [userUnderReview, setUserUnderReview] = useState<UserListItem | null>(null);
-  const [roleChangePending, setRoleChangePending] = useState<{
-    user: UserListItem;
-    role: SystemRole | null;
-  } | null>(null);
   const [bulkDeletePending, setBulkDeletePending] = useState<{
     ids: string[];
     clear: () => void;
@@ -164,6 +122,9 @@ export function UsersView() {
                 <Badge tone="danger">
                   {row.original.permanentlyDeletedAt ? 'Closed' : 'Deleted'}
                 </Badge>
+              )}
+              {row.original.suspendedAt && !row.original.deletedAt && (
+                <Badge tone="warning">Suspended</Badge>
               )}
             </span>
           </span>
@@ -238,99 +199,27 @@ export function UsersView() {
           <span className="text-default-500">{formatDate(row.original.lastLoginAt)}</span>
         ),
       },
-      ...(canAny(
-        SystemPermissions.USERS_ROLE_CHANGE,
-        SystemPermissions.USERS_DELETE,
-        SystemPermissions.USERS_RESTORE,
-        SystemPermissions.USERS_WIPE_WORKSPACES
-      )
+      ...(canAny(...USER_ACTION_PERMISSIONS)
         ? [
             {
               id: 'actions',
               header: '',
               enableHiding: false,
               enableSorting: false,
-              cell: ({ row }) => {
-                const user = row.original;
-                // A deleted account offers the rescue path until it closes for
-                // good; after that the only remaining action is erasing the
-                // workspaces it left behind.
-                if (user.deletedAt) {
-                  return (
-                    <span onClick={event => event.stopPropagation()}>
-                      <Dropdown
-                        trigger={<LuEllipsis className="size-4" />}
-                        triggerLabel="User actions"
-                      >
-                        {!user.permanentlyDeletedAt && can(SystemPermissions.USERS_RESTORE) && (
-                          <DropdownItem onSelect={() => setUserPendingRestore(user)}>
-                            Restore account
-                          </DropdownItem>
-                        )}
-                        {user.permanentlyDeletedAt &&
-                          !user.workspaceDataWipedAt &&
-                          can(SystemPermissions.USERS_WIPE_WORKSPACES) && (
-                            <>
-                              <DropdownLabel>Closed — cannot be restored</DropdownLabel>
-                              <DropdownItem destructive onSelect={() => setUserPendingWipe(user)}>
-                                Erase workspaces
-                              </DropdownItem>
-                            </>
-                          )}
-                        {user.permanentlyDeletedAt && user.workspaceDataWipedAt && (
-                          <DropdownLabel>Closed — workspaces erased</DropdownLabel>
-                        )}
-                      </Dropdown>
-                    </span>
-                  );
-                }
-                return (
-                  <span onClick={event => event.stopPropagation()}>
-                    <Dropdown
-                      trigger={<LuEllipsis className="size-4" />}
-                      triggerLabel="User actions"
-                    >
-                      {can(SystemPermissions.USERS_ROLE_CHANGE) && (
-                        <>
-                          <DropdownLabel>System role</DropdownLabel>
-                          <DropdownItem
-                            onSelect={() => setRoleChangePending({ user, role: 'SYSTEM_ADMIN' })}
-                          >
-                            Make System Admin
-                          </DropdownItem>
-                          <DropdownItem
-                            onSelect={() => setRoleChangePending({ user, role: 'SYSTEM_MANAGER' })}
-                          >
-                            Make System Manager
-                          </DropdownItem>
-                          {user.systemMembership && (
-                            <DropdownItem
-                              onSelect={() => setRoleChangePending({ user, role: null })}
-                            >
-                              Revoke system role
-                            </DropdownItem>
-                          )}
-                        </>
-                      )}
-                      {can(SystemPermissions.USERS_DELETE) && (
-                        <>
-                          {can(SystemPermissions.USERS_ROLE_CHANGE) && (
-                            <div className="-mx-2 my-1 border-t border-default-200" />
-                          )}
-                          <DropdownItem destructive onSelect={() => setUserPendingDeletion(user)}>
-                            Delete user
-                          </DropdownItem>
-                        </>
-                      )}
-                    </Dropdown>
-                  </span>
-                );
-              },
+              cell: ({ row }) => (
+                <span className="inline-flex items-center gap-2">
+                  <RowPendingIndicator
+                    mutationKey={DELETE_USER_MUTATION_KEY}
+                    rowId={row.original.id}
+                  />
+                  <UserActionsMenu user={row.original} />
+                </span>
+              ),
             } satisfies ColumnDef<UserListItem, unknown>,
           ]
         : []),
     ],
-    [can, canAny]
+    [canAny]
   );
 
   // KPI counts — three tiny parallel queries (limit:1 → only meta.total matters)
@@ -355,78 +244,6 @@ export function UsersView() {
             <CreateUserDialog defaultSystem={typeFilter === 'system'} />
           ) : undefined
         }
-      />
-
-      <ConfirmDialog
-        open={!!userPendingDeletion}
-        onOpenChange={open => !open && setUserPendingDeletion(null)}
-        title={`Delete ${userPendingDeletion?.email}?`}
-        description={deletionWarning(userPendingDeletion)}
-        confirmLabel="Delete user"
-        onConfirm={() => {
-          if (userPendingDeletion) deleteMutation.mutate(userPendingDeletion.id);
-          setUserPendingDeletion(null);
-        }}
-        isLoading={deleteMutation.isPending}
-      />
-
-      <ConfirmDialog
-        open={!!userPendingRestore}
-        onOpenChange={open => !open && setUserPendingRestore(null)}
-        title={`Restore ${userPendingRestore?.email}?`}
-        description="Reactivates the account and every workspace its deletion closed."
-        intent="success"
-        icon={LuRotateCcw}
-        confirmLabel="Restore account"
-        onConfirm={() => {
-          if (userPendingRestore) restoreMutation.mutate(userPendingRestore.id);
-          setUserPendingRestore(null);
-        }}
-        isLoading={restoreMutation.isPending}
-      />
-
-      <ConfirmDialog
-        open={!!userPendingWipe}
-        onOpenChange={open => !open && setUserPendingWipe(null)}
-        title={`Erase workspaces owned by ${userPendingWipe?.email}?`}
-        confirmLabel="Erase workspaces"
-        description="Permanently deletes every workspace this account owns and all of their data — leads, conversations, orders, products and settings. The user record itself is kept. This cannot be undone."
-        onConfirm={() => {
-          if (userPendingWipe) wipeMutation.mutate(userPendingWipe.id);
-          setUserPendingWipe(null);
-        }}
-        isLoading={wipeMutation.isPending}
-      />
-
-      <ConfirmDialog
-        open={!!roleChangePending}
-        onOpenChange={open => !open && setRoleChangePending(null)}
-        title={
-          roleChangePending?.role
-            ? `Make ${roleChangePending.user.email} a ${ROLE_LABEL[roleChangePending.role]}?`
-            : `Revoke ${roleChangePending?.user.email}'s system role?`
-        }
-        description={
-          roleChangePending?.role === 'SYSTEM_ADMIN'
-            ? 'System Admins have full access to the admin portal, including billing and every user account.'
-            : roleChangePending?.role === 'SYSTEM_MANAGER'
-              ? 'System Managers can manage subscriptions and workspaces, but not user accounts or platform settings.'
-              : 'They immediately lose all access to the admin portal.'
-        }
-        intent={roleChangePending?.role ? 'info' : 'warning'}
-        icon={roleChangePending?.role ? LuShieldCheck : LuShieldOff}
-        confirmLabel={
-          roleChangePending?.role
-            ? `Grant ${ROLE_LABEL[roleChangePending.role]}`
-            : 'Revoke system role'
-        }
-        onConfirm={() => {
-          if (roleChangePending) {
-            roleMutation.mutate({ id: roleChangePending.user.id, role: roleChangePending.role });
-          }
-          setRoleChangePending(null);
-        }}
-        isLoading={roleMutation.isPending}
       />
 
       <ConfirmDialog
@@ -504,7 +321,11 @@ export function UsersView() {
         // Selection drives "Export selected" too, so it isn't gated on delete.
         enableSelection
         getRowClassName={user =>
-          user.deletedAt ? 'bg-danger/5' : user.systemMembership ? 'bg-warning/10' : ''
+          user.deletedAt || user.suspendedAt
+            ? 'bg-danger/5'
+            : user.systemMembership
+              ? 'bg-warning/10'
+              : ''
         }
         renderBulkActions={(selectedIds, clear) => (
           <>

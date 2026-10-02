@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { LuArrowRightLeft, LuPlus, LuSquarePen, LuTrash2 } from 'react-icons/lu';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { RowPendingIndicator } from '@/components/ui/row-pending-indicator';
 import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +16,7 @@ import type { BusinessVertical, Plan, PlanSortField, PlanTier } from '@/lib/type
 import { useListQueryState } from '@/lib/useListQueryState';
 import { useServerSorting } from '@/lib/useServerSorting';
 import { BUSINESS_VERTICALS, PLAN_TIERS } from '@/lib/plan';
-import { useDeletePlan, usePlans, usePlansPage } from '../plans.hooks';
+import { DELETE_PLAN_MUTATION_KEY, useDeletePlan, usePlans, usePlansPage } from '../plans.hooks';
 import { Button } from '@/components/ui/button';
 import { buttonVariants } from '@/components/ui/button';
 import { MigratePlanDialog } from './MigratePlanDialog';
@@ -160,7 +161,11 @@ export function PlansView() {
               header: '',
               enableHiding: false,
               cell: ({ row }) => (
-                <div className="flex gap-1">
+                <div className="flex items-center gap-1">
+                  <RowPendingIndicator
+                    mutationKey={DELETE_PLAN_MUTATION_KEY}
+                    rowId={row.original.id}
+                  />
                   {can(SystemPermissions.PLANS_EDIT) && (
                     <Link
                       to={`/plans/${row.original.id}/edit`}

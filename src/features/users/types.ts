@@ -8,3 +8,11 @@ export const createUserSchema = z.object({
   role: z.enum(['NONE', 'SYSTEM_ADMIN', 'SYSTEM_MANAGER']),
 });
 export type CreateUserFormValues = z.infer<typeof createUserSchema>;
+
+export const updateUserSchema = z.object({
+  firstName: z.string().trim().max(100, 'Max 100 characters'),
+  lastName: z.string().trim().max(100, 'Max 100 characters'),
+  phone: z.string().trim().max(30, 'Max 30 characters'),
+  email: z.email('Enter a valid email address'),
+});
+export type UpdateUserFormValues = z.infer<typeof updateUserSchema>;

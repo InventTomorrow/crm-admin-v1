@@ -11,9 +11,16 @@ import {
   getUserWhatsAppNumbers,
   listUsers,
   restoreUser,
+  revokeUserSessions,
+  resendVerificationEmail,
+  sendPasswordReset,
+  setEmailVerification,
+  setSuspension,
   setSystemRole,
+  updateUser,
   wipeUserWorkspaces,
   type CreateUserInput,
+  type UpdateUserInput,
   type UserListFilters,
 } from './users.api';
 
@@ -32,7 +39,7 @@ export function useUsers(params: {
 }) {
   const limit = params.limit ?? 10;
   const status = params.status ?? 'active';
-  const sortBy = params.sortBy ?? 'createdAt';
+  const sortBy = params.sortBy ?? 'updatedAt';
   const sortOrder = params.sortOrder ?? 'desc';
   return useQuery({
     queryKey: [
@@ -72,6 +79,7 @@ export function useExportUsers() {
 export function useBulkDeleteUsers() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: DELETE_USER_MUTATION_KEY,
     mutationFn: (ids: string[]) => bulkDeleteUsers(ids),
     onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
@@ -111,9 +119,74 @@ export function useSetSystemRole() {
   });
 }
 
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, input }: { id: string; input: UpdateUserInput }) => updateUser(id, input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('User updated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSetEmailVerification() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, verified }: { id: string; verified: boolean }) =>
+      setEmailVerification(id, verified),
+    onSuccess: (_result, { verified }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(verified ? 'Email marked as verified' : 'Email marked as unverified');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useResendVerificationEmail() {
+  return useMutation({
+    mutationFn: (id: string) => resendVerificationEmail(id),
+    onSuccess: () => toast.success('Verification email sent'),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSetSuspension() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, suspended }: { id: string; suspended: boolean }) =>
+      setSuspension(id, suspended),
+    onSuccess: (_result, { suspended }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(suspended ? 'Account suspended' : 'Account reactivated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSendPasswordReset() {
+  return useMutation({
+    mutationFn: (id: string) => sendPasswordReset(id),
+    onSuccess: () => toast.success('Password reset email sent'),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useRevokeUserSessions() {
+  return useMutation({
+    mutationFn: (id: string) => revokeUserSessions(id),
+    onSuccess: result => toast.success(`Signed out of ${result.revokedSessions} session(s)`),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export const DELETE_USER_MUTATION_KEY = ['users', 'delete'] as const;
+
 export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: DELETE_USER_MUTATION_KEY,
     mutationFn: (id: string) => deleteUser(id),
     onSuccess: result => {
       qc.invalidateQueries({ queryKey: ['users'] });
