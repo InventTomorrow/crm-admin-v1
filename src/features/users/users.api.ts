@@ -95,6 +95,40 @@ export async function setSystemRole(id: string, systemRole: SystemRole | null) {
   await apiClient.patch(`/admin/users/${id}/system-role`, { systemRole });
 }
 
+export interface UpdateUserInput {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+}
+
+export async function updateUser(id: string, input: UpdateUserInput) {
+  await apiClient.patch(`/admin/users/${id}`, input);
+}
+
+export async function setEmailVerification(id: string, verified: boolean) {
+  await apiClient.patch(`/admin/users/${id}/verification`, { verified });
+}
+
+export async function resendVerificationEmail(id: string) {
+  await apiClient.post(`/admin/users/${id}/resend-verification`);
+}
+
+export async function setSuspension(id: string, suspended: boolean) {
+  await apiClient.patch(`/admin/users/${id}/suspension`, { suspended });
+}
+
+export async function sendPasswordReset(id: string) {
+  await apiClient.post(`/admin/users/${id}/password-reset`);
+}
+
+export async function revokeUserSessions(id: string): Promise<{ revokedSessions: number }> {
+  const { data } = await apiClient.post<ApiEnvelope<{ revokedSessions: number }>>(
+    `/admin/users/${id}/revoke-sessions`
+  );
+  return data.data;
+}
+
 export interface DeleteUserResult {
   /** Deadline for restoring the account and the workspaces it took down. */
   scheduledPurgeAt: string;

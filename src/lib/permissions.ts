@@ -19,6 +19,10 @@ export const SystemPermissions = {
   USERS_DELETE: 'users:delete',
   USERS_RESTORE: 'users:restore',
   USERS_WIPE_WORKSPACES: 'users:wipe_workspaces',
+  USERS_VERIFY: 'users:verify',
+  USERS_SUSPEND: 'users:suspend',
+  USERS_RESET_PASSWORD: 'users:reset_password',
+  USERS_REVOKE_SESSIONS: 'users:revoke_sessions',
   // Name/email search behind the billing owner pickers. Separate from
   // USERS_VIEW so picking an owner never implies account management.
   USERS_LOOKUP: 'users:lookup',
