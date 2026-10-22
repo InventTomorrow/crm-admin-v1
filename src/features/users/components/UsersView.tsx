@@ -18,7 +18,15 @@ import { useListQueryState } from '@/lib/useListQueryState';
 import { useServerSorting } from '@/lib/useServerSorting';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useMemo, useState } from 'react';
-import { LuBuilding2, LuDownload, LuShieldCheck, LuTrash2, LuUser, LuUsers } from 'react-icons/lu';
+import {
+  LuBuilding2,
+  LuDownload,
+  LuFlaskConical,
+  LuShieldCheck,
+  LuTrash2,
+  LuUser,
+  LuUsers,
+} from 'react-icons/lu';
 import {
   DELETE_USER_MUTATION_KEY,
   useBulkDeleteUsers,
@@ -121,6 +129,11 @@ export function UsersView() {
               {row.original.deletedAt && (
                 <Badge tone="danger">
                   {row.original.permanentlyDeletedAt ? 'Closed' : 'Deleted'}
+                </Badge>
+              )}
+              {row.original.isTester && (
+                <Badge tone="info" icon={LuFlaskConical}>
+                  Test user
                 </Badge>
               )}
               {row.original.suspendedAt && !row.original.deletedAt && (
@@ -325,7 +338,9 @@ export function UsersView() {
             ? 'bg-danger/5'
             : user.systemMembership
               ? 'bg-warning/10'
-              : ''
+              : user.isTester
+                ? 'bg-info/10'
+                : ''
         }
         renderBulkActions={(selectedIds, clear) => (
           <>
