@@ -56,6 +56,8 @@ export interface UserListItem {
   onboardingStatus: string;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
+  /** Test users can seed sample records into their workspaces. */
+  isTester: boolean;
   createdAt: string;
   /** Set by an admin — the user cannot sign in until it is cleared. */
   suspendedAt: string | null;
@@ -91,7 +93,6 @@ export type UserSortField =
 
 export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
   systemMembership: { role: SystemRole; createdAt: string } | null;
-  isTester: boolean;
   updatedAt: string;
   /** Deadline for restoring a deleted account. */
   scheduledPurgeAt: string | null;

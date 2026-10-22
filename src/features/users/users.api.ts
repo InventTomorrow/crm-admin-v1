@@ -114,6 +114,10 @@ export async function resendVerificationEmail(id: string) {
   await apiClient.post(`/admin/users/${id}/resend-verification`);
 }
 
+export async function setTester(id: string, isTester: boolean) {
+  await apiClient.patch(`/admin/users/${id}/tester`, { isTester });
+}
+
 export async function setSuspension(id: string, suspended: boolean) {
   await apiClient.patch(`/admin/users/${id}/suspension`, { suspended });
 }

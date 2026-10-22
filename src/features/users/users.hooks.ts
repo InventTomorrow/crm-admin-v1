@@ -16,6 +16,7 @@ import {
   sendPasswordReset,
   setEmailVerification,
   setSuspension,
+  setTester,
   setSystemRole,
   updateUser,
   wipeUserWorkspaces,
@@ -160,6 +161,18 @@ export function useSetSuspension() {
     onSuccess: (_result, { suspended }) => {
       qc.invalidateQueries({ queryKey: ['users'] });
       toast.success(suspended ? 'Account suspended' : 'Account reactivated');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useSetTester() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isTester }: { id: string; isTester: boolean }) => setTester(id, isTester),
+    onSuccess: (_result, { isTester }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(isTester ? 'Test user enabled' : 'Test user disabled');
     },
     onError: error => toast.error(apiMessage(error)),
   });

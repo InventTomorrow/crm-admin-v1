@@ -15,6 +15,7 @@ import {
   LuCircleCheck,
   LuCircleX,
   LuCreditCard,
+  LuFlaskConical,
   LuMessageCircle,
   LuTriangleAlert,
   LuUserX,
@@ -192,6 +193,11 @@ export function UserDetailPanel({ userId }: { userId: string }) {
               <Badge tone="neutral">
                 {membershipCount} workspace{membershipCount === 1 ? '' : 's'}
               </Badge>
+              {user.isTester && (
+                <Badge tone="info" icon={LuFlaskConical}>
+                  Test user
+                </Badge>
+              )}
               {ownedTenantCount > 0 && <Badge tone="info">Owns {ownedTenantCount}</Badge>}
               {ownedTenantCount > 0 && (
                 <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
@@ -256,7 +262,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             }
           />
           {user.isTester && (
-            <ProfileRow label="Tester" value={<Badge tone="warning">Exempt from limits</Badge>} />
+            <ProfileRow label="Tester" value={<Badge tone="warning">Can seed test data</Badge>} />
           )}
         </dl>
       </section>

@@ -5,6 +5,7 @@ export const USER_ACTION_PERMISSIONS = [
   SystemPermissions.USERS_EDIT,
   SystemPermissions.USERS_VERIFY,
   SystemPermissions.USERS_SUSPEND,
+  SystemPermissions.USERS_SET_TESTER,
   SystemPermissions.USERS_RESET_PASSWORD,
   SystemPermissions.USERS_REVOKE_SESSIONS,
   SystemPermissions.USERS_ROLE_CHANGE,

@@ -8,14 +8,20 @@ import type { IconType } from 'react-icons/lib';
 import {
   LuChevronDown,
   LuEllipsis,
+  LuEraser,
+  LuFlaskConical,
+  LuFlaskConicalOff,
   LuKeyRound,
   LuLogOut,
   LuMail,
   LuMailCheck,
   LuMailX,
+  LuPencil,
   LuRotateCcw,
+  LuShield,
   LuShieldCheck,
   LuShieldOff,
+  LuTrash2,
   LuUserCheck,
   LuUserX,
 } from 'react-icons/lu';
@@ -28,6 +34,7 @@ import {
   useSetEmailVerification,
   useSetSuspension,
   useSetSystemRole,
+  useSetTester,
   useWipeUserWorkspaces,
 } from '../users.hooks';
 import { EditUserDialog } from './EditUserDialog';
@@ -40,6 +47,7 @@ export type ActionableUser = Pick<
   | 'lastName'
   | 'phone'
   | 'emailVerifiedAt'
+  | 'isTester'
   | 'suspendedAt'
   | 'deletedAt'
   | 'permanentlyDeletedAt'
@@ -54,6 +62,7 @@ type PendingUserAction =
   | { kind: 'verification'; verified: boolean }
   | { kind: 'resendVerification' }
   | { kind: 'suspension'; suspended: boolean }
+  | { kind: 'tester'; isTester: boolean }
   | { kind: 'passwordReset' }
   | { kind: 'revokeSessions' }
   | { kind: 'delete' }
@@ -154,6 +163,23 @@ function getConfirmationCopy(
             confirmLabel: 'Reactivate account',
             intent: 'success',
             icon: LuUserCheck,
+          };
+    case 'tester':
+      return action.isTester
+        ? {
+            title: `Make ${user.email} a test user?`,
+            description:
+              'They can seed sample catalogue records into their workspaces with one click. Plan limits and permissions still apply.',
+            confirmLabel: 'Enable test user',
+            intent: 'info',
+            icon: LuFlaskConical,
+          }
+        : {
+            title: `Remove test access from ${user.email}?`,
+            description: 'The seed tools disappear. Records already seeded are kept.',
+            confirmLabel: 'Disable test user',
+            intent: 'warning',
+            icon: LuFlaskConicalOff,
           };
     case 'passwordReset':
       return {
@@ -281,7 +307,7 @@ function getDeletedAccountGroups(
           {
             key: 'restore',
             content: (
-              <DropdownItem onSelect={() => openAction({ kind: 'restore' })}>
+              <DropdownItem icon={LuRotateCcw} onSelect={() => openAction({ kind: 'restore' })}>
                 Restore account
               </DropdownItem>
             ),
@@ -299,7 +325,11 @@ function getDeletedAccountGroups(
           content: (
             <>
               <DropdownLabel>Closed — cannot be restored</DropdownLabel>
-              <DropdownItem destructive onSelect={() => openAction({ kind: 'wipe' })}>
+              <DropdownItem
+                icon={LuEraser}
+                destructive
+                onSelect={() => openAction({ kind: 'wipe' })}
+              >
                 Erase workspaces
               </DropdownItem>
             </>
@@ -321,7 +351,9 @@ function getLiveAccountGroups(
     groups.push({
       key: 'edit',
       content: (
-        <DropdownItem onSelect={() => openAction({ kind: 'edit' })}>Edit details</DropdownItem>
+        <DropdownItem icon={LuPencil} onSelect={() => openAction({ kind: 'edit' })}>
+          Edit details
+        </DropdownItem>
       ),
     });
   }
@@ -333,15 +365,24 @@ function getLiveAccountGroups(
         <>
           <DropdownLabel>Email verification</DropdownLabel>
           {user.emailVerifiedAt ? (
-            <DropdownItem onSelect={() => openAction({ kind: 'verification', verified: false })}>
+            <DropdownItem
+              icon={LuMailX}
+              onSelect={() => openAction({ kind: 'verification', verified: false })}
+            >
               Mark as unverified
             </DropdownItem>
           ) : (
             <>
-              <DropdownItem onSelect={() => openAction({ kind: 'verification', verified: true })}>
+              <DropdownItem
+                icon={LuMailCheck}
+                onSelect={() => openAction({ kind: 'verification', verified: true })}
+              >
                 Mark as verified
               </DropdownItem>
-              <DropdownItem onSelect={() => openAction({ kind: 'resendVerification' })}>
+              <DropdownItem
+                icon={LuMail}
+                onSelect={() => openAction({ kind: 'resendVerification' })}
+              >
                 Resend verification email
               </DropdownItem>
             </>
@@ -361,12 +402,12 @@ function getLiveAccountGroups(
         <>
           <DropdownLabel>Access</DropdownLabel>
           {canResetPassword && (
-            <DropdownItem onSelect={() => openAction({ kind: 'passwordReset' })}>
+            <DropdownItem icon={LuKeyRound} onSelect={() => openAction({ kind: 'passwordReset' })}>
               Send password reset
             </DropdownItem>
           )}
           {canRevokeSessions && (
-            <DropdownItem onSelect={() => openAction({ kind: 'revokeSessions' })}>
+            <DropdownItem icon={LuLogOut} onSelect={() => openAction({ kind: 'revokeSessions' })}>
               Sign out everywhere
             </DropdownItem>
           )}
@@ -381,17 +422,43 @@ function getLiveAccountGroups(
       content: (
         <>
           <DropdownLabel>System role</DropdownLabel>
-          <DropdownItem onSelect={() => openAction({ kind: 'role', role: 'SYSTEM_ADMIN' })}>
+          <DropdownItem
+            icon={LuShieldCheck}
+            onSelect={() => openAction({ kind: 'role', role: 'SYSTEM_ADMIN' })}
+          >
             Make System Admin
           </DropdownItem>
-          <DropdownItem onSelect={() => openAction({ kind: 'role', role: 'SYSTEM_MANAGER' })}>
+          <DropdownItem
+            icon={LuShield}
+            onSelect={() => openAction({ kind: 'role', role: 'SYSTEM_MANAGER' })}
+          >
             Make System Manager
           </DropdownItem>
           {user.systemMembership && (
-            <DropdownItem onSelect={() => openAction({ kind: 'role', role: null })}>
+            <DropdownItem
+              icon={LuShieldOff}
+              onSelect={() => openAction({ kind: 'role', role: null })}
+            >
               Revoke system role
             </DropdownItem>
           )}
+        </>
+      ),
+    });
+  }
+
+  if (can(SystemPermissions.USERS_SET_TESTER)) {
+    groups.push({
+      key: 'tester',
+      content: (
+        <>
+          <DropdownLabel>Testing</DropdownLabel>
+          <DropdownItem
+            icon={user.isTester ? LuFlaskConicalOff : LuFlaskConical}
+            onSelect={() => openAction({ kind: 'tester', isTester: !user.isTester })}
+          >
+            {user.isTester ? 'Remove test user' : 'Make test user'}
+          </DropdownItem>
         </>
       ),
     });
@@ -406,11 +473,15 @@ function getLiveAccountGroups(
         <>
           {canSuspend &&
             (isSuspended ? (
-              <DropdownItem onSelect={() => openAction({ kind: 'suspension', suspended: false })}>
+              <DropdownItem
+                icon={LuUserCheck}
+                onSelect={() => openAction({ kind: 'suspension', suspended: false })}
+              >
                 Reactivate account
               </DropdownItem>
             ) : (
               <DropdownItem
+                icon={LuUserX}
                 destructive
                 onSelect={() => openAction({ kind: 'suspension', suspended: true })}
               >
@@ -418,7 +489,11 @@ function getLiveAccountGroups(
               </DropdownItem>
             ))}
           {canDelete && (
-            <DropdownItem destructive onSelect={() => openAction({ kind: 'delete' })}>
+            <DropdownItem
+              icon={LuTrash2}
+              destructive
+              onSelect={() => openAction({ kind: 'delete' })}
+            >
               Delete user
             </DropdownItem>
           )}
@@ -443,6 +518,7 @@ function UserActionDialog({ user, action, open, onClose }: UserActionDialogProps
   const verificationMutation = useSetEmailVerification();
   const resendVerificationMutation = useResendVerificationEmail();
   const suspensionMutation = useSetSuspension();
+  const testerMutation = useSetTester();
   const passwordResetMutation = useSendPasswordReset();
   const revokeSessionsMutation = useRevokeUserSessions();
   const deleteMutation = useDeleteUser();
@@ -463,6 +539,8 @@ function UserActionDialog({ user, action, open, onClose }: UserActionDialogProps
         return resendVerificationMutation.mutate(user.id);
       case 'suspension':
         return suspensionMutation.mutate({ id: user.id, suspended: action.suspended });
+      case 'tester':
+        return testerMutation.mutate({ id: user.id, isTester: action.isTester });
       case 'passwordReset':
         return passwordResetMutation.mutate(user.id);
       case 'revokeSessions':
