@@ -221,7 +221,7 @@ function LandingCard({
             color: LANDING.text,
           }}
         >
-          No feature bullets yet — the landing card lists these, not the plan limits.
+          No feature bullets yet. The landing card lists these, not the plan limits.
         </p>
       )}
 

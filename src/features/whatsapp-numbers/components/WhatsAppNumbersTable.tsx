@@ -60,7 +60,7 @@ export function WhatsAppNumbersTable({
                 </span>
               </td>
               {showTenantColumn && (
-                <td className="px-3.5 py-2.5 text-default-600">{connection.tenant?.name ?? '—'}</td>
+                <td className="px-3.5 py-2.5 text-default-600">{connection.tenant?.name ?? 'N/A'}</td>
               )}
               <td className="px-3.5 py-2.5">
                 {connection.isActive ? (
@@ -81,7 +81,7 @@ export function WhatsAppNumbersTable({
                     {formatRelative(connection.disconnectedAt)}
                   </span>
                 ) : (
-                  '—'
+                  'N/A'
                 )}
               </td>
             </tr>

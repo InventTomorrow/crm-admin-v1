@@ -131,7 +131,7 @@ export function PostsView() {
         header: 'Published',
         cell: ({ row }) => (
           <span className="text-sm text-default-500">
-            {row.original.publishedAt ? formatDate(row.original.publishedAt) : '—'}
+            {row.original.publishedAt ? formatDate(row.original.publishedAt) : 'N/A'}
           </span>
         ),
       },

@@ -83,7 +83,7 @@ export function DashboardView() {
 
       <div className="grid grid-cols-12 gap-5">
         {/* Range-scoped growth. The headline figure is money actually banked in
-            the selected window — plan payments only, never workspace order
+            the selected window. Plan payments only, never workspace order
             sales, which belong to the workspaces and not to us. */}
         <div className="col-span-12 sm:col-span-6 xl:col-span-3">
           <KpiCard

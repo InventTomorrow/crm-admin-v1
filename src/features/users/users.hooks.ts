@@ -89,7 +89,7 @@ export function useBulkDeleteUsers() {
       // Self-delete and already-closed guards reject individual rows; surface
       // the first reason rather than silently dropping them from the count.
       if (result.failed > 0) {
-        toast.error(`${result.failed} skipped — ${result.failures[0]?.reason ?? 'not deletable'}`);
+        toast.error(`${result.failed} skipped: ${result.failures[0]?.reason ?? 'not deletable'}`);
       }
     },
     onError: error => toast.error(apiMessage(error)),
@@ -208,7 +208,7 @@ export function useDeleteUser() {
       qc.invalidateQueries({ queryKey: ['tenants'] });
       const suspended = result.suspendedWorkspaces.length;
       toast.success(
-        suspended > 0 ? `Account closed — ${suspended} workspace(s) suspended` : 'Account closed'
+        suspended > 0 ? `Account closed: ${suspended} workspace(s) suspended` : 'Account closed'
       );
     },
     onError: error => toast.error(apiMessage(error)),

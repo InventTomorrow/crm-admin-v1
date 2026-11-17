@@ -27,7 +27,7 @@ const editorExtensions = [
   LineHeight,
   TextAlign,
   Placeholder.configure({
-    placeholder: 'Write the article. Use H2 for sections — they become the table of contents.',
+    placeholder: 'Write the article. Use H2 for sections. They become the table of contents.',
   }),
 ];
 

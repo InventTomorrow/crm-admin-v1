@@ -28,7 +28,7 @@ function deletionWarning(plan: Plan | null): string {
     return 'This cannot be undone. Workspaces on this plan may be affected.';
   return `This plan has ${totalSubscriberCount} subscription record${
     totalSubscriberCount === 1 ? '' : 's'
-  } tied to it, including past ones. Deleting will be rejected — deactivate the plan instead.`;
+  } tied to it, including past ones. Deleting will be rejected. Deactivate the plan instead.`;
 }
 
 const PLAN_SORTABLE_COLUMNS: PlanSortField[] = [

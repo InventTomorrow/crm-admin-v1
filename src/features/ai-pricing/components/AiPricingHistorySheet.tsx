@@ -55,7 +55,7 @@ export function AiPricingHistorySheet({
                   </td>
                   <td className="px-3.5 py-3 tabular-nums text-default-500">
                     {row.cachedInputPricePerMillionTokens === null
-                      ? '—'
+                      ? 'N/A'
                       : `$${row.cachedInputPricePerMillionTokens.toFixed(2)}`}
                   </td>
                   <td className="px-3.5 py-3 tabular-nums">

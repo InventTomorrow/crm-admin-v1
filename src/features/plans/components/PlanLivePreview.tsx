@@ -56,7 +56,7 @@ export function PlanLivePreview({ values }: { values: PlanFormValues }) {
 
         {!values.isPublic && (
           <p className="mt-2 text-xs text-warning">
-            Not public — this plan won’t be listed on either surface.
+            Not public. This plan won’t be listed on either surface.
           </p>
         )}
       </div>

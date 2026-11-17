@@ -91,7 +91,7 @@ function getDeletionWarning(user: ActionableUser): string {
     ownedCount > 0
       ? `The ${ownedCount} workspace${ownedCount === 1 ? '' : 's'} this user owns ${
           ownedCount === 1 ? 'is' : 'are'
-        } suspended along with the account — every member loses access and any connected WhatsApp number is dropped. `
+        } suspended along with the account. Every member loses access and any connected WhatsApp number is dropped. `
       : '';
   return `${workspaceFallout}Nothing is erased: the account and its workspaces stay restorable until the purge date, after which the closure is permanent.`;
 }
@@ -126,7 +126,7 @@ function getConfirmationCopy(
         ? {
             title: `Mark ${user.email} as verified?`,
             description:
-              'Skips the email link — they can sign in and continue setup straight away.',
+              'Skips the email link. They can sign in and continue setup straight away.',
             confirmLabel: 'Mark verified',
             intent: 'success',
             icon: LuMailCheck,
@@ -218,7 +218,7 @@ function getConfirmationCopy(
       return {
         title: `Erase workspaces owned by ${user.email}?`,
         description:
-          'Permanently deletes every workspace this account owns and all of their data — leads, conversations, orders, products and settings. The user record itself is kept. This cannot be undone.',
+          'Permanently deletes every workspace this account owns and all of their data. Leads, conversations, orders, products and settings. The user record itself is kept. This cannot be undone.',
         confirmLabel: 'Erase workspaces',
         intent: 'danger',
       };
@@ -316,7 +316,7 @@ function getDeletedAccountGroups(
       : [];
   }
   if (user.workspaceDataWipedAt) {
-    return [{ key: 'closed', content: <DropdownLabel>Closed — workspaces erased</DropdownLabel> }];
+    return [{ key: 'closed', content: <DropdownLabel>Closed, workspaces erased</DropdownLabel> }];
   }
   return can(SystemPermissions.USERS_WIPE_WORKSPACES)
     ? [
@@ -324,7 +324,7 @@ function getDeletedAccountGroups(
           key: 'wipe',
           content: (
             <>
-              <DropdownLabel>Closed — cannot be restored</DropdownLabel>
+              <DropdownLabel>Closed. Cannot be restored</DropdownLabel>
               <DropdownItem
                 icon={LuEraser}
                 destructive

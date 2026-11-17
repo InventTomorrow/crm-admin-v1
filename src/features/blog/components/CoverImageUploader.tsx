@@ -65,7 +65,7 @@ export function CoverImageUploader({ value, onChange }: CoverImageUploaderProps)
             <LuImagePlus className="size-6" />
           )}
           <span className="text-sm">{isUploading ? 'Uploading…' : 'Upload cover image'}</span>
-          <span className="text-xs text-default-400">16:9 works best — 1600×900 or larger</span>
+          <span className="text-xs text-default-400">16:9 works best: 1600×900 or larger</span>
         </button>
       )}
 

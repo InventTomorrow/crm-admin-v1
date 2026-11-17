@@ -166,13 +166,13 @@ export function PaymentAccountsView() {
 
       {canReorder && (
         <p className="mb-3 text-xs text-default-500">
-          Customers see the accounts in this order — use the arrows to change it.
+          Customers see the accounts in this order. Use the arrows to change it.
         </p>
       )}
 
       {canEditSettings && isFiltered && accounts.length > 1 && (
         <p className="mb-3 text-xs text-default-500">
-          Reordering is unavailable while the list is filtered — clear the filters to change the
+          Reordering is unavailable while the list is filtered. Clear the filters to change the
           order customers see.
         </p>
       )}

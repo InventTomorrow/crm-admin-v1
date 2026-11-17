@@ -168,7 +168,7 @@ export function UsersView() {
               {row.original.phone}
             </a>
           ) : (
-            <span className="text-default-400">—</span>
+            <span className="text-default-400">N/A</span>
           ),
       },
       {
@@ -263,7 +263,7 @@ export function UsersView() {
         open={!!bulkDeletePending}
         onOpenChange={open => !open && setBulkDeletePending(null)}
         title={`Delete ${bulkDeletePending?.ids.length ?? 0} user(s)?`}
-        description="Each account is closed together with the workspaces it owns — their members lose access and connected WhatsApp numbers are dropped. Nothing is erased; all of it stays restorable until each account's purge date. Accounts that are already closed are skipped."
+        description="Each account is closed together with the workspaces it owns. Their members lose access and connected WhatsApp numbers are dropped. Nothing is erased; all of it stays restorable until each account's purge date. Accounts that are already closed are skipped."
         confirmLabel={`Delete ${bulkDeletePending?.ids.length ?? 0} user(s)`}
         onConfirm={() => {
           if (bulkDeletePending) {

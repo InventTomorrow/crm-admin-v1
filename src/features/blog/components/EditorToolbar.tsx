@@ -157,7 +157,7 @@ export function EditorToolbar({ editor, isUploading, onUploadImage }: EditorTool
     const src = imageUrl.trim();
     if (!src || src === 'https://') return;
     if (!src.startsWith('https://')) {
-      toast.error('Image links must be https — anything else is stripped on save');
+      toast.error('Image links must be https. Anything else is stripped on save');
       return;
     }
     editor
@@ -442,7 +442,7 @@ export function EditorToolbar({ editor, isUploading, onUploadImage }: EditorTool
           <Field
             label="Image URL"
             htmlFor="editor-image-url"
-            hint="Only images hosted on our own storage survive saving — upload instead when unsure."
+            hint="Only images hosted on our own storage survive saving. Upload instead when unsure."
           >
             <Input
               id="editor-image-url"

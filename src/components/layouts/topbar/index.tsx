@@ -160,7 +160,7 @@ const Topbar = () => {
                       {signedInAdmin
                         ? `${signedInAdmin.firstName ?? ''} ${signedInAdmin.lastName ?? ''}`.trim() ||
                           signedInAdmin.email
-                        : '—'}
+                        : 'N/A'}
                     </h6>
                     <p className="truncate text-xs text-default-500">{signedInAdmin?.email}</p>
                   </div>

@@ -40,7 +40,7 @@ export function CrmUserSearchSelect({
   const options: SearchSelectOption[] = (usersQuery.data ?? []).map(user => ({
     id: user.id,
     label:
-      formatFullName(user.firstName, user.lastName) === '—'
+      formatFullName(user.firstName, user.lastName) === 'N/A'
         ? user.email
         : formatFullName(user.firstName, user.lastName),
     sub: user.email,

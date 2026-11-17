@@ -294,7 +294,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
           </Link>
           <div>
             <h1 className="text-xl font-semibold text-default-900">
-              {editing ? `Edit plan — ${existingPlan?.name}` : 'Create plan'}
+              {editing ? `Edit plan: ${existingPlan?.name}` : 'Create plan'}
             </h1>
             <p className="mt-0.5 text-sm text-default-500">
               Pricing, limits and how the plan appears on the landing page.
@@ -411,7 +411,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                 control={form.control}
                 name="wholesalePrice"
                 label={`Wholesale price (${currency})`}
-                hint="Reseller cost — not shown publicly."
+                hint="Reseller cost. Not shown publicly."
                 placeholder="e.g. 3500"
               />
             </div>
@@ -469,7 +469,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
                           hint={
                             field.value
                               ? 'The landing page can show a countdown to this date.'
-                              : 'Optional — leave empty for an open-ended offer.'
+                              : 'Optional. Leave empty for an open-ended offer.'
                           }
                           error={fieldState.error?.message}
                         >
@@ -553,7 +553,7 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
 
           <FormSection
             title="Resource limits"
-            description="Catalogue ceilings — only the chosen category's counter applies."
+            description="Catalogue ceilings. Only the chosen category's counter applies."
           >
             <div className="grid gap-4 sm:grid-cols-3">
               {(vertical === UNIVERSAL || vertical === 'ECOMMERCE') && (
