@@ -80,7 +80,7 @@ export function TenantsView() {
         accessorFn: tenant => tenant.owner?.email ?? '',
         header: 'Owner',
         cell: ({ row }) => (
-          <span className="text-default-500">{row.original.owner?.email ?? '—'}</span>
+          <span className="text-default-500">{row.original.owner?.email ?? 'N/A'}</span>
         ),
       },
       {
@@ -88,7 +88,7 @@ export function TenantsView() {
         accessorFn: tenant => tenant.activePlan?.name ?? '',
         header: 'Plan',
         cell: ({ row }) =>
-          row.original.activePlan?.name ?? <span className="text-default-500">—</span>,
+          row.original.activePlan?.name ?? <span className="text-default-500">N/A</span>,
       },
       {
         id: 'revenue',

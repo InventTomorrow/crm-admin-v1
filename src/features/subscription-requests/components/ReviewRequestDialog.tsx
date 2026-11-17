@@ -58,8 +58,8 @@ function PaymentReconciliation({ request }: { request: SubscriptionRequest }) {
       {!settled && (
         <p className="mt-2 text-xs font-medium text-warning">
           {currencyMismatch
-            ? `Currency mismatch — plan is billed in ${plan.currency}, customer paid in ${request.currency}.`
-            : `Short by ${formatPlanPrice(shortfall, plan.currency)} — verify the receipt before approving.`}
+            ? `Currency mismatch. Plan is billed in ${plan.currency}, customer paid in ${request.currency}.`
+            : `Short by ${formatPlanPrice(shortfall, plan.currency)}. Verify the receipt before approving.`}
         </p>
       )}
     </div>
@@ -146,7 +146,7 @@ export function ReviewRequestDialog({
           <DetailField label="Email" value={request.customerEmail} />
           <DetailField label="Phone" value={request.customerPhone} />
           {request.businessName && <DetailField label="Business" value={request.businessName} />}
-          <DetailField label="Account" value={request.owner?.email ?? '— not linked —'} />
+          <DetailField label="Account" value={request.owner?.email ?? 'Not linked'} />
           {request.paymentReference && (
             <DetailField label="Reference" value={request.paymentReference} />
           )}
@@ -175,7 +175,7 @@ export function ReviewRequestDialog({
             </a>
           ) : (
             // Free/trial plans are submitted without one.
-            <p className="text-xs text-default-500">No receipt — this plan is free.</p>
+            <p className="text-xs text-default-500">No receipt. This plan is free.</p>
           )}
         </div>
 

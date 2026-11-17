@@ -120,7 +120,7 @@ export function SubscriptionsView() {
               )}
               <div className="min-w-0">
                 <div className="truncate font-medium">
-                  {ownerName === '—' ? (owner?.email ?? '—') : ownerName}
+                  {ownerName === 'N/A' ? (owner?.email ?? 'N/A') : ownerName}
                 </div>
                 <div className="truncate text-xs text-default-500">{owner?.email ?? ''}</div>
               </div>
@@ -132,7 +132,7 @@ export function SubscriptionsView() {
         id: 'plan',
         accessorFn: subscription => subscription.plan?.name ?? '',
         header: 'Plan',
-        cell: ({ row }) => row.original.plan?.name ?? '—',
+        cell: ({ row }) => row.original.plan?.name ?? 'N/A',
       },
       {
         id: 'price',

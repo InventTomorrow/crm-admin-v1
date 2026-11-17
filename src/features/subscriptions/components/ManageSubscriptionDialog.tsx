@@ -241,7 +241,7 @@ export function ManageSubscriptionDialog({
           >
             {plans.map(plan => (
               <option key={plan.id} value={plan.id}>
-                {plan.name} — {formatPlanPrice(plan.price, plan.currency)}/
+                {plan.name}: {formatPlanPrice(plan.price, plan.currency)}/
                 {formatPlanPeriod(plan.duration, plan.customDurationDays)}
               </option>
             ))}
@@ -311,7 +311,7 @@ export function ManageSubscriptionDialog({
         <div className="border-t border-default-200 pt-4">
           <ToggleRow
             label="Record a payment for this change"
-            description="Money collected outside the checkout flow — a transfer taken by hand, say."
+            description="Money collected outside the checkout flow. A transfer taken by hand, say."
             checked={isRecordingPayment}
             onChange={event => setIsRecordingPayment(event.target.checked)}
           />

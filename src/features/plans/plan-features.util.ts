@@ -56,7 +56,7 @@ export function deriveFeatureBullets(values: PlanFormValues): string[] {
     isIncluded(values.maxWorkspaces) ? count(values.maxWorkspaces, 'workspace') : null,
     isIncluded(values.maxMembersPerWorkspace)
       ? `${count(values.maxMembersPerWorkspace, 'team member')} per workspace`
-      : 'Single user — no team seats',
+      : 'Single user. No team seats',
     isIncluded(values.maxChannels)
       ? `${count(values.maxChannels, 'WhatsApp channel')} connected`
       : null,

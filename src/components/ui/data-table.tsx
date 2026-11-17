@@ -528,7 +528,7 @@ export function DataTable<TData>({
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-default-500">
             {enableSelection && selectedCount > 0 ? `${selectedCount} selected · ` : ''}
-            Showing <b>{rangeStart}</b>–<b>{rangeEnd}</b> of <b>{total}</b> Results
+            Showing <b>{rangeStart}</b> to <b>{rangeEnd}</b> of <b>{total}</b> Results
           </p>
           <select
             aria-label="Rows per page"

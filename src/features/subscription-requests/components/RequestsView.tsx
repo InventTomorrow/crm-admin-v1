@@ -85,7 +85,7 @@ export function RequestsView() {
         id: 'plan',
         accessorFn: request => request.plan?.name ?? '',
         header: 'Plan',
-        cell: ({ row }) => row.original.plan?.name ?? '—',
+        cell: ({ row }) => row.original.plan?.name ?? 'N/A',
       },
       {
         id: 'paid',

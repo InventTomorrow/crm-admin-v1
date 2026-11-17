@@ -123,7 +123,7 @@ export function PaymentAccountForm({ account, onClose }: PaymentAccountFormProps
       <form onSubmit={submit} noValidate className="card-body">
         <FormSection
           title="Method & institution"
-          hint="Where the money lands — this is what the account is listed under."
+          hint="Where the money lands. This is what the account is listed under."
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Method" htmlFor="account-method" required error={errors.method?.message}>
@@ -195,7 +195,7 @@ export function PaymentAccountForm({ account, onClose }: PaymentAccountFormProps
           </div>
         </FormSection>
 
-        <FormSection title="IBAN & branch" hint="Optional — shown when filled." separated>
+        <FormSection title="IBAN & branch" hint="Optional. Shown when filled." separated>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="IBAN" htmlFor="account-iban" error={errors.iban?.message}>
               <Controller
@@ -247,7 +247,7 @@ export function PaymentAccountForm({ account, onClose }: PaymentAccountFormProps
           />
           {!account && (
             <p className="mt-3 text-xs text-default-500">
-              New accounts are added to the end of the list — use the arrows there to reorder them.
+              New accounts are added to the end of the list. Use the arrows there to reorder them.
             </p>
           )}
         </FormSection>

@@ -74,7 +74,7 @@ export function TenantAiUsageView({ tenantId }: { tenantId: string }) {
 
           {data.hasUnpricedUsage && (
             <Badge tone="warning">
-              Some usage has no price entered yet — its cost is excluded from the total above.
+              Some usage has no price entered yet. Its cost is excluded from the total above.
             </Badge>
           )}
 

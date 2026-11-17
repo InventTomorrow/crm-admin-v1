@@ -62,7 +62,7 @@ export function KpiCard({
                     isBrand ? 'text-white' : 'text-default-800'
                   )}
                 >
-                  {value ?? '—'}
+                  {value ?? 'N/A'}
                 </h5>
                 <p
                   className={cn('truncate text-sm', isBrand ? 'text-white/75' : 'text-default-500')}

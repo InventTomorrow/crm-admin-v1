@@ -89,7 +89,7 @@ export function ListPagination({
       <div className="card-footer flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-sm text-default-500">
-            Showing <b>{rangeStart}</b>–<b>{rangeEnd}</b> of <b>{total}</b> Results
+            Showing <b>{rangeStart}</b> to <b>{rangeEnd}</b> of <b>{total}</b> Results
           </p>
           <select
             aria-label="Cards per page"

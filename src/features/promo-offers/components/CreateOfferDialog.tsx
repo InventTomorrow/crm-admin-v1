@@ -72,7 +72,7 @@ export function CreateOfferDialog({ open, onOpenChange }: CreateOfferDialogProps
             <LuTriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" />
             <span>
               <strong className="font-semibold">{runningOffer.discountPercent}% off</strong> is
-              already running. Starting a new offer ends it immediately — only one offer is ever
+              already running. Starting a new offer ends it immediately. Only one offer is ever
               live.
             </span>
           </div>

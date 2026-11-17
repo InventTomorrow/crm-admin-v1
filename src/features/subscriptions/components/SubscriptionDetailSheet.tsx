@@ -54,7 +54,7 @@ export function SubscriptionDetailSheet({
 }: SubscriptionDetailSheetProps) {
   const ownerName = subscription
     ? formatFullName(subscription.owner?.firstName ?? null, subscription.owner?.lastName ?? null)
-    : '—';
+    : 'N/A';
 
   return (
     <Sheet
@@ -76,13 +76,13 @@ export function SubscriptionDetailSheet({
             <DetailRow
               icon={<LuUser className="size-4.5" />}
               label="Account owner"
-              value={ownerName === '—' ? (subscription.owner?.email ?? '—') : ownerName}
+              value={ownerName === 'N/A' ? (subscription.owner?.email ?? 'N/A') : ownerName}
               sub={subscription.owner?.email}
             />
             <DetailRow
               icon={<LuCreditCard className="size-4.5" />}
               label="Plan"
-              value={subscription.plan?.name ?? '—'}
+              value={subscription.plan?.name ?? 'N/A'}
               sub={subscription.plan?.tier}
             />
             <DetailRow

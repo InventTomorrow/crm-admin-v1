@@ -131,7 +131,7 @@ export function SupportContactCard() {
         >
           <Textarea
             rows={4}
-            placeholder={'HBL 1234-5678-9012 — AsaanRabta (Pvt) Ltd\nEasypaisa: 0300-0000000'}
+            placeholder={'HBL 1234-5678-9012: AsaanRabta (Pvt) Ltd\nEasypaisa: 0300-0000000'}
             disabled={fieldsDisabled}
             {...form.register('paymentInstructions')}
           />

@@ -84,7 +84,7 @@ export function LinksView() {
         header: 'Sent to',
         cell: ({ row }) => (
           <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.customerName ?? '—'}</div>
+            <div className="truncate font-medium">{row.original.customerName ?? 'N/A'}</div>
             <div className="truncate text-xs text-default-500">
               {row.original.customerEmail ?? 'no email'}
             </div>
@@ -102,7 +102,7 @@ export function LinksView() {
         id: 'plan',
         accessorFn: link => link.plan?.name ?? '',
         header: 'Plan',
-        cell: ({ row }) => row.original.plan?.name ?? '—',
+        cell: ({ row }) => row.original.plan?.name ?? 'N/A',
       },
       {
         id: 'expires',
