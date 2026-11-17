@@ -4,6 +4,7 @@ import {
   LuBellRing,
   LuBuilding2,
   LuCreditCard,
+  LuHandshake,
   LuInbox,
   LuLayoutDashboard,
   LuLink,
@@ -93,6 +94,13 @@ export const menuItemsData: MenuItemType[] = [
     href: '/checkout-links',
     icon: LuLink,
     permission: SystemPermissions.CHECKOUT_LINKS_VIEW,
+  },
+  {
+    key: 'affiliates',
+    label: 'Affiliates',
+    href: '/affiliates',
+    icon: LuHandshake,
+    permission: SystemPermissions.AFFILIATES_VIEW,
   },
   {
     key: 'content',

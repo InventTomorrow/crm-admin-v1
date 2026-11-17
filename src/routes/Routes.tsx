@@ -12,6 +12,8 @@ const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
 const Subscriptions = lazy(() => import('@/app/(admin)/subscriptions'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
+const Affiliates = lazy(() => import('@/app/(admin)/affiliates'));
+const AffiliateDetail = lazy(() => import('@/app/(admin)/affiliates/detail'));
 const PaymentAccounts = lazy(() => import('@/app/(admin)/payment-accounts'));
 const Blog = lazy(() => import('@/app/(admin)/blog'));
 const BlogPostCreate = lazy(() => import('@/app/(admin)/blog/new'));
@@ -100,6 +102,18 @@ export const appRoutes: AppRoute[] = [
     name: 'CheckoutLinks',
     element: <CheckoutLinks />,
     permission: SystemPermissions.CHECKOUT_LINKS_VIEW,
+  },
+  {
+    path: '/affiliates',
+    name: 'Affiliates',
+    element: <Affiliates />,
+    permission: SystemPermissions.AFFILIATES_VIEW,
+  },
+  {
+    path: '/affiliates/:id',
+    name: 'AffiliateDetail',
+    element: <AffiliateDetail />,
+    permission: SystemPermissions.AFFILIATES_VIEW,
   },
   // Deliberately absent from the sidebar — reached from the Subscriptions page,
   // since it is configuration rather than day-to-day work.

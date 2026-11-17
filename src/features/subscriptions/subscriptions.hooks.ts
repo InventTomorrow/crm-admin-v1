@@ -11,6 +11,7 @@ import {
   cancelSubscriptionAtPeriodEnd,
   createSubscription,
   deleteSubscription,
+  getSubscriptionPriceQuote,
   getSubscriptionRevenue,
   listSubscriptions,
   updateSubscription,
@@ -57,6 +58,18 @@ export function useSubscriptions(params: {
 /** Platform revenue KPIs. Its own key so a row edit doesn't refetch it. */
 export function useSubscriptionRevenue() {
   return useQuery({ queryKey: ['subscription-revenue'], queryFn: getSubscriptionRevenue });
+}
+
+export function useSubscriptionPriceQuote(params: {
+  ownerUserId: string;
+  planId: string;
+  periodCount: number;
+}) {
+  return useQuery({
+    queryKey: ['subscription-price-quote', params],
+    queryFn: () => getSubscriptionPriceQuote(params),
+    enabled: Boolean(params.ownerUserId && params.planId && params.periodCount > 0),
+  });
 }
 
 export function useCreateSubscription() {

@@ -10,9 +10,9 @@ import { formatPlanPeriod, formatPlanPeriodCountLabel, formatPlanPrice } from '@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { LuLoaderCircle, LuPlus } from 'react-icons/lu';
+import { LuLoaderCircle, LuPlus, LuTag, LuTicket } from 'react-icons/lu';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '../subscriptions.api';
-import { useCreateSubscription } from '../subscriptions.hooks';
+import { useCreateSubscription, useSubscriptionPriceQuote } from '../subscriptions.hooks';
 import { createSubscriptionSchema, type CreateSubscriptionFormValues } from '../types';
 
 /**
@@ -48,12 +48,15 @@ export function CreateSubscriptionDialog() {
   const selectedPlan = plans.find(plan => plan.id === planId);
   const countLabel = selectedPlan ? formatPlanPeriodCountLabel(selectedPlan.duration) : 'Periods';
 
-  // The plan is priced per period, so buying several at once is due the whole
-  // span — the same total the server checks the payment against.
-  const totalDue = selectedPlan && periodCount > 0 ? selectedPlan.price * periodCount : null;
+  // The server quote applies the account's referral code and any running promo,
+  // so the admin collects exactly what the server will check the payment against.
+  const priceQuoteQuery = useSubscriptionPriceQuote({ ownerUserId, planId, periodCount });
+  const priceQuote = priceQuoteQuery.data ?? null;
+  const listTotal = selectedPlan && periodCount > 0 ? selectedPlan.price * periodCount : null;
+  const totalDue = priceQuote?.total ?? listTotal;
+  const hasAutomaticDiscount = Boolean(priceQuote?.referral || priceQuote?.promo);
 
-  // Charging under the list price is allowed, but it has to be accounted for —
-  // the server rejects an unexplained shortfall no live campaign covers.
+  // Charging under the quoted total is allowed, but the server wants the gap explained.
   const isDiscounted = totalDue !== null && !Number.isNaN(amount) && amount < totalDue;
 
   // Default the amount to what the span costs; the admin can still override it
@@ -129,7 +132,7 @@ export function CreateSubscriptionDialog() {
               </option>
               {plans.map(plan => (
                 <option key={plan.id} value={plan.id}>
-                  {plan.name} — {formatPlanPrice(plan.price, plan.currency)}/
+                  {plan.name}: {formatPlanPrice(plan.price, plan.currency)}/
                   {formatPlanPeriod(plan.duration, plan.customDurationDays)}
                   {plan.isTrial ? ' · trial' : ''}
                 </option>
@@ -216,12 +219,39 @@ export function CreateSubscriptionDialog() {
               {...form.register('reference')}
             />
 
-            {isDiscounted && selectedPlan && (
+            {hasAutomaticDiscount && priceQuote && (
+              <div className="mt-2.5 space-y-1.5 rounded-lg border border-success/30 bg-success/5 p-3 text-xs text-default-600">
+                {priceQuote.referral && (
+                  <p className="flex items-center gap-1.5">
+                    <LuTicket className="size-3.5 shrink-0 text-success" />
+                    Referred by {priceQuote.referral.affiliateName} with{' '}
+                    <span className="font-mono font-semibold">{priceQuote.referral.code}</span>:{' '}
+                    {priceQuote.referral.discountPercent}% off applied.
+                  </p>
+                )}
+                {priceQuote.promo && (
+                  <p className="flex items-center gap-1.5">
+                    <LuTag className="size-3.5 shrink-0 text-success" />
+                    {priceQuote.promo.title}: {priceQuote.promo.discountPercent}% off applied.
+                  </p>
+                )}
+                <p className="tabular-nums">
+                  <span className="text-default-400 line-through">
+                    {formatPlanPrice(priceQuote.listTotal, priceQuote.currency)}
+                  </span>{' '}
+                  <span className="text-sm font-semibold text-default-900">
+                    {formatPlanPrice(priceQuote.total, priceQuote.currency)}
+                  </span>{' '}
+                  to collect
+                </p>
+              </div>
+            )}
+
+            {isDiscounted && selectedPlan && totalDue !== null && (
               <div className="mt-2.5 rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-default-600">
-                  {formatPlanPrice(selectedPlan?.price - amount, selectedPlan?.currency)} below the{' '}
-                  {selectedPlan.name} price of{' '}
-                  {formatPlanPrice(selectedPlan?.price, selectedPlan?.currency)}.
+                  {formatPlanPrice(totalDue - amount, selectedPlan.currency)} below the{' '}
+                  {selectedPlan.name} price of {formatPlanPrice(totalDue, selectedPlan.currency)}.
                 </p>
                 <Input
                   className="mt-2"
@@ -230,8 +260,8 @@ export function CreateSubscriptionDialog() {
                   {...form.register('discountReason')}
                 />
                 <p className="mt-1.5 text-xs text-default-400">
-                  Shown on the subscriptions table. A running campaign that matches the amount fills
-                  this in on its own.
+                  Shown on the subscriptions table. Referral codes and running campaigns are already
+                  included in the amount above.
                 </p>
               </div>
             )}

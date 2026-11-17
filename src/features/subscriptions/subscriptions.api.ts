@@ -49,6 +49,32 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   OTHER: 'Other',
 };
 
+/** Mirrors PriceQuote in server/src/modules/referrals/pricing-quote.service.ts. */
+export interface SubscriptionPriceQuote {
+  listUnitPrice: number;
+  unitPrice: number;
+  periodCount: number;
+  listTotal: number;
+  total: number;
+  currency: string;
+  promo: { title: string; discountPercent: number; endsAt: string } | null;
+  referral: { code: string; discountPercent: number; affiliateName: string } | null;
+  discountLabel: string | null;
+}
+
+/** What the account owes after its referral code and any running promo. */
+export async function getSubscriptionPriceQuote(params: {
+  ownerUserId: string;
+  planId: string;
+  periodCount: number;
+}): Promise<SubscriptionPriceQuote> {
+  const { data } = await apiClient.get<ApiEnvelope<SubscriptionPriceQuote>>(
+    '/admin/subscriptions/quote',
+    { params }
+  );
+  return data.data;
+}
+
 /**
  * Workflow 1 (admin-initiated): the subscription activates immediately and
  * records the payment the admin already collected. Status is derived by the

@@ -51,6 +51,10 @@ export const SystemPermissions = {
   CHECKOUT_LINKS_CREATE: 'checkout_links:create',
   CHECKOUT_LINKS_REVOKE: 'checkout_links:revoke',
 
+  AFFILIATES_VIEW: 'affiliates:view',
+  AFFILIATES_MANAGE: 'affiliates:manage',
+  AFFILIATES_PAYOUT: 'affiliates:payout',
+
   BLOG_VIEW: 'blog:view',
   BLOG_CREATE: 'blog:create',
   BLOG_EDIT: 'blog:edit',
@@ -110,6 +114,9 @@ const SYSTEM_MANAGER_PERMISSIONS: SystemPermission[] = [
   SystemPermissions.CHECKOUT_LINKS_VIEW,
   SystemPermissions.CHECKOUT_LINKS_CREATE,
   SystemPermissions.CHECKOUT_LINKS_REVOKE,
+  SystemPermissions.AFFILIATES_VIEW,
+  SystemPermissions.AFFILIATES_MANAGE,
+  SystemPermissions.AFFILIATES_PAYOUT,
   SystemPermissions.BLOG_VIEW,
   SystemPermissions.BLOG_CREATE,
   SystemPermissions.BLOG_EDIT,
