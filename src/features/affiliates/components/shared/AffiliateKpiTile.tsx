@@ -53,7 +53,9 @@ export function AffiliateKpiTile({
         </div>
       ) : (
         <>
-          <p className="mt-4 truncate text-2xl font-semibold tabular-nums text-default-900">{value}</p>
+          <p className="mt-4 truncate text-2xl font-semibold tabular-nums text-default-900">
+            {value}
+          </p>
           <p className="mt-0.5 truncate text-sm text-default-500">{label}</p>
           {hint && <p className="mt-1 truncate text-xs text-default-400">{hint}</p>}
         </>

@@ -1,5 +1,5 @@
 import { PageHeader } from '@/components/PageHeader';
-import { ReferralStackingCard } from '@/features/affiliates/components/ReferralStackingCard';
+import { ReferralStackingCard } from '@/features/affiliates/components/codes/ReferralStackingCard';
 import { PaymentGatewayCard } from './PaymentGatewayCard';
 
 export function BillingSettingsView() {

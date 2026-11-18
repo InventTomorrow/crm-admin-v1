@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/modal';
 import { Select } from '@/components/ui/select';
 import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '@/features/subscriptions/subscriptions.api';
 import { formatMoneyPKR } from '@/lib/format';
-import { useCreateAffiliatePayout } from '../affiliates.hooks';
+import { useCreateAffiliatePayout } from '../../affiliates.hooks';
 
 const payoutFormSchema = z.object({
   method: z.enum(PAYMENT_METHODS),
