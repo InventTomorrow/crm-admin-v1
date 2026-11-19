@@ -1,5 +1,5 @@
 import type { IconType } from 'react-icons/lib';
-import { SystemPermissions, type SystemPermission } from '@/lib/permissions';
+import { SystemPermissions, type PermissionRequirement } from '@/lib/permissions';
 import {
   LuBellRing,
   LuBuilding2,
@@ -11,7 +11,6 @@ import {
   LuMail,
   LuMessageSquare,
   LuNewspaper,
-  LuReceiptText,
   LuSettings,
   LuUsers,
 } from 'react-icons/lu';
@@ -32,7 +31,7 @@ export type MenuItemType = {
    * Routes.tsx — hiding the link is cosmetic, RouteGuard does the blocking.
    * Section titles inherit visibility from the items beneath them.
    */
-  permission?: SystemPermission;
+  permission?: PermissionRequirement;
 };
 
 export const menuItemsData: MenuItemType[] = [
@@ -53,7 +52,8 @@ export const menuItemsData: MenuItemType[] = [
     label: 'Users',
     href: '/users',
     icon: LuUsers,
-    permission: SystemPermissions.USERS_VIEW,
+    // Billing roles reach payments and invoices through the Users page.
+    permission: [SystemPermissions.USERS_VIEW, SystemPermissions.SUBSCRIPTIONS_VIEW],
   },
   {
     key: 'tenants',
@@ -69,21 +69,14 @@ export const menuItemsData: MenuItemType[] = [
   },
   {
     key: 'plans',
-    label: 'Plans',
+    label: 'Pricing plans',
     href: '/plans',
     icon: LuCreditCard,
     permission: SystemPermissions.PLANS_VIEW,
   },
   {
-    key: 'subscriptions',
-    label: 'Subscriptions',
-    href: '/subscriptions',
-    icon: LuReceiptText,
-    permission: SystemPermissions.SUBSCRIPTIONS_VIEW,
-  },
-  {
     key: 'requests',
-    label: 'Requests',
+    label: 'User payments',
     href: '/subscription-requests',
     icon: LuInbox,
     permission: SystemPermissions.SUBSCRIPTION_REQUESTS_VIEW,

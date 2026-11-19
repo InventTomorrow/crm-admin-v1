@@ -1,47 +1,57 @@
 import { useQuery } from '@tanstack/react-query';
 import { listSubscriptionRequests } from '@/features/subscription-requests/requests.api';
 import { listCheckoutLinks } from '@/features/checkout-links/links.api';
-import { countNotifications } from '@/features/notifications/notifications.api';
+import {
+  useNotifications,
+  useNotificationsSeen,
+} from '@/features/notifications/notifications.hooks';
+import { useSectionSeenAt } from '@/lib/useSectionSeenAt';
 
-/** Requests still awaiting an admin decision. */
-function usePendingRequestsCount() {
+/** Payments still awaiting approval that arrived since the admin last opened User payments. */
+function useUnreadPendingPaymentsCount() {
+  const { seenAtIso } = useSectionSeenAt('user-payments');
   return useQuery({
-    queryKey: ['subscription-requests', 'count', 'PENDING_APPROVAL'],
-    // limit: 1 — only meta.total from the page is used.
-    queryFn: () => listSubscriptionRequests({ page: 1, limit: 1, status: 'PENDING_APPROVAL' }),
+    queryKey: ['subscription-requests', 'unread-count', seenAtIso],
+    // limit: 1, since only meta.total from the page is used.
+    queryFn: () =>
+      listSubscriptionRequests({
+        page: 1,
+        limit: 1,
+        status: 'PENDING_APPROVAL',
+        createdAfter: seenAtIso,
+      }),
     select: page => page.meta.total,
     refetchInterval: 60_000,
   });
 }
 
-/** Checkout links issued but not yet used, revoked, or expired. */
-function useActiveCheckoutLinksCount() {
+/** Checkout links created since the admin last opened Checkout links. */
+function useUnreadCheckoutLinksCount() {
+  const { seenAtIso } = useSectionSeenAt('checkout-links');
   return useQuery({
-    queryKey: ['checkout-links', 'count', 'ACTIVE'],
-    queryFn: () => listCheckoutLinks({ page: 1, limit: 1, status: 'ACTIVE' }),
+    queryKey: ['checkout-links', 'unread-count', seenAtIso],
+    queryFn: () => listCheckoutLinks({ page: 1, limit: 1, createdAfter: seenAtIso }),
     select: page => page.meta.total,
     refetchInterval: 60_000,
   });
 }
 
-/** Noteworthy platform events surfaced in the admin notifications feed. */
-function useNotificationsCount() {
-  return useQuery({
-    queryKey: ['notifications', 'count'],
-    queryFn: countNotifications,
-    refetchInterval: 60_000,
-  });
+/** Same feed and read state as the topbar bell, so the two numbers always agree. */
+function useUnreadNotificationsCount() {
+  const { data: notifications } = useNotifications();
+  const { isUnread } = useNotificationsSeen();
+  return notifications?.filter(notification => isUnread(notification.createdAt)).length;
 }
 
-/** Badge counts shown next to sidebar nav items, keyed by menu item key. */
+/** Unread badge counts shown next to sidebar nav items, keyed by menu item key. */
 export function useAdminSidebarCounts(): Record<string, number | undefined> {
-  const { data: pendingRequests } = usePendingRequestsCount();
-  const { data: activeCheckoutLinks } = useActiveCheckoutLinksCount();
-  const { data: notifications } = useNotificationsCount();
+  const { data: unreadPendingPayments } = useUnreadPendingPaymentsCount();
+  const { data: unreadCheckoutLinks } = useUnreadCheckoutLinksCount();
+  const unreadNotifications = useUnreadNotificationsCount();
 
   return {
-    requests: pendingRequests,
-    'checkout-links': activeCheckoutLinks,
-    notifications,
+    requests: unreadPendingPayments,
+    'checkout-links': unreadCheckoutLinks,
+    notifications: unreadNotifications,
   };
 }

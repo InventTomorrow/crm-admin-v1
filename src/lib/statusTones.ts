@@ -1,5 +1,5 @@
 import type { BadgeTone } from '@/components/ui/badge';
-import type { SubscriptionStatus, TenantStatus } from '@/lib/types';
+import type { InvoiceStatus, SubscriptionStatus, TenantStatus } from '@/lib/types';
 
 export const TENANT_STATUS_TONE: Record<TenantStatus, BadgeTone> = {
   ACTIVE: 'success',
@@ -13,4 +13,12 @@ export const SUBSCRIPTION_STATUS_TONE: Record<SubscriptionStatus, BadgeTone> = {
   TRIALING: 'info',
   PAST_DUE: 'warning',
   CANCELLED: 'danger',
+};
+
+export const INVOICE_STATUS_TONE: Record<InvoiceStatus, BadgeTone> = {
+  PAID: 'success',
+  OPEN: 'warning',
+  DRAFT: 'neutral',
+  VOID: 'neutral',
+  UNCOLLECTIBLE: 'danger',
 };

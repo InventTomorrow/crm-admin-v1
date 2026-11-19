@@ -139,11 +139,11 @@ const MenuItem = ({ item, badge }: { item: MenuItemType; badge?: number }) => {
 
 const AppMenu = () => {
   const counts = useAdminSidebarCounts();
-  const { can } = usePermissions();
+  const { canAccess } = usePermissions();
 
   const visibleItems = useMemo(
-    () => dropEmptySections(filterByPermission(menuItemsData, can)),
-    [can]
+    () => dropEmptySections(filterByPermission(menuItemsData, canAccess)),
+    [canAccess]
   );
 
   return (

@@ -207,8 +207,8 @@ export function PlansView() {
   return (
     <>
       <PageHeader
-        title="Plans"
-        description="Subscription plans & limits"
+        title="Pricing plans"
+        description="What customers can buy, with prices and limits"
         action={
           <PermissionGuard permission={SystemPermissions.PLANS_CREATE}>
             <Link to="/plans/new" className={buttonVariants({ size: 'sm' })}>

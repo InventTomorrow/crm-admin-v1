@@ -4,7 +4,15 @@ import { Select } from '@/components/ui/select';
 import { DataTable } from '@/components/ui/data-table';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge, type BadgeTone } from '@/components/ui/badge';
-import { formatDate } from '@/lib/format';
+import { KpiCard } from '@/components/KpiCard';
+import { buttonVariants } from '@/components/ui/button';
+import { usePermissions } from '@/features/auth/auth.hooks';
+import { useSubscriptionRevenue } from '@/features/subscriptions/subscriptions.hooks';
+import { useMarkSectionSeen } from '@/lib/useSectionSeenAt';
+import { formatDate, formatMoneyPKR } from '@/lib/format';
+import { SystemPermissions } from '@/lib/permissions';
+import { LuCircleCheck, LuHourglass, LuLandmark, LuTrendingUp, LuWallet } from 'react-icons/lu';
+import { Link } from 'react-router';
 import { formatPlanPrice } from '@/lib/planFormat';
 import type { SubscriptionRequestSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
@@ -34,6 +42,7 @@ const REQUEST_SORTABLE_COLUMNS: SubscriptionRequestSortField[] = [
 ];
 
 export function RequestsView() {
+  useMarkSectionSeen('user-payments');
   // Status defaults to the queue that needs action, so it stays out of the URL
   // until the admin chooses something else.
   const listQuery = useListQueryState({
@@ -59,6 +68,20 @@ export function RequestsView() {
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
     ...(filters.planId === 'ALL' ? {} : { planId: filters.planId }),
     ...(filters.paymentMethod === 'ALL' ? {} : { paymentMethod: filters.paymentMethod }),
+  });
+
+  const { can } = usePermissions();
+  // Revenue is guarded by subscriptions:view on the server, which not every reviewer holds.
+  const canViewRevenue = can(SystemPermissions.SUBSCRIPTIONS_VIEW);
+  const { data: revenue, isLoading: isRevenueLoading } = useSubscriptionRevenue({
+    enabled: canViewRevenue,
+  });
+  const { data: pendingRequestsData, isLoading: isPendingCountLoading } = useSubscriptionRequests({
+    page: 1,
+    limit: 1,
+    sortBy: 'submitted',
+    sortOrder: 'desc',
+    status: 'PENDING_APPROVAL',
   });
 
   const columns = useMemo<ColumnDef<SubscriptionRequest, unknown>[]>(
@@ -144,9 +167,56 @@ export function RequestsView() {
   return (
     <>
       <PageHeader
-        title="Subscription requests"
-        description="Customer-submitted payments awaiting approval"
+        title="User payments"
+        description="Payments customers submitted from checkout, awaiting your approval"
+        action={
+          can(SystemPermissions.SETTINGS_VIEW) ? (
+            <Link
+              to="/payment-accounts"
+              className={buttonVariants({ variant: 'outline', size: 'sm' })}
+            >
+              <LuLandmark className="size-4" />
+              Payment accounts
+            </Link>
+          ) : undefined
+        }
       />
+
+      <div className="mb-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          label="Awaiting approval"
+          value={pendingRequestsData?.meta.total}
+          icon={LuHourglass}
+          variant="brand"
+          isLoading={isPendingCountLoading}
+          sub="payments to review"
+        />
+        {canViewRevenue && (
+          <>
+            <KpiCard
+              label="Revenue collected"
+              value={formatMoneyPKR(revenue?.collected)}
+              icon={LuWallet}
+              isLoading={isRevenueLoading}
+              sub={revenue ? `${revenue.payments} payments` : 'plan payments only'}
+            />
+            <KpiCard
+              label="MRR"
+              value={formatMoneyPKR(revenue?.mrr)}
+              icon={LuTrendingUp}
+              isLoading={isRevenueLoading}
+              sub="from live subscriptions"
+            />
+            <KpiCard
+              label="Live subscriptions"
+              value={revenue?.activeSubscriptions}
+              icon={LuCircleCheck}
+              isLoading={isRevenueLoading}
+              sub="active and trialing"
+            />
+          </>
+        )}
+      </div>
 
       <DataTable
         columns={columns}
@@ -166,7 +236,7 @@ export function RequestsView() {
         isError={isError}
         error={error}
         onRetry={refetch}
-        emptyMessage="No subscription requests found."
+        emptyMessage="No user payments found."
         getRowId={request => request.id}
         onRowClick={request => setRequestUnderReview(request)}
         activeFilterCount={listQuery.activeCount}

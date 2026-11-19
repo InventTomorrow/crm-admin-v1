@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
+import { useInvalidateBilling } from '@/lib/useInvalidateBilling';
 import {
   approveSubscriptionRequest,
   listSubscriptionRequests,
@@ -18,13 +19,14 @@ export function useSubscriptionRequests(
   });
 }
 
-/** Approving also creates the Subscription, so the subscriptions list is stale too. */
+/** Approving creates the subscription and its invoice, so billing views are stale too. */
 function useInvalidateRequests() {
   const qc = useQueryClient();
+  const invalidateBilling = useInvalidateBilling();
   return () => {
     qc.invalidateQueries({ queryKey: ['subscription-requests'] });
-    qc.invalidateQueries({ queryKey: ['subscriptions'] });
     qc.invalidateQueries({ queryKey: ['checkout-links'] });
+    invalidateBilling();
   };
 }
 

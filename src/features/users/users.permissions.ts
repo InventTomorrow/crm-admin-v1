@@ -12,4 +12,5 @@ export const USER_ACTION_PERMISSIONS = [
   SystemPermissions.USERS_DELETE,
   SystemPermissions.USERS_RESTORE,
   SystemPermissions.USERS_WIPE_WORKSPACES,
+  SystemPermissions.SUBSCRIPTIONS_CREATE,
 ];

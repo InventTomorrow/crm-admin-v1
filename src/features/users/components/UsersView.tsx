@@ -8,7 +8,9 @@ import { RowPendingIndicator } from '@/components/ui/row-pending-indicator';
 import { DataTable } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/auth.hooks';
+import { UserBillingPanel } from '@/features/invoices/components/UserBillingPanel';
 import { usePlans } from '@/features/plans/plans.hooks';
+import { BillingHeaderActions } from '@/features/invoices/components/BillingHeaderActions';
 import { datedFileName } from '@/lib/exportFileName';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
@@ -48,14 +50,7 @@ const ALL_PLANS = 'all';
 const USER_EXPORT_ROW_LIMIT = 10_000;
 
 /** Column ids double as the server's sort keys, so the two can never drift. */
-const SORTABLE_COLUMNS: UserSortField[] = [
-  'name',
-  'email',
-  'phone',
-  'lastLoginAt',
-  'workspaces',
-  'revenue',
-];
+const SORTABLE_COLUMNS: UserSortField[] = ['name', 'phone', 'lastLoginAt', 'workspaces', 'revenue'];
 
 export function UsersView() {
   const listQuery = useListQueryState({
@@ -105,54 +100,50 @@ export function UsersView() {
   const columns = useMemo<ColumnDef<UserListItem, unknown>[]>(
     () => [
       {
+        // Sorts by name server-side; the accessor only makes the header sortable.
         id: 'name',
-        // Accessors exist so the header renders as sortable — the ordering
-        // itself is done by the server (manualSorting), not by these values.
         accessorFn: user => formatFullName(user.firstName, user.lastName),
-        header: 'Name',
-        cell: ({ row }) => (
-          <span className="flex items-center gap-3">
-            <UserAvatar
-              firstName={row.original.firstName}
-              lastName={row.original.lastName}
-              email={row.original.email}
-              avatarUrl={row.original.avatarUrl}
-              hasPaidPlan={isOnPaidPlan(row.original.activeSubscription)}
-            />
-            <span className="flex items-center gap-2 font-medium">
-              {formatFullName(row.original.firstName, row.original.lastName)}
-              {row.original.systemMembership && (
-                <Badge tone="primary">
-                  {row.original.systemMembership.role === 'SYSTEM_ADMIN' ? 'Admin' : 'Manager'}
-                </Badge>
-              )}
-              {row.original.deletedAt && (
-                <Badge tone="danger">
-                  {row.original.permanentlyDeletedAt ? 'Closed' : 'Deleted'}
-                </Badge>
-              )}
-              {row.original.isTester && (
-                <Badge tone="info" icon={LuFlaskConical}>
-                  Test user
-                </Badge>
-              )}
-              {row.original.suspendedAt && !row.original.deletedAt && (
-                <Badge tone="warning">Suspended</Badge>
-              )}
+        header: 'Account',
+        cell: ({ row }) => {
+          // A closed account's `email` is a tombstone, so show the real address.
+          const email = row.original.originalEmail ?? row.original.email;
+          const fullName = formatFullName(row.original.firstName, row.original.lastName);
+          return (
+            <span className="flex min-w-0 items-center gap-3">
+              <UserAvatar
+                firstName={row.original.firstName}
+                lastName={row.original.lastName}
+                email={row.original.email}
+                avatarUrl={row.original.avatarUrl}
+                hasPaidPlan={isOnPaidPlan(row.original.activeSubscription)}
+              />
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-2 font-medium">
+                  <span className="truncate">{fullName === 'N/A' ? email : fullName}</span>
+                  {row.original.systemMembership && (
+                    <Badge tone="primary">
+                      {row.original.systemMembership.role === 'SYSTEM_ADMIN' ? 'Admin' : 'Manager'}
+                    </Badge>
+                  )}
+                  {row.original.deletedAt && (
+                    <Badge tone="danger">
+                      {row.original.permanentlyDeletedAt ? 'Closed' : 'Deleted'}
+                    </Badge>
+                  )}
+                  {row.original.isTester && (
+                    <Badge tone="info" icon={LuFlaskConical}>
+                      Test user
+                    </Badge>
+                  )}
+                  {row.original.suspendedAt && !row.original.deletedAt && (
+                    <Badge tone="warning">Suspended</Badge>
+                  )}
+                </span>
+                <span className="block truncate text-xs text-default-500">{email}</span>
+              </span>
             </span>
-          </span>
-        ),
-      },
-      {
-        id: 'email',
-        accessorFn: user => user.originalEmail ?? user.email,
-        header: 'Email',
-        cell: ({ row }) => (
-          // A closed account's `email` is a tombstone — show the real address.
-          <span className="text-default-500">
-            {row.original.originalEmail ?? row.original.email}
-          </span>
-        ),
+          );
+        },
       },
       {
         id: 'phone',
@@ -246,6 +237,9 @@ export function UsersView() {
   const { data: crmUsersData } = useUsers({ type: 'crm', page: 1, search: '', limit: 1 });
 
   const canDelete = can(SystemPermissions.USERS_DELETE);
+  // Billing roles can list users, but the detail sheet and export need users:view.
+  const canViewUserDetails = can(SystemPermissions.USERS_VIEW);
+  const canViewBilling = can(SystemPermissions.SUBSCRIPTIONS_VIEW);
 
   return (
     <>
@@ -253,9 +247,12 @@ export function UsersView() {
         title="Users"
         description="All CRM and system users"
         action={
-          can(SystemPermissions.USERS_CREATE) ? (
-            <CreateUserDialog defaultSystem={typeFilter === 'system'} />
-          ) : undefined
+          <div className="flex items-center gap-2">
+            {can(SystemPermissions.SUBSCRIPTIONS_CREATE) && <BillingHeaderActions />}
+            {can(SystemPermissions.USERS_CREATE) && (
+              <CreateUserDialog defaultSystem={typeFilter === 'system'} />
+            )}
+          </div>
         }
       />
 
@@ -329,10 +326,11 @@ export function UsersView() {
         onRetry={refetch}
         emptyMessage="No users found."
         getRowId={user => user.id}
-        onRowClick={user => setUserUnderReview(user)}
+        onRowClick={canViewUserDetails ? user => setUserUnderReview(user) : undefined}
+        renderExpandedRow={canViewBilling ? user => <UserBillingPanel user={user} /> : undefined}
         alternatingRows
         // Selection drives "Export selected" too, so it isn't gated on delete.
-        enableSelection
+        enableSelection={canViewUserDetails}
         getRowClassName={user =>
           user.deletedAt || user.suspendedAt
             ? 'bg-danger/5'
@@ -371,15 +369,17 @@ export function UsersView() {
           </>
         )}
         toolbarAction={
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPendingExport({})}
-            disabled={exportMutation.isPending || matchingUserCount === 0}
-          >
-            <LuDownload className="size-4" />
-            Export
-          </Button>
+          canViewUserDetails ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPendingExport({})}
+              disabled={exportMutation.isPending || matchingUserCount === 0}
+            >
+              <LuDownload className="size-4" />
+              Export
+            </Button>
+          ) : undefined
         }
         activeFilterCount={listQuery.activeCount}
         onResetFilters={listQuery.resetAll}

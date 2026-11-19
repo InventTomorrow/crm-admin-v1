@@ -3,7 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import { clearAllListState } from '@/lib/listStateStorage';
-import { permissionsForRole, type SystemPermission } from '@/lib/permissions';
+import {
+  permissionsForRole,
+  type PermissionRequirement,
+  type SystemPermission,
+} from '@/lib/permissions';
 import {
   changePassword,
   getMe,
@@ -46,6 +50,10 @@ export function usePermissions() {
         permissions.some(permission => granted.has(permission)),
       canAll: (...permissions: SystemPermission[]) =>
         permissions.every(permission => granted.has(permission)),
+      canAccess: (requirement: PermissionRequirement) =>
+        typeof requirement === 'string'
+          ? granted.has(requirement)
+          : requirement.some(permission => granted.has(permission)),
     }),
     [granted, isLoading, role]
   );

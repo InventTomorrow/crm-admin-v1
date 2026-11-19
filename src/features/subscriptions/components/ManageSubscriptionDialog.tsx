@@ -13,11 +13,9 @@ import {
   formatPlanPeriodCountLabel,
   formatPlanPrice,
 } from '@/lib/planFormat';
-import { ToggleRow } from '@/components/ui/switch';
 import type { Plan, Subscription } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { LuLoaderCircle } from 'react-icons/lu';
-import { PAYMENT_METHOD_LABELS, PAYMENT_METHODS } from '../subscriptions.api';
 import { useManageSubscription } from '../subscriptions.hooks';
 
 /** Date-only ISO, so a picked day isn't shifted by the browser's timezone. */
@@ -30,11 +28,9 @@ function toDate(value: string | null): Date | null {
 }
 
 /**
- * Moves a subscription to a different plan and/or re-dates its billing period.
- * Extending the period is how a manual-mode customer gets renewed — there is no
- * gateway to do it automatically — so the normal path is the period count
- * ("2 months of Pro") and the end date derives from it. The end date stays
- * editable behind a toggle for the odd period that doesn't divide evenly.
+ * Admin override for a subscription's plan and billing dates. No money moves here:
+ * charging the account goes through an invoice. The end date derives from the
+ * period count and stays editable behind a toggle for periods that don't divide evenly.
  */
 export function ManageSubscriptionDialog({
   subscription,
@@ -52,12 +48,6 @@ export function ManageSubscriptionDialog({
   const [periodCount, setPeriodCount] = useState('1');
   const [trialEndsAt, setTrialEndsAt] = useState<Date | null>(null);
   const [isEndDateEditable, setIsEndDateEditable] = useState(false);
-  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] =
-    useState<(typeof PAYMENT_METHODS)[number]>('BANK_TRANSFER');
-  const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentReference, setPaymentReference] = useState('');
-  const [discountReason, setDiscountReason] = useState('');
 
   const plansQuery = usePlans({}, { enabled: open });
   const plans = plansQuery.data ?? [];
@@ -72,10 +62,6 @@ export function ManageSubscriptionDialog({
     setPeriodEnd(toDate(subscription.currentPeriodEnd));
     setTrialEndsAt(toDate(subscription.trialEndsAt));
     setIsEndDateEditable(false);
-    setIsRecordingPayment(false);
-    setPaymentMethod('BANK_TRANSFER');
-    setPaymentReference('');
-    setDiscountReason('');
   }, [open, subscription]);
 
   // Plans arrive after the seed above, and the count needs the plan's duration
@@ -93,16 +79,6 @@ export function ManageSubscriptionDialog({
     // admin then picks by hand goes through resolveEnd instead.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, subscription, plansQuery.data]);
-
-  // Moving an account onto a paid plan by hand normally means money was taken
-  // outside the checkout flow, so the payment fields open ready to fill.
-  useEffect(() => {
-    if (!open || !subscription || !selectedPlan) return;
-    const periods = Number(periodCount);
-    const due = Number.isInteger(periods) && periods > 0 ? selectedPlan.price * periods : null;
-    if (due !== null) setPaymentAmount(String(due));
-    if (planId !== subscription.planId && selectedPlan.price > 0) setIsRecordingPayment(true);
-  }, [open, subscription, selectedPlan, planId, periodCount]);
 
   if (!subscription) return null;
 
@@ -147,18 +123,6 @@ export function ManageSubscriptionDialog({
   };
 
   const planChanged = planId !== subscription.planId;
-
-  // Priced over the whole span, the same total the server checks against.
-  const periods = Number(periodCount);
-  const amountDue =
-    selectedPlan && Number.isInteger(periods) && periods > 0 ? selectedPlan.price * periods : null;
-  const collectedAmount = Number(paymentAmount);
-  const isAmountValid =
-    paymentAmount !== '' && !Number.isNaN(collectedAmount) && collectedAmount >= 0;
-  // Below the plan's price, the shortfall has to be accounted for — the server
-  // rejects one no live campaign explains.
-  const isDiscounted =
-    isRecordingPayment && isAmountValid && amountDue !== null && collectedAmount < amountDue;
   const startChanged =
     (periodStart?.toISOString() ?? null) !==
     (toDate(subscription.currentPeriodStart)?.toISOString() ?? null);
@@ -168,12 +132,10 @@ export function ManageSubscriptionDialog({
   const trialChanged =
     (trialEndsAt?.toISOString() ?? null) !==
     (toDate(subscription.trialEndsAt)?.toISOString() ?? null);
-  const dirty = planChanged || startChanged || periodChanged || trialChanged || isRecordingPayment;
+  const dirty = planChanged || startChanged || periodChanged || trialChanged;
 
   const periodInverted = Boolean(periodStart && periodEnd && periodEnd <= periodStart);
   const countLabel = selectedPlan ? formatPlanPeriodCountLabel(selectedPlan.duration) : 'Periods';
-  const paymentIncomplete =
-    isRecordingPayment && (!isAmountValid || (isDiscounted && !discountReason.trim()));
 
   const handleSave = () => {
     manageMutation.mutate(
@@ -185,22 +147,6 @@ export function ManageSubscriptionDialog({
           : {}),
         ...(periodChanged ? { currentPeriodEnd: periodEnd ? toIsoDate(periodEnd) : null } : {}),
         ...(trialChanged ? { trialEndsAt: trialEndsAt ? toIsoDate(trialEndsAt) : null } : {}),
-        ...(isRecordingPayment && selectedPlan
-          ? {
-              periodCount: Number(periodCount),
-              payment: {
-                method: paymentMethod,
-                amount: collectedAmount,
-                currency: selectedPlan.currency ?? 'PKR',
-                ...(paymentReference.trim() ? { reference: paymentReference.trim() } : {}),
-                // Sent only when there is a gap to explain, so a full payment
-                // never carries a stale reason from an abandoned edit.
-                ...(isDiscounted && discountReason.trim()
-                  ? { discountReason: discountReason.trim() }
-                  : {}),
-              },
-            }
-          : {}),
       },
       { onSuccess: onClose }
     );
@@ -219,7 +165,7 @@ export function ManageSubscriptionDialog({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={!dirty || periodInverted || paymentIncomplete || manageMutation.isPending}
+            disabled={!dirty || periodInverted || manageMutation.isPending}
           >
             {manageMutation.isPending && <LuLoaderCircle className="size-4 animate-spin me-1" />}
             Save changes
@@ -308,75 +254,10 @@ export function ManageSubscriptionDialog({
           <DatePicker value={trialEndsAt} onChange={setTrialEndsAt} placeholder="Not a trial" />
         </Field>
 
-        <div className="border-t border-default-200 pt-4">
-          <ToggleRow
-            label="Record a payment for this change"
-            description="Money collected outside the checkout flow. A transfer taken by hand, say."
-            checked={isRecordingPayment}
-            onChange={event => setIsRecordingPayment(event.target.checked)}
-          />
-
-          {isRecordingPayment && (
-            <div className="mt-3 space-y-2.5">
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                <Select
-                  aria-label="Payment method"
-                  value={paymentMethod}
-                  onChange={event =>
-                    setPaymentMethod(event.target.value as (typeof PAYMENT_METHODS)[number])
-                  }
-                >
-                  {PAYMENT_METHODS.map(method => (
-                    <option key={method} value={method}>
-                      {PAYMENT_METHOD_LABELS[method]}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  type="number"
-                  min={0}
-                  aria-label="Amount collected"
-                  placeholder="Amount"
-                  value={paymentAmount}
-                  invalid={!isAmountValid}
-                  onChange={event => setPaymentAmount(event.target.value)}
-                />
-              </div>
-
-              <Input
-                placeholder="Transaction reference (optional)"
-                value={paymentReference}
-                onChange={event => setPaymentReference(event.target.value)}
-              />
-
-              {isDiscounted && selectedPlan && amountDue !== null && (
-                <div className="rounded-lg border border-info/30 bg-info/5 p-3">
-                  <p className="text-xs text-default-600">
-                    {formatPlanPrice(amountDue - collectedAmount, selectedPlan.currency)} below the{' '}
-                    {selectedPlan.name} price of {formatPlanPrice(amountDue, selectedPlan.currency)}
-                    .
-                  </p>
-                  <Input
-                    className="mt-2"
-                    placeholder="Why? e.g. Eid campaign, loyalty discount"
-                    aria-label="Reason for the reduced price"
-                    value={discountReason}
-                    onChange={event => setDiscountReason(event.target.value)}
-                  />
-                </div>
-              )}
-
-              <p className="text-xs text-default-400">
-                {amountDue !== null && selectedPlan
-                  ? `${countLabel} above are priced at ${formatPlanPrice(
-                      amountDue,
-                      selectedPlan.currency
-                    )} in total. Recorded as paid today; the dates stay as set above.`
-                  : 'Recorded as paid today. The dates stay as set above.'}
-              </p>
-            </div>
-          )}
-        </div>
+        <p className="border-t border-default-200 pt-4 text-xs text-default-500">
+          Edits the plan record only. To charge the account, create an invoice and make a payment
+          against it.
+        </p>
       </div>
     </Modal>
   );

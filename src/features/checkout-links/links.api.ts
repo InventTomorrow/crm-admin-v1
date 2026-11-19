@@ -40,6 +40,8 @@ export interface CheckoutLinkListFilters {
   status?: CheckoutLinkStatus;
   source?: CheckoutLinkSource;
   planId?: string;
+  /** ISO timestamp; only links created after it. */
+  createdAfter?: string;
   sortBy?: CheckoutLinkSortField;
   sortOrder?: SortOrder;
 }
