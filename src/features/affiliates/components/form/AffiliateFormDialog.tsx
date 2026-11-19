@@ -1,12 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
-import { useForm, type FieldErrors } from 'react-hook-form';
+import { useForm, useWatch, type FieldErrors } from 'react-hook-form';
 import { LuArrowLeft, LuArrowRight } from 'react-icons/lu';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import type { SearchSelectOption } from '@/components/ui/search-select';
 import { formatFullName } from '@/lib/format';
+import type { UserLookupItem } from '@/lib/types';
 import {
   affiliateFormDefaults,
   affiliateFormSchema,
@@ -16,6 +17,7 @@ import {
 } from '../../affiliate-form.schema';
 import {
   useCreateAffiliate,
+  useExistingAccountForEmail,
   useUpdateAffiliate,
   type CreateAffiliateResult,
 } from '../../affiliates.hooks';
@@ -43,15 +45,13 @@ const STEP_VARIANTS: Variants = {
   exit: (direction: number) => ({ x: direction * -28, opacity: 0 }),
 };
 
-function linkedUserOption(affiliate?: Affiliate | null): SearchSelectOption | null {
-  if (!affiliate?.user) return null;
-  const fullName = formatFullName(affiliate.user.firstName, affiliate.user.lastName);
-  return {
-    id: affiliate.user.id,
-    label: fullName === 'N/A' ? affiliate.user.email : fullName,
-    sub: affiliate.user.email,
-  };
+function userOptionFor(user: UserLookupItem): SearchSelectOption {
+  const fullName = formatFullName(user.firstName, user.lastName);
+  return { id: user.id, label: fullName === 'N/A' ? user.email : fullName, sub: user.email };
 }
+
+const linkedUserOption = (affiliate?: Affiliate | null) =>
+  affiliate?.user ? userOptionFor(affiliate.user) : null;
 
 /** Create and edit both walk through steps; editing can jump to any step and save from each. */
 export function AffiliateFormDialog({
@@ -78,6 +78,14 @@ export function AffiliateFormDialog({
     resolver: zodResolver(affiliateFormSchema),
     defaultValues: affiliateFormDefaults(affiliate),
   });
+  const joinOption = useWatch({ control: form.control, name: 'joinOption' });
+  const typedEmail = useWatch({ control: form.control, name: 'email' });
+  // Only while creating without a picked account: that is when an existing one would be missed.
+  const checksEmailForAccount = open && !isEditing && joinOption !== 'EXISTING_ACCOUNT';
+  const { existingAccount, findExistingAccountNow } = useExistingAccountForEmail(
+    typedEmail,
+    checksEmailForAccount
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -96,7 +104,13 @@ export function AffiliateFormDialog({
 
   const goToNextStep = async () => {
     const isStepValid = await form.trigger(steps[activeStepIndex].fields);
-    if (isStepValid) goToStep(Math.min(activeStepIndex + 1, lastStepIndex));
+    if (!isStepValid) return;
+    // Checked again here because Next can be pressed before the typing lookup has run.
+    const isDetailsStep = steps[activeStepIndex].id === 'details';
+    if (isDetailsStep && checksEmailForAccount) {
+      if (await findExistingAccountNow(form.getValues('email'))) return;
+    }
+    goToStep(Math.min(activeStepIndex + 1, lastStepIndex));
   };
 
   const finishCreate = (result: CreateAffiliateResult) => {
@@ -115,6 +129,12 @@ export function AffiliateFormDialog({
     if (!form.getValues('email').trim() && userOption.sub) {
       form.setValue('email', userOption.sub);
     }
+  };
+
+  const linkExistingAccount = () => {
+    if (!existingAccount) return;
+    form.setValue('joinOption', 'EXISTING_ACCOUNT');
+    onUserSelected(userOptionFor(existingAccount));
   };
 
   const saveAffiliate = (values: AffiliateFormValues) => {
@@ -158,7 +178,16 @@ export function AffiliateFormDialog({
         />
       );
     }
-    if (stepId === 'details') return <AffiliateDetailsFields form={form} isEditing={isEditing} />;
+    if (stepId === 'details') {
+      return (
+        <AffiliateDetailsFields
+          form={form}
+          isEditing={isEditing}
+          existingAccountLabel={existingAccount ? userOptionFor(existingAccount).label : null}
+          onLinkExistingAccount={linkExistingAccount}
+        />
+      );
+    }
     return (
       <div className="space-y-4">
         <SelfServeCodesField form={form} />
