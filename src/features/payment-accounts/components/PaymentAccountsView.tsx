@@ -78,12 +78,12 @@ export function PaymentAccountsView() {
     <>
       <PageHeader
         title="Payment accounts"
-        subtitle="Subscriptions"
+        subtitle="User payments"
         description="Bank and wallet details the customer transfers into before uploading their receipt."
         action={
           <div className="flex items-center gap-2">
             <Link
-              to="/subscriptions"
+              to="/subscription-requests"
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               <LuArrowLeft className="size-4" />

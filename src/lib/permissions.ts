@@ -152,6 +152,9 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   SYSTEM_MANAGER: 'System Manager',
 };
 
+/** One permission, or a list where holding any one of them is enough. */
+export type PermissionRequirement = SystemPermission | readonly SystemPermission[];
+
 /** Resolves a role to its permission set. Unknown roles get nothing. */
 export function permissionsForRole(role: SystemRole | undefined): Set<SystemPermission> {
   return new Set(role ? SYSTEM_ROLE_PERMISSIONS[role] : []);

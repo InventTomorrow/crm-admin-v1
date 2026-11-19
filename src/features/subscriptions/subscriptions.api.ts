@@ -75,51 +75,15 @@ export async function getSubscriptionPriceQuote(params: {
   return data.data;
 }
 
-/**
- * Workflow 1 (admin-initiated): the subscription activates immediately and
- * records the payment the admin already collected. Status is derived by the
- * server — trial plans become TRIALING, everything else ACTIVE.
- */
-export async function createSubscription(input: {
-  ownerUserId: string;
-  planId: string;
-  /** Plan periods granted — 2 on a monthly plan is two months. */
-  periodCount: number;
-  payment: {
-    method: PaymentMethod;
-    amount: number;
-    currency: string;
-    reference?: string;
-    notes?: string;
-    /** Required by the server when `amount` is under the plan's price and no
-     *  live campaign accounts for the gap. */
-    discountReason?: string;
-  };
-}): Promise<Subscription> {
-  const { data } = await apiClient.post<ApiEnvelope<Subscription>>('/admin/subscriptions', input);
-  return data.data;
-}
-
 export async function updateSubscription(
   id: string,
   input: {
     planId?: string;
     status?: SubscriptionStatus;
-    /** ISO strings, or null to clear. Editing these is how a manual plan is renewed. */
+    /** ISO strings, or null to clear. An admin override: renewals are paid through an invoice. */
     currentPeriodStart?: string | null;
     currentPeriodEnd?: string | null;
     trialEndsAt?: string | null;
-    /** Periods this edit is priced for — it does not move the dates above. */
-    periodCount?: number;
-    /** Money collected outside the checkout flow. Omitted when none was. */
-    payment?: {
-      method: PaymentMethod;
-      amount: number;
-      currency: string;
-      reference?: string;
-      /** Required by the server when `amount` is under what the plan costs. */
-      discountReason?: string;
-    };
   }
 ): Promise<Subscription> {
   const { data } = await apiClient.patch<ApiEnvelope<Subscription>>(

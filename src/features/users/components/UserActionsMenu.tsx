@@ -1,6 +1,8 @@
 import { ConfirmDialog, type ConfirmIntent } from '@/components/ui/confirm-dialog';
 import { Dropdown, DropdownItem, DropdownLabel } from '@/components/ui/dropdown';
 import { usePermissions } from '@/features/auth/auth.hooks';
+import { AccountBillingDialogs } from '@/features/invoices/components/AccountBillingDialogs';
+import { toPaymentAccount } from '@/features/subscriptions/payment-account';
 import { SystemPermissions } from '@/lib/permissions';
 import type { SystemRole, UserListItem } from '@/lib/types';
 import { Fragment, useState, type ReactNode } from 'react';
@@ -9,6 +11,7 @@ import {
   LuChevronDown,
   LuEllipsis,
   LuEraser,
+  LuFilePlus,
   LuFlaskConical,
   LuFlaskConicalOff,
   LuKeyRound,
@@ -24,6 +27,7 @@ import {
   LuTrash2,
   LuUserCheck,
   LuUserX,
+  LuWallet,
 } from 'react-icons/lu';
 import {
   useDeleteUser,
@@ -43,6 +47,7 @@ export type ActionableUser = Pick<
   UserListItem,
   | 'id'
   | 'email'
+  | 'originalEmail'
   | 'firstName'
   | 'lastName'
   | 'phone'
@@ -58,6 +63,8 @@ export type ActionableUser = Pick<
 
 type PendingUserAction =
   | { kind: 'edit' }
+  | { kind: 'invoice' }
+  | { kind: 'payment' }
   | { kind: 'role'; role: SystemRole | null }
   | { kind: 'verification'; verified: boolean }
   | { kind: 'resendVerification' }
@@ -69,7 +76,10 @@ type PendingUserAction =
   | { kind: 'restore' }
   | { kind: 'wipe' };
 
-type ConfirmableUserAction = Exclude<PendingUserAction, { kind: 'edit' }>;
+type ConfirmableUserAction = Exclude<
+  PendingUserAction,
+  { kind: 'edit' } | { kind: 'invoice' } | { kind: 'payment' }
+>;
 
 interface ConfirmationCopy {
   title: string;
@@ -125,8 +135,7 @@ function getConfirmationCopy(
       return action.verified
         ? {
             title: `Mark ${user.email} as verified?`,
-            description:
-              'Skips the email link. They can sign in and continue setup straight away.',
+            description: 'Skips the email link. They can sign in and continue setup straight away.',
             confirmLabel: 'Mark verified',
             intent: 'success',
             icon: LuMailCheck,
@@ -281,6 +290,7 @@ export function UserActionsMenu({ user, appearance = 'icon' }: UserActionsMenuPr
           action={pendingAction}
           open={isDialogOpen}
           onClose={() => setIsDialogOpen(false)}
+          onOpenAction={openAction}
         />
       )}
     </span>
@@ -346,6 +356,22 @@ function getLiveAccountGroups(
 ): MenuGroup[] {
   const groups: MenuGroup[] = [];
   const isSuspended = !!user.suspendedAt;
+
+  if (can(SystemPermissions.SUBSCRIPTIONS_CREATE)) {
+    groups.push({
+      key: 'billing',
+      content: (
+        <>
+          <DropdownItem icon={LuFilePlus} onSelect={() => openAction({ kind: 'invoice' })}>
+            Create invoice
+          </DropdownItem>
+          <DropdownItem icon={LuWallet} onSelect={() => openAction({ kind: 'payment' })}>
+            Make payment
+          </DropdownItem>
+        </>
+      ),
+    });
+  }
 
   if (can(SystemPermissions.USERS_EDIT)) {
     groups.push({
@@ -510,10 +536,11 @@ interface UserActionDialogProps {
   action: PendingUserAction;
   open: boolean;
   onClose: () => void;
+  onOpenAction: (action: PendingUserAction) => void;
 }
 
 /** Mounted only once an action is picked, so table rows don't each carry every mutation. */
-function UserActionDialog({ user, action, open, onClose }: UserActionDialogProps) {
+function UserActionDialog({ user, action, open, onClose, onOpenAction }: UserActionDialogProps) {
   const roleMutation = useSetSystemRole();
   const verificationMutation = useSetEmailVerification();
   const resendVerificationMutation = useResendVerificationEmail();
@@ -527,6 +554,17 @@ function UserActionDialog({ user, action, open, onClose }: UserActionDialogProps
 
   if (action.kind === 'edit') {
     return <EditUserDialog open={open} onOpenChange={isOpen => !isOpen && onClose()} user={user} />;
+  }
+  if (action.kind === 'invoice' || action.kind === 'payment') {
+    return (
+      <AccountBillingDialogs
+        account={toPaymentAccount(user)}
+        request={open ? { kind: action.kind } : null}
+        onRequestChange={nextRequest =>
+          nextRequest ? onOpenAction({ kind: nextRequest.kind }) : onClose()
+        }
+      />
+    );
   }
 
   const runConfirmedAction = () => {

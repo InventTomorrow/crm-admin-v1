@@ -1,15 +1,16 @@
 import { lazy, type ReactNode } from 'react';
-import { SystemPermissions, type SystemPermission } from '@/lib/permissions';
+import { Navigate } from 'react-router';
+import { SystemPermissions, type PermissionRequirement } from '@/lib/permissions';
 
 // Guarded app pages (rendered inside AdminLayout chrome)
 const Dashboard = lazy(() => import('@/app/(admin)/dashboard'));
 const Users = lazy(() => import('@/app/(admin)/users'));
+const UserBilling = lazy(() => import('@/app/(admin)/users/billing'));
 const Tenants = lazy(() => import('@/app/(admin)/tenants'));
 const TenantDetail = lazy(() => import('@/app/(admin)/tenants/detail'));
 const Plans = lazy(() => import('@/app/(admin)/plans'));
 const PlanCreate = lazy(() => import('@/app/(admin)/plans/new'));
 const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
-const Subscriptions = lazy(() => import('@/app/(admin)/subscriptions'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
 const Affiliates = lazy(() => import('@/app/(admin)/affiliates'));
@@ -49,7 +50,7 @@ export interface AppRoute {
    * by the sidebar, which hides links the role can't use. Omit for pages that
    * need authentication only.
    */
-  permission?: SystemPermission;
+  permission?: PermissionRequirement;
 }
 
 export const appRoutes: AppRoute[] = [
@@ -59,7 +60,18 @@ export const appRoutes: AppRoute[] = [
     element: <Dashboard />,
     permission: SystemPermissions.DASHBOARD_VIEW,
   },
-  { path: '/users', name: 'Users', element: <Users />, permission: SystemPermissions.USERS_VIEW },
+  {
+    path: '/users',
+    name: 'Users',
+    element: <Users />,
+    permission: [SystemPermissions.USERS_VIEW, SystemPermissions.SUBSCRIPTIONS_VIEW],
+  },
+  {
+    path: '/users/:id/billing',
+    name: 'UserBilling',
+    element: <UserBilling />,
+    permission: SystemPermissions.SUBSCRIPTIONS_VIEW,
+  },
   {
     path: '/tenants',
     name: 'Workspaces',
@@ -85,12 +97,8 @@ export const appRoutes: AppRoute[] = [
     element: <PlanEdit />,
     permission: SystemPermissions.PLANS_EDIT,
   },
-  {
-    path: '/subscriptions',
-    name: 'Subscriptions',
-    element: <Subscriptions />,
-    permission: SystemPermissions.SUBSCRIPTIONS_VIEW,
-  },
+  // Billing moved onto the Users page; kept so old links and emails still land somewhere useful.
+  { path: '/subscriptions', name: 'Subscriptions', element: <Navigate to="/users" replace /> },
   {
     path: '/subscription-requests',
     name: 'SubscriptionRequests',

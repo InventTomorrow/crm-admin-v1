@@ -21,10 +21,3 @@ export async function listNotifications(limit = 20): Promise<AdminNotification[]
   });
   return data.data;
 }
-
-export async function countNotifications(): Promise<number> {
-  const { data } = await apiClient.get<ApiEnvelope<AdminNotification[]>>('/admin/notifications', {
-    params: { limit: 1 },
-  });
-  return data.meta?.total ?? 0;
-}

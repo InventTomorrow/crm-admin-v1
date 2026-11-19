@@ -367,6 +367,69 @@ export interface SubscriptionListItem extends Subscription {
   billing: SubscriptionBilling;
 }
 
+export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
+
+/** Mirrors InvoicesService.toInvoiceListItem in server/src/modules/admin/invoices. */
+export interface InvoiceListItem {
+  id: string;
+  number: string;
+  status: InvoiceStatus;
+  amount: number;
+  /** Pre-discount total; above `amount` only when the invoice was discounted. */
+  listAmount: number | null;
+  discountReason: string | null;
+  currency: string;
+  provider: 'MANUAL' | 'SAFEPAY';
+  planName: string | null;
+  /** Plan periods sold; null on renewals, which always bill one. */
+  periodCount: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  issuedAt: string;
+  dueAt: string | null;
+  payment: {
+    methodLabel: string;
+    reference: string | null;
+    discountReason: string | null;
+    paidAt: string | null;
+  } | null;
+}
+
+/** A customer-submitted payment still waiting for an admin to approve it. */
+export interface PendingPaymentItem {
+  id: string;
+  planName: string | null;
+  amount: number;
+  currency: string;
+  methodLabel: string;
+  reference: string | null;
+  periodCount: number;
+  submittedAt: string;
+}
+
+/** Mirrors InvoiceOutcome in server/src/modules/admin/invoices/invoice-lifecycle.service.ts. */
+export interface InvoiceOutcome {
+  invoiceId: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  subscriptionId: string | null;
+}
+
+export interface BillingSummary {
+  account: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    businessName: string | null;
+  };
+  paid: { amount: number; count: number };
+  unpaid: { amount: number; count: number };
+  pendingPayments: PendingPaymentItem[];
+}
+
 /** Columns the subscriptions list can be ordered by — all server-side. */
 export type SubscriptionSortField =
   | 'createdAt'

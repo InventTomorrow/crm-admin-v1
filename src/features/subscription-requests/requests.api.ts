@@ -47,6 +47,8 @@ export interface RequestListFilters {
   status?: SubscriptionRequestStatus;
   planId?: string;
   paymentMethod?: string;
+  /** ISO timestamp; only rows submitted after it. */
+  createdAfter?: string;
   sortBy?: SubscriptionRequestSortField;
   sortOrder?: SortOrder;
 }

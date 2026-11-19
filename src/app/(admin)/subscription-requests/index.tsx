@@ -4,7 +4,7 @@ import { RequestsView } from '@/features/subscription-requests/components/Reques
 const SubscriptionRequestsPage = () => {
   return (
     <>
-      <PageMeta title="Subscription requests" />
+      <PageMeta title="User payments" />
       <main>
         <RequestsView />
       </main>
