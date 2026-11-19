@@ -1,6 +1,10 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { z } from 'zod';
+import { lookupUsers } from '@/features/users/users.api';
 import { apiMessage } from '@/lib/apiClient';
+import type { UserLookupItem } from '@/lib/types';
+import { useDebounce } from '@/lib/useDebounce';
 import {
   approveAffiliateApplication,
   createAffiliate,
@@ -124,7 +128,7 @@ export interface CreateAffiliateResult {
   invite: AffiliateInviteResult | null;
 }
 
-// Codes and the join link are optional extras: if one fails the affiliate still exists and the toast says why.
+// The affiliate and its codes save together; only the join link is an extra that may fail on its own.
 export function useCreateAffiliate() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -133,16 +137,7 @@ export function useCreateAffiliate() {
       codes: ReferralCodeInput[];
       invite: AffiliateInviteInput | null;
     }): Promise<CreateAffiliateResult> => {
-      const affiliate = await createAffiliate(input.affiliate);
-      // One at a time so a taken code only fails itself; the rest still get created.
-      for (const codeInput of input.codes) {
-        try {
-          await createReferralCode(affiliate.id, codeInput);
-        } catch (error) {
-          const codeLabel = codeInput.code ?? 'A generated code';
-          toast.error(`Affiliate added, but ${codeLabel} was not created: ${apiMessage(error)}`);
-        }
-      }
+      const affiliate = await createAffiliate({ ...input.affiliate, referralCodes: input.codes });
       // The server links an existing verified account on its own; no link is needed then.
       if (!input.invite || affiliate.userId) return { affiliate, invite: null };
       try {
@@ -164,6 +159,46 @@ export function useCreateAffiliate() {
     },
     onError: error => toast.error(apiMessage(error)),
   });
+}
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const isEmailShaped = (email: string) => z.email().safeParse(email).success;
+const existingAccountKey = (email: string) => ['users-lookup', 'exact-email', email];
+
+// The lookup is a fuzzy search, so only an exact email match counts.
+async function findAccountByEmail(email: string): Promise<UserLookupItem | null> {
+  const matchingUsers = await lookupUsers({ search: email, limit: 5 });
+  return matchingUsers.find(user => user.email.toLowerCase() === email) ?? null;
+}
+
+/** Spots an email that already has an account: live while typing, and again on demand before moving on. */
+export function useExistingAccountForEmail(email: string, enabled: boolean) {
+  const queryClient = useQueryClient();
+  const debouncedEmail = normalizeEmail(useDebounce(email, 400));
+  const existingAccountQuery = useQuery({
+    queryKey: existingAccountKey(debouncedEmail),
+    queryFn: () => findAccountByEmail(debouncedEmail),
+    enabled: enabled && isEmailShaped(debouncedEmail),
+    staleTime: 60_000,
+  });
+
+  // A failed lookup never blocks the form; the server still links a verified account on its own.
+  const findExistingAccountNow = (rawEmail: string): Promise<UserLookupItem | null> => {
+    const email = normalizeEmail(rawEmail);
+    if (!isEmailShaped(email)) return Promise.resolve(null);
+    return queryClient
+      .fetchQuery({
+        queryKey: existingAccountKey(email),
+        queryFn: () => findAccountByEmail(email),
+        staleTime: 60_000,
+      })
+      .catch(() => null);
+  };
+
+  return {
+    existingAccount: enabled ? (existingAccountQuery.data ?? null) : null,
+    findExistingAccountNow,
+  };
 }
 
 export function useInviteAffiliate(affiliateId: string) {

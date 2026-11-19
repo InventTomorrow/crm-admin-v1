@@ -11,6 +11,7 @@ import {
   type ReferralCodeFormValues,
 } from '../../affiliate-form.schema';
 import type { ReferralCodeInput } from '../../affiliates.api';
+import { DEFAULT_REFERRAL_DISCOUNT_PERCENT } from '../../types';
 import { ReferralCodeFormDialog } from '../codes/ReferralCodeFormDialog';
 
 interface DraftCodesListProps {
@@ -86,8 +87,8 @@ export function DraftCodesList({ form, onCodeDialogOpenChange }: DraftCodesListP
         <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-default-300 px-4 py-8 text-center">
           <LuTicket className="size-6 text-default-400" />
           <p className="max-w-sm text-sm text-default-500">
-            No codes yet. Add as many as you like now, or skip this and add them later from the
-            affiliate page.
+            No codes yet. Add as many as you like now. If you skip this, they get one generated
+            code at {DEFAULT_REFERRAL_DISCOUNT_PERCENT}% off, which you can edit later.
           </p>
           <Button type="button" size="sm" onClick={() => openCodeDialog(null)}>
             <LuPlus className="size-4 me-1" /> Add code

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { AffiliateInput, AffiliateInviteInput, ReferralCodeInput } from './affiliates.api';
 import {
+  DEFAULT_REFERRAL_DISCOUNT_PERCENT,
   MAX_COMMISSION_PERCENT,
   MAX_REFERRAL_DISCOUNT_PERCENT,
   MIN_REFERRAL_DISCOUNT_PERCENT,
@@ -124,7 +125,7 @@ export function referralCodeFormValues(
 ): ReferralCodeFormValues {
   return {
     code: referralCode?.code ?? '',
-    discountPercent: referralCode?.discountPercent ?? 10,
+    discountPercent: referralCode?.discountPercent ?? DEFAULT_REFERRAL_DISCOUNT_PERCENT,
     maxRedemptions: referralCode?.maxRedemptions ?? null,
     expiresAt: referralCode?.expiresAt ? new Date(referralCode.expiresAt) : null,
     isActive: referralCode?.isActive ?? true,

@@ -72,7 +72,12 @@ export async function getAffiliate(affiliateId: string): Promise<Affiliate> {
   return data.data;
 }
 
-export async function createAffiliate(input: AffiliateInput): Promise<Affiliate> {
+// The server saves these with the affiliate, or generates one code when the list is empty.
+export interface CreateAffiliateInput extends AffiliateInput {
+  referralCodes: ReferralCodeInput[];
+}
+
+export async function createAffiliate(input: CreateAffiliateInput): Promise<Affiliate> {
   const { data } = await apiClient.post<ApiEnvelope<Affiliate>>('/admin/affiliates', input);
   return data.data;
 }

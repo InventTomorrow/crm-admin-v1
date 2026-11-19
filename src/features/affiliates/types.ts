@@ -8,6 +8,8 @@ export type AffiliateApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export const MIN_REFERRAL_DISCOUNT_PERCENT = 1;
 export const MAX_REFERRAL_DISCOUNT_PERCENT = 15;
+/** Mirrors the server: a new affiliate added without codes gets one generated at this discount. */
+export const DEFAULT_REFERRAL_DISCOUNT_PERCENT = 10;
 export const MAX_COMMISSION_PERCENT = 50;
 
 export interface LinkedUser {
