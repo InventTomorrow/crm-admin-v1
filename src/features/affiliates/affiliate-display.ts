@@ -1,5 +1,12 @@
 import type { BadgeTone } from '@/components/ui/badge';
-import type { AffiliateStatus, ReferralCode, ReferralStatus } from './types';
+import type { JoinOption } from './affiliate-form.schema';
+import type {
+  AffiliateApplicationStatus,
+  AffiliateJoinMethod,
+  AffiliateStatus,
+  ReferralCode,
+  ReferralStatus,
+} from './types';
 
 export const AFFILIATE_STATUS_TONE: Record<AffiliateStatus, BadgeTone> = {
   ACTIVE: 'success',
@@ -9,6 +16,30 @@ export const AFFILIATE_STATUS_TONE: Record<AffiliateStatus, BadgeTone> = {
 export const AFFILIATE_STATUS_LABEL: Record<AffiliateStatus, string> = {
   ACTIVE: 'Active',
   PAUSED: 'Paused',
+};
+
+export const JOIN_METHOD_LABEL: Record<AffiliateJoinMethod, string> = {
+  SET_PASSWORD: 'They only set a password',
+  SIGNUP: 'They fill in their own details',
+};
+
+export const JOIN_OPTION_LABEL: Record<JoinOption, string> = {
+  SET_PASSWORD: 'Send a join link: they only set a password',
+  SIGNUP: 'Send a join link: they fill in their own details',
+  EXISTING_ACCOUNT: 'Link an account that already exists',
+  LATER: 'Decide later',
+};
+
+export const APPLICATION_STATUS_TONE: Record<AffiliateApplicationStatus, BadgeTone> = {
+  PENDING: 'warning',
+  APPROVED: 'success',
+  REJECTED: 'neutral',
+};
+
+export const APPLICATION_STATUS_LABEL: Record<AffiliateApplicationStatus, string> = {
+  PENDING: 'Waiting for review',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
 };
 
 export const REFERRAL_STATUS_TONE: Record<ReferralStatus, BadgeTone> = {

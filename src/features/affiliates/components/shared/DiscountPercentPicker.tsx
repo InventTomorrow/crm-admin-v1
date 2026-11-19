@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { MAX_REFERRAL_DISCOUNT_PERCENT, MIN_REFERRAL_DISCOUNT_PERCENT } from '../types';
+import { MAX_REFERRAL_DISCOUNT_PERCENT, MIN_REFERRAL_DISCOUNT_PERCENT } from '../../types';
 
 const QUICK_PICKS = [5, 10, 15];
 

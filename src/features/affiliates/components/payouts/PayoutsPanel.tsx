@@ -1,8 +1,11 @@
 import { LuBanknote } from 'react-icons/lu';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
-import { PAYMENT_METHOD_LABELS, type PaymentMethod } from '@/features/subscriptions/subscriptions.api';
+import {
+  PAYMENT_METHOD_LABELS,
+  type PaymentMethod,
+} from '@/features/subscriptions/subscriptions.api';
 import { formatDate, formatMoneyPKR } from '@/lib/format';
-import { useAffiliatePayouts } from '../affiliates.hooks';
+import { useAffiliatePayouts } from '../../affiliates.hooks';
 
 const paymentMethodLabel = (method: string | null) =>
   method ? (PAYMENT_METHOD_LABELS[method as PaymentMethod] ?? method) : 'N/A';

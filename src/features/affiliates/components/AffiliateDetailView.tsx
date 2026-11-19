@@ -33,14 +33,15 @@ import {
 } from '../affiliate-display';
 import { useAffiliate, useAffiliateAnalytics, useDeleteAffiliate } from '../affiliates.hooks';
 import type { Affiliate, AffiliateAnalytics } from '../types';
-import { AffiliateFormDialog } from './AffiliateFormDialog';
-import { AffiliateKpiTile } from './AffiliateKpiTile';
-import { PerformanceTrendChart, RevenueByPlanChart } from './AffiliateCharts';
-import { CodePerformanceList } from './CodePerformanceList';
-import { PayoutsPanel } from './PayoutsPanel';
-import { RecordPayoutDialog } from './RecordPayoutDialog';
-import { ReferralCodesPanel } from './ReferralCodesPanel';
-import { ReferralsTable } from './ReferralsTable';
+import { AffiliateFormDialog } from './form/AffiliateFormDialog';
+import { AffiliateJoinStatus } from './join/AffiliateJoinStatus';
+import { AffiliateKpiTile } from './shared/AffiliateKpiTile';
+import { PerformanceTrendChart, RevenueByPlanChart } from './analytics/AffiliateCharts';
+import { CodePerformanceList } from './analytics/CodePerformanceList';
+import { PayoutsPanel } from './payouts/PayoutsPanel';
+import { RecordPayoutDialog } from './payouts/RecordPayoutDialog';
+import { ReferralCodesPanel } from './codes/ReferralCodesPanel';
+import { ReferralsTable } from './referrals/ReferralsTable';
 
 type AffiliateTab = 'codes' | 'referrals' | 'payouts';
 
@@ -77,11 +78,6 @@ function AffiliateHeader({
                 <Badge tone={AFFILIATE_STATUS_TONE[affiliate.status]}>
                   {AFFILIATE_STATUS_LABEL[affiliate.status]}
                 </Badge>
-                {affiliate.user && (
-                  <Badge tone="info" icon={LuLink2}>
-                    Linked account
-                  </Badge>
-                )}
               </div>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-default-500">
                 <span className="flex items-center gap-1.5">
@@ -95,7 +91,15 @@ function AffiliateHeader({
                 <span className="flex items-center gap-1.5">
                   <LuBadgePercent className="size-3.5" /> {affiliate.commissionPercent}% commission
                 </span>
+                <span>
+                  {affiliate.selfServeMaxDiscountPercent
+                    ? `Can create own codes up to ${affiliate.selfServeMaxDiscountPercent}% off`
+                    : 'Cannot create own codes'}
+                </span>
                 <span>Since {formatDate(affiliate.createdAt)}</span>
+              </div>
+              <div className="mt-2">
+                <AffiliateJoinStatus affiliate={affiliate} canManage={canManage} />
               </div>
             </div>
           </div>

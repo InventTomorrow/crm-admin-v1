@@ -4,8 +4,8 @@ import { SettingsCard } from '@/features/settings/components/SettingsCard';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { SystemPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
-import { useReferralStackingMode, useUpdateReferralStackingMode } from '../affiliates.hooks';
-import type { ReferralStackingMode } from '../types';
+import { useReferralStackingMode, useUpdateReferralStackingMode } from '../../affiliates.hooks';
+import type { ReferralStackingMode } from '../../types';
 
 const STACKING_OPTIONS: { mode: ReferralStackingMode; title: string; example: string }[] = [
   {

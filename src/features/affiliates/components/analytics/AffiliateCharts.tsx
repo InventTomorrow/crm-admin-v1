@@ -3,13 +3,15 @@ import type { ApexOptions } from 'apexcharts';
 import ApexChartClient from '@/components/client-wrapper/ApexChartClient';
 import { useChartColors } from '@/components/charts/useChartColors';
 import { formatMoneyPKR } from '@/lib/format';
-import type { AffiliateAnalytics } from '../types';
+import type { AffiliateAnalytics } from '../../types';
 
 const MONTH_LABEL = new Intl.DateTimeFormat('en', { month: 'short', year: '2-digit' });
 const DAY_LABEL = new Intl.DateTimeFormat('en', { month: 'short', day: 'numeric' });
 
 function bucketLabel(bucket: string, granularity: AffiliateAnalytics['granularity']): string {
-  const bucketDate = new Date(granularity === 'day' ? `${bucket}T00:00:00` : `${bucket}-01T00:00:00`);
+  const bucketDate = new Date(
+    granularity === 'day' ? `${bucket}T00:00:00` : `${bucket}-01T00:00:00`
+  );
   return granularity === 'day' ? DAY_LABEL.format(bucketDate) : MONTH_LABEL.format(bucketDate);
 }
 
@@ -103,7 +105,11 @@ export function RevenueByPlanChart({ byPlan }: Pick<AffiliateAnalytics, 'byPlan'
             size: '72%',
             labels: {
               show: true,
-              total: { show: true, label: 'Revenue', formatter: () => formatMoneyPKR(totalRevenue) },
+              total: {
+                show: true,
+                label: 'Revenue',
+                formatter: () => formatMoneyPKR(totalRevenue),
+              },
             },
           },
         },

@@ -1,5 +1,13 @@
-import { useState } from 'react';
-import { LuCalendarClock, LuCopy, LuLink, LuPencil, LuPlus, LuTicket, LuTrash2 } from 'react-icons/lu';
+import { useMemo, useState } from 'react';
+import {
+  LuCalendarClock,
+  LuCopy,
+  LuLink,
+  LuPencil,
+  LuPlus,
+  LuTicket,
+  LuTrash2,
+} from 'react-icons/lu';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingState } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
@@ -11,9 +19,16 @@ import {
   CODE_AVAILABILITY_LABEL,
   CODE_AVAILABILITY_TONE,
   codeAvailabilityOf,
-} from '../affiliate-display';
-import { useDeleteReferralCode, useReferralCodes, useUpdateReferralCode } from '../affiliates.hooks';
-import type { ReferralCode } from '../types';
+} from '../../affiliate-display';
+import { referralCodeFormValues } from '../../affiliate-form.schema';
+import type { ReferralCodeInput } from '../../affiliates.api';
+import {
+  useCreateReferralCode,
+  useDeleteReferralCode,
+  useReferralCodes,
+  useUpdateReferralCode,
+} from '../../affiliates.hooks';
+import type { ReferralCode } from '../../types';
 import { ReferralCodeFormDialog } from './ReferralCodeFormDialog';
 
 interface ReferralCodesPanelProps {
@@ -27,17 +42,32 @@ const copyToClipboard = async (text: string, successMessage: string) => {
 };
 
 function deleteDescriptionFor(referralCode: ReferralCode): string {
-  if (referralCode.uses === 0) return 'Nobody has used this code yet, so it will be removed for good.';
+  if (referralCode.uses === 0)
+    return 'Nobody has used this code yet, so it will be removed for good.';
   return `${referralCode.uses} account(s) signed up with this code. It will be retired and its history kept. Accounts that have not paid yet lose the discount.`;
 }
 
 export function ReferralCodesPanel({ affiliateId, canManage }: ReferralCodesPanelProps) {
   const { data: referralCodes, isLoading, isError, error, refetch } = useReferralCodes(affiliateId);
+  const createCodeMutation = useCreateReferralCode(affiliateId);
   const updateCodeMutation = useUpdateReferralCode();
   const deleteCodeMutation = useDeleteReferralCode();
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [codeBeingEdited, setCodeBeingEdited] = useState<ReferralCode | null>(null);
   const [codePendingDeletion, setCodePendingDeletion] = useState<ReferralCode | null>(null);
+  const codeDialogValues = useMemo(
+    () => referralCodeFormValues(codeBeingEdited),
+    [codeBeingEdited]
+  );
+
+  const saveCode = ({ code, ...codeLimits }: ReferralCodeInput) => {
+    const closeOnSuccess = { onSuccess: () => setIsCodeDialogOpen(false) };
+    if (codeBeingEdited) {
+      updateCodeMutation.mutate({ codeId: codeBeingEdited.id, input: codeLimits }, closeOnSuccess);
+      return;
+    }
+    createCodeMutation.mutate({ ...codeLimits, ...(code ? { code } : {}) }, closeOnSuccess);
+  };
 
   const openCodeDialog = (referralCode: ReferralCode | null) => {
     setCodeBeingEdited(referralCode);
@@ -89,9 +119,14 @@ export function ReferralCodesPanel({ affiliateId, canManage }: ReferralCodesPane
                         {referralCode.code}
                         <LuCopy className="size-3.5 text-default-400" />
                       </button>
-                      <Badge tone={CODE_AVAILABILITY_TONE[availability]}>
-                        {CODE_AVAILABILITY_LABEL[availability]}
-                      </Badge>
+                      <div className="flex flex-wrap gap-1">
+                        <Badge tone={CODE_AVAILABILITY_TONE[availability]}>
+                          {CODE_AVAILABILITY_LABEL[availability]}
+                        </Badge>
+                        {referralCode.createdByAffiliate && (
+                          <Badge tone="info">Created by affiliate</Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <span className="rounded-lg bg-success/10 px-2.5 py-1 text-sm font-semibold text-success">
@@ -175,8 +210,12 @@ export function ReferralCodesPanel({ affiliateId, canManage }: ReferralCodesPane
       <ReferralCodeFormDialog
         open={isCodeDialogOpen}
         onOpenChange={setIsCodeDialogOpen}
-        affiliateId={affiliateId}
-        referralCode={codeBeingEdited}
+        title={codeBeingEdited ? `Edit ${codeBeingEdited.code}` : 'New referral code'}
+        submitLabel={codeBeingEdited ? 'Save code' : 'Create code'}
+        initialValues={codeDialogValues}
+        isSavedCode={Boolean(codeBeingEdited)}
+        isSaving={createCodeMutation.isPending || updateCodeMutation.isPending}
+        onSave={saveCode}
       />
 
       <ConfirmDialog

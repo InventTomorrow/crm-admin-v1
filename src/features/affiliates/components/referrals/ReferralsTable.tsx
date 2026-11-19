@@ -6,9 +6,9 @@ import { Select } from '@/components/ui/select';
 import { UserAvatar } from '@/features/users/components/UserAvatar';
 import { formatDate, formatFullName, formatMoneyPKR } from '@/lib/format';
 import { useListQueryState } from '@/lib/useListQueryState';
-import { REFERRAL_STATUS_LABEL, REFERRAL_STATUS_TONE } from '../affiliate-display';
-import { useAffiliateReferrals } from '../affiliates.hooks';
-import type { Referral, ReferralStatus } from '../types';
+import { REFERRAL_STATUS_LABEL, REFERRAL_STATUS_TONE } from '../../affiliate-display';
+import { useAffiliateReferrals } from '../../affiliates.hooks';
+import type { Referral, ReferralStatus } from '../../types';
 
 export function ReferralsTable({ affiliateId }: { affiliateId: string }) {
   const listQuery = useListQueryState({ namespace: 'referrals', filters: { status: 'ALL' } });
@@ -57,7 +57,9 @@ export function ReferralsTable({ affiliateId }: { affiliateId: string }) {
         cell: ({ row }) => (
           <span className="font-mono text-sm">
             {row.original.code.code}
-            <span className="ms-1.5 text-xs text-default-400">−{row.original.discountPercent}%</span>
+            <span className="ms-1.5 text-xs text-default-400">
+              −{row.original.discountPercent}%
+            </span>
           </span>
         ),
       },
@@ -73,7 +75,8 @@ export function ReferralsTable({ affiliateId }: { affiliateId: string }) {
       {
         id: 'plan',
         header: 'Plan',
-        cell: ({ row }) => row.original.planName ?? <span className="text-default-400">Not yet</span>,
+        cell: ({ row }) =>
+          row.original.planName ?? <span className="text-default-400">Not yet</span>,
       },
       {
         id: 'paid',
