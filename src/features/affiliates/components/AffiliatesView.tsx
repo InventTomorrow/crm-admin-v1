@@ -13,7 +13,6 @@ import { useNavigate, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
 import { Tabs } from '@/components/ui/tabs';
@@ -23,14 +22,10 @@ import { formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { useListQueryState } from '@/lib/useListQueryState';
 import { AFFILIATE_STATUS_LABEL, AFFILIATE_STATUS_TONE, formatPercent } from '../affiliate-display';
-import {
-  useAffiliateApplications,
-  useAffiliates,
-  useDeleteAffiliate,
-  useProgramOverview,
-} from '../affiliates.hooks';
+import { useAffiliateApplications, useAffiliates, useProgramOverview } from '../affiliates.hooks';
 import type { Affiliate, AffiliateListItem, AffiliateStatus } from '../types';
 import { AffiliateFormDialog } from './form/AffiliateFormDialog';
+import { DeleteAffiliateDialog } from './removal/DeleteAffiliateDialog';
 import { AffiliateApplicationsPanel } from './applications/AffiliateApplicationsPanel';
 import { AffiliateKpiTile } from './shared/AffiliateKpiTile';
 
@@ -109,7 +104,6 @@ export function AffiliatesView() {
     ...(search ? { search } : {}),
     ...(statusFilter === 'ALL' ? {} : { status: statusFilter }),
   });
-  const deleteAffiliateMutation = useDeleteAffiliate();
 
   const openForm = (affiliate: Affiliate | null) => {
     setAffiliateBeingEdited(affiliate);
@@ -243,8 +237,6 @@ export function AffiliatesView() {
     [canManage]
   );
 
-  const hasHistory = (affiliatePendingDeletion?.stats.signups ?? 0) > 0;
-
   return (
     <>
       <PageHeader
@@ -309,7 +301,7 @@ export function AffiliatesView() {
             >
               <option value="ALL">All statuses</option>
               <option value="ACTIVE">Active</option>
-              <option value="PAUSED">Paused</option>
+              <option value="PAUSED">Suspended</option>
             </Select>
           }
         />
@@ -322,23 +314,11 @@ export function AffiliatesView() {
         onCreated={createdAffiliate => navigate(`/affiliates/${createdAffiliate.id}`)}
       />
 
-      <ConfirmDialog
+      <DeleteAffiliateDialog
         open={affiliatePendingDeletion !== null}
         onOpenChange={isOpen => !isOpen && setAffiliatePendingDeletion(null)}
-        title={`Delete ${affiliatePendingDeletion?.name ?? 'affiliate'}?`}
-        description={
-          hasHistory
-            ? 'This affiliate has referral history, so they will be archived instead: their codes stop working and their history stays in reports.'
-            : 'This affiliate and their codes will be removed for good.'
-        }
-        confirmLabel={hasHistory ? 'Archive affiliate' : 'Delete affiliate'}
-        isLoading={deleteAffiliateMutation.isPending}
-        onConfirm={() => {
-          if (!affiliatePendingDeletion) return;
-          deleteAffiliateMutation.mutate(affiliatePendingDeletion.id, {
-            onSuccess: () => setAffiliatePendingDeletion(null),
-          });
-        }}
+        affiliate={affiliatePendingDeletion}
+        history={affiliatePendingDeletion?.stats ?? null}
       />
     </>
   );

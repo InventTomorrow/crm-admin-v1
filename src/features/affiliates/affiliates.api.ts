@@ -1,4 +1,5 @@
 import { apiClient, type ApiEnvelope } from '@/lib/apiClient';
+import { downloadBlob, filenameFromDisposition } from '@/lib/download';
 import type { Paged } from '@/lib/types';
 import type { PaymentMethod } from '@/features/subscriptions/subscriptions.api';
 import type {
@@ -96,6 +97,28 @@ export async function updateAffiliate(
 export async function deleteAffiliate(affiliateId: string): Promise<DeleteOutcome> {
   const { data } = await apiClient.delete<ApiEnvelope<DeleteOutcome>>(
     `/admin/affiliates/${affiliateId}`
+  );
+  return data.data;
+}
+
+/** The server records the download; a force delete is refused without a recent one. */
+export async function downloadAffiliateStatement(affiliateId: string): Promise<void> {
+  const response = await apiClient.get(`/admin/affiliates/${affiliateId}/statement`, {
+    responseType: 'blob',
+  });
+  downloadBlob(
+    response.data as Blob,
+    filenameFromDisposition(response.headers['content-disposition'], 'affiliate-statement.pdf')
+  );
+}
+
+export async function forceDeleteAffiliate(
+  affiliateId: string,
+  confirmName: string
+): Promise<DeleteOutcome> {
+  const { data } = await apiClient.post<ApiEnvelope<DeleteOutcome>>(
+    `/admin/affiliates/${affiliateId}/force-delete`,
+    { confirmName }
   );
   return data.data;
 }

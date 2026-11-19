@@ -83,10 +83,10 @@ export function AffiliateDetailsFields({
       )}
 
       {isEditing && (
-        <Field label="Status" hint="Paused affiliates' codes stop working for new sign-ups.">
+        <Field label="Status" hint="Suspended affiliates' codes stop working for new sign-ups.">
           <Select {...form.register('status')}>
             <option value="ACTIVE">Active</option>
-            <option value="PAUSED">Paused</option>
+            <option value="PAUSED">Suspended</option>
           </Select>
         </Field>
       )}

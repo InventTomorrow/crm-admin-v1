@@ -17,7 +17,6 @@ import { useNavigate, useParams } from 'react-router';
 import { EmptyState, ErrorState, TenantDetailSkeleton } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Tabs } from '@/components/ui/tabs';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { DateRangeFilter } from '@/features/dashboard/components/DateRangeFilter';
@@ -31,7 +30,8 @@ import {
   formatPercent,
   percentChange,
 } from '../affiliate-display';
-import { useAffiliate, useAffiliateAnalytics, useDeleteAffiliate } from '../affiliates.hooks';
+import { useAffiliate, useAffiliateAnalytics } from '../affiliates.hooks';
+import { DeleteAffiliateDialog } from './removal/DeleteAffiliateDialog';
 import type { Affiliate, AffiliateAnalytics } from '../types';
 import { AffiliateFormDialog } from './form/AffiliateFormDialog';
 import { AffiliateJoinStatus } from './join/AffiliateJoinStatus';
@@ -296,7 +296,6 @@ export function AffiliateDetailView() {
 
   const affiliateQuery = useAffiliate(affiliateId);
   const analyticsQuery = useAffiliateAnalytics(affiliateId, range);
-  const deleteAffiliateMutation = useDeleteAffiliate();
 
   if (affiliateQuery.isLoading) return <TenantDetailSkeleton />;
   if (affiliateQuery.isError || !affiliateQuery.data) {
@@ -309,7 +308,6 @@ export function AffiliateDetailView() {
 
   const affiliate = affiliateQuery.data;
   const analytics = analyticsQuery.data;
-  const hasReferralHistory = (analytics?.lifetime.signups ?? 0) > 0;
 
   return (
     <div className="space-y-5">
@@ -382,22 +380,12 @@ export function AffiliateDetailView() {
         amountOwed={analytics?.lifetime.commissionOwed ?? 0}
       />
 
-      <ConfirmDialog
+      <DeleteAffiliateDialog
         open={isDeleteOpen}
         onOpenChange={setIsDeleteOpen}
-        title={`Delete ${affiliate.name}?`}
-        description={
-          hasReferralHistory
-            ? 'This affiliate has referral history, so they will be archived instead: their codes stop working and their history stays in reports.'
-            : 'This affiliate and their codes will be removed for good.'
-        }
-        confirmLabel={hasReferralHistory ? 'Archive affiliate' : 'Delete affiliate'}
-        isLoading={deleteAffiliateMutation.isPending}
-        onConfirm={() =>
-          deleteAffiliateMutation.mutate(affiliate.id, {
-            onSuccess: () => navigate('/affiliates'),
-          })
-        }
+        affiliate={affiliate}
+        history={analytics?.lifetime ?? null}
+        onRemoved={() => navigate('/affiliates')}
       />
     </div>
   );
