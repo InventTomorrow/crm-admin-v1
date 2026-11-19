@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { toast } from 'sonner';
 import { apiMessage } from '@/lib/apiClient';
 import {
+  approveAffiliateApplication,
   createAffiliate,
   createAffiliatePayout,
   createReferralCode,
@@ -11,19 +12,32 @@ import {
   getAffiliateAnalytics,
   getProgramOverview,
   getReferralStackingMode,
+  inviteAffiliate,
+  issueAffiliatePasswordReset,
+  listAffiliateApplications,
   listAffiliatePayouts,
   listAffiliateReferrals,
   listAffiliates,
   listReferralCodes,
+  rejectAffiliateApplication,
+  revokeAffiliateInvite,
   updateAffiliate,
   updateReferralCode,
   updateReferralStackingMode,
   type AffiliateInput,
+  type AffiliateInviteInput,
   type AnalyticsRange,
+  type ApplicationApprovalInput,
   type PayoutInput,
   type ReferralCodeInput,
 } from './affiliates.api';
-import type { AffiliateListFilters, ReferralStatus } from './types';
+import type {
+  Affiliate,
+  AffiliateApplicationStatus,
+  AffiliateInviteResult,
+  AffiliateListFilters,
+  ReferralStatus,
+} from './types';
 
 // One root key so any affiliate mutation refreshes lists, KPIs and analytics together.
 const AFFILIATES_KEY = 'affiliates';
@@ -100,26 +114,121 @@ function useAffiliateMutation<TVariables, TResult>(
   });
 }
 
-// The first code is optional; if it fails the affiliate still exists and the toast says why.
+function inviteSuccessMessage(invite: AffiliateInviteResult): string {
+  if (invite.outcome === 'LINKED') return 'Linked to the account that already uses this email';
+  return invite.emailSent ? 'Join link emailed' : 'Join link ready to share';
+}
+
+export interface CreateAffiliateResult {
+  affiliate: Affiliate;
+  invite: AffiliateInviteResult | null;
+}
+
+// Codes and the join link are optional extras: if one fails the affiliate still exists and the toast says why.
 export function useCreateAffiliate() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { affiliate: AffiliateInput; firstCode: ReferralCodeInput | null }) => {
+    mutationFn: async (input: {
+      affiliate: AffiliateInput;
+      codes: ReferralCodeInput[];
+      invite: AffiliateInviteInput | null;
+    }): Promise<CreateAffiliateResult> => {
       const affiliate = await createAffiliate(input.affiliate);
-      if (!input.firstCode) return affiliate;
-      try {
-        await createReferralCode(affiliate.id, input.firstCode);
-      } catch (error) {
-        toast.error(`Affiliate added, but the code was not created: ${apiMessage(error)}`);
+      // One at a time so a taken code only fails itself; the rest still get created.
+      for (const codeInput of input.codes) {
+        try {
+          await createReferralCode(affiliate.id, codeInput);
+        } catch (error) {
+          const codeLabel = codeInput.code ?? 'A generated code';
+          toast.error(`Affiliate added, but ${codeLabel} was not created: ${apiMessage(error)}`);
+        }
       }
-      return affiliate;
+      // The server links an existing verified account on its own; no link is needed then.
+      if (!input.invite || affiliate.userId) return { affiliate, invite: null };
+      try {
+        return { affiliate, invite: await inviteAffiliate(affiliate.id, input.invite) };
+      } catch (error) {
+        toast.error(`Affiliate added, but the join link was not created: ${apiMessage(error)}`);
+        return { affiliate, invite: null };
+      }
     },
-    onSuccess: () => {
+    onSuccess: ({ affiliate, invite }) => {
       queryClient.invalidateQueries({ queryKey: [AFFILIATES_KEY] });
-      toast.success('Affiliate added');
+      if (affiliate.userId && !invite) {
+        toast.success('Affiliate added and linked to their account');
+        return;
+      }
+      toast.success(
+        invite ? `Affiliate added. ${inviteSuccessMessage(invite)}` : 'Affiliate added'
+      );
     },
     onError: error => toast.error(apiMessage(error)),
   });
+}
+
+export function useInviteAffiliate(affiliateId: string) {
+  return useAffiliateMutation(
+    (input: AffiliateInviteInput) => inviteAffiliate(affiliateId, input),
+    inviteSuccessMessage
+  );
+}
+
+export function useIssueAffiliatePasswordReset(affiliateId: string) {
+  return useAffiliateMutation(
+    (sendEmail: boolean) => issueAffiliatePasswordReset(affiliateId, sendEmail),
+    resetLink => (resetLink.emailSent ? 'Reset link emailed' : 'Reset link ready to share')
+  );
+}
+
+export function useRevokeAffiliateInvite(affiliateId: string) {
+  return useAffiliateMutation(() => revokeAffiliateInvite(affiliateId), 'Join link cancelled');
+}
+
+export function useAffiliateApplications(params: {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: AffiliateApplicationStatus;
+}) {
+  return useQuery({
+    queryKey: [AFFILIATES_KEY, 'applications', params],
+    queryFn: () => listAffiliateApplications(params),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useApproveAffiliateApplication() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      applicationId,
+      input,
+    }: {
+      applicationId: string;
+      input: ApplicationApprovalInput;
+    }) => approveAffiliateApplication(applicationId, input),
+    onSuccess: approval => {
+      queryClient.invalidateQueries({ queryKey: [AFFILIATES_KEY] });
+      if (approval.inviteProblem) {
+        toast.warning(`Approved, but no join link was sent: ${approval.inviteProblem}`);
+        return;
+      }
+      toast.success(
+        approval.invite
+          ? `Approved. ${inviteSuccessMessage(approval.invite)}`
+          : 'Application approved'
+      );
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useRejectAffiliateApplication() {
+  return useAffiliateMutation(
+    ({ applicationId, note }: { applicationId: string; note?: string }) =>
+      rejectAffiliateApplication(applicationId, note),
+    'Application rejected'
+  );
 }
 
 export function useUpdateAffiliate(affiliateId: string) {

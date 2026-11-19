@@ -1,7 +1,7 @@
 import { EmptyState } from '@/components/states';
 import { Badge } from '@/components/ui/badge';
 import { formatMoneyPKR } from '@/lib/format';
-import type { CodePerformance } from '../types';
+import type { CodePerformance } from '../../types';
 
 /** Each code's range revenue as a bar relative to the best performer. */
 export function CodePerformanceList({ byCode }: { byCode: CodePerformance[] }) {

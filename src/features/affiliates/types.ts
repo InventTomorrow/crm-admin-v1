@@ -3,6 +3,8 @@
 export type AffiliateStatus = 'ACTIVE' | 'PAUSED';
 export type ReferralStatus = 'SIGNED_UP' | 'CONVERTED';
 export type ReferralStackingMode = 'BEST_OF' | 'STACK' | 'REFERRAL_OVERRIDES';
+export type AffiliateJoinMethod = 'SET_PASSWORD' | 'SIGNUP';
+export type AffiliateApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export const MIN_REFERRAL_DISCOUNT_PERCENT = 1;
 export const MAX_REFERRAL_DISCOUNT_PERCENT = 15;
@@ -23,8 +25,15 @@ export interface Affiliate {
   email: string;
   phone: string | null;
   commissionPercent: number;
+  /** Highest discount on codes the affiliate creates themselves; null = not allowed. */
+  selfServeMaxDiscountPercent?: number | null;
   status: AffiliateStatus;
   notes: string | null;
+  // Absent on affiliates created before join links existed.
+  inviteMethod?: AffiliateJoinMethod | null;
+  inviteExpiresAt?: string | null;
+  inviteSentAt?: string | null;
+  joinedAt?: string | null;
   createdAt: string;
   updatedAt: string;
   user: LinkedUser | null;
@@ -69,6 +78,7 @@ export interface ReferralCode {
   createdAt: string;
   uses: number;
   shareUrl: string;
+  createdByAffiliate: boolean;
 }
 
 export interface PeriodTotals {
@@ -151,4 +161,50 @@ export interface AffiliatePayout {
 
 export interface DeleteOutcome {
   outcome: 'deleted' | 'archived';
+}
+
+/** LINKED: a verified account already used the email, so no link was needed. */
+export type AffiliateInviteResult =
+  | { outcome: 'LINKED' }
+  | {
+      outcome: 'INVITED';
+      url: string;
+      method: AffiliateJoinMethod;
+      expiresAt: string;
+      emailSent: boolean;
+    };
+
+export interface AffiliateApplication {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  website: string | null;
+  message: string;
+  status: AffiliateApplicationStatus;
+  affiliateId: string | null;
+  reviewedByUserId: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AffiliateApplicationsPage {
+  items: AffiliateApplication[];
+  pendingCount: number;
+  meta: { page: number; limit: number; total: number };
+}
+
+export interface ApplicationApprovalResult {
+  affiliate: Affiliate;
+  invite: AffiliateInviteResult | null;
+  /** Why the join link could not be sent; the affiliate was still created. */
+  inviteProblem: string | null;
+}
+
+export interface PasswordResetLink {
+  url: string;
+  expiresAt: string;
+  emailSent: boolean;
 }

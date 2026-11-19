@@ -9,23 +9,30 @@ import {
   LuTrash2,
   LuWallet,
 } from 'react-icons/lu';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import { Select } from '@/components/ui/select';
+import { Tabs } from '@/components/ui/tabs';
 import { usePermissions } from '@/features/auth/auth.hooks';
 import { UserAvatar } from '@/features/users/components/UserAvatar';
 import { formatMoneyPKR } from '@/lib/format';
 import { SystemPermissions } from '@/lib/permissions';
 import { useListQueryState } from '@/lib/useListQueryState';
 import { AFFILIATE_STATUS_LABEL, AFFILIATE_STATUS_TONE, formatPercent } from '../affiliate-display';
-import { useAffiliates, useDeleteAffiliate, useProgramOverview } from '../affiliates.hooks';
+import {
+  useAffiliateApplications,
+  useAffiliates,
+  useDeleteAffiliate,
+  useProgramOverview,
+} from '../affiliates.hooks';
 import type { Affiliate, AffiliateListItem, AffiliateStatus } from '../types';
-import { AffiliateFormDialog } from './AffiliateFormDialog';
-import { AffiliateKpiTile } from './AffiliateKpiTile';
+import { AffiliateFormDialog } from './form/AffiliateFormDialog';
+import { AffiliateApplicationsPanel } from './applications/AffiliateApplicationsPanel';
+import { AffiliateKpiTile } from './shared/AffiliateKpiTile';
 
 const MAX_VISIBLE_CODES = 2;
 
@@ -63,10 +70,29 @@ function ProgramOverviewRow() {
   );
 }
 
+type AffiliatesTab = 'affiliates' | 'applications';
+
 export function AffiliatesView() {
   const navigate = useNavigate();
   const { can } = usePermissions();
   const canManage = can(SystemPermissions.AFFILIATES_MANAGE);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: AffiliatesTab =
+    searchParams.get('tab') === 'applications' ? 'applications' : 'affiliates';
+  // Only the badge count is needed here; the panel runs its own paged query.
+  const { data: pendingApplications } = useAffiliateApplications({
+    page: 1,
+    limit: 1,
+    status: 'PENDING',
+  });
+
+  const switchTab = (tab: string) =>
+    setSearchParams(currentParams => {
+      const nextParams = new URLSearchParams(currentParams);
+      if (tab === 'applications') nextParams.set('tab', tab);
+      else nextParams.delete('tab');
+      return nextParams;
+    });
 
   const listQuery = useListQueryState({ filters: { status: 'ALL' } });
   const { page, pageSize, search, searchInput, filters } = listQuery;
@@ -235,40 +261,59 @@ export function AffiliatesView() {
 
       <ProgramOverviewRow />
 
-      <DataTable
-        columns={columns}
-        data={data?.items ?? []}
-        total={data?.meta.total ?? 0}
-        page={page}
-        pageSize={pageSize}
-        onPageChange={listQuery.setPage}
-        onPageSizeChange={listQuery.setPageSize}
-        search={searchInput}
-        onSearchChange={listQuery.setSearchInput}
-        searchPlaceholder="Search by name, email, phone or code…"
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isError={isError}
-        error={error}
-        onRetry={refetch}
-        emptyMessage="No affiliates yet."
-        getRowId={affiliate => affiliate.id}
-        onRowClick={affiliate => navigate(`/affiliates/${affiliate.id}`)}
-        activeFilterCount={listQuery.activeCount}
-        onResetFilters={listQuery.resetAll}
-        toolbarFilters={
-          <Select
-            value={statusFilter}
-            onChange={event => listQuery.setFilter('status', event.target.value)}
-            className="form-input-sm w-36"
-            aria-label="Filter by status"
-          >
-            <option value="ALL">All statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PAUSED">Paused</option>
-          </Select>
-        }
-      />
+      <div className="mb-4">
+        <Tabs
+          tabs={[
+            { key: 'affiliates', label: 'Affiliates' },
+            {
+              key: 'applications',
+              label: 'Applications',
+              badge: pendingApplications?.pendingCount || undefined,
+            },
+          ]}
+          active={activeTab}
+          onChange={switchTab}
+        />
+      </div>
+
+      {activeTab === 'applications' ? (
+        <AffiliateApplicationsPanel canManage={canManage} />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={data?.items ?? []}
+          total={data?.meta.total ?? 0}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={listQuery.setPage}
+          onPageSizeChange={listQuery.setPageSize}
+          search={searchInput}
+          onSearchChange={listQuery.setSearchInput}
+          searchPlaceholder="Search by name, email, phone or code…"
+          isLoading={isLoading}
+          isFetching={isFetching}
+          isError={isError}
+          error={error}
+          onRetry={refetch}
+          emptyMessage="No affiliates yet."
+          getRowId={affiliate => affiliate.id}
+          onRowClick={affiliate => navigate(`/affiliates/${affiliate.id}`)}
+          activeFilterCount={listQuery.activeCount}
+          onResetFilters={listQuery.resetAll}
+          toolbarFilters={
+            <Select
+              value={statusFilter}
+              onChange={event => listQuery.setFilter('status', event.target.value)}
+              className="form-input-sm w-36"
+              aria-label="Filter by status"
+            >
+              <option value="ALL">All statuses</option>
+              <option value="ACTIVE">Active</option>
+              <option value="PAUSED">Paused</option>
+            </Select>
+          }
+        />
+      )}
 
       <AffiliateFormDialog
         open={isFormOpen}

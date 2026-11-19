@@ -4,6 +4,13 @@ import type { PaymentMethod } from '@/features/subscriptions/subscriptions.api';
 import type {
   Affiliate,
   AffiliateAnalytics,
+  AffiliateApplication,
+  AffiliateApplicationsPage,
+  AffiliateApplicationStatus,
+  AffiliateInviteResult,
+  AffiliateJoinMethod,
+  ApplicationApprovalResult,
+  PasswordResetLink,
   AffiliateListFilters,
   AffiliateListItem,
   AffiliatePayout,
@@ -22,6 +29,7 @@ export interface AffiliateInput {
   email: string;
   phone?: string | null;
   commissionPercent: number;
+  selfServeMaxDiscountPercent?: number | null;
   status?: AffiliateStatus;
   notes?: string | null;
 }
@@ -178,4 +186,72 @@ export async function updateReferralStackingMode(
     { referralStackingMode }
   );
   return data.data.referralStackingMode;
+}
+
+export interface AffiliateInviteInput {
+  method: AffiliateJoinMethod;
+  sendEmail: boolean;
+}
+
+export interface ApplicationApprovalInput extends AffiliateInviteInput {
+  commissionPercent: number;
+}
+
+export async function inviteAffiliate(
+  affiliateId: string,
+  input: AffiliateInviteInput
+): Promise<AffiliateInviteResult> {
+  const { data } = await apiClient.post<ApiEnvelope<AffiliateInviteResult>>(
+    `/admin/affiliates/${affiliateId}/invite`,
+    input
+  );
+  return data.data;
+}
+
+export async function revokeAffiliateInvite(affiliateId: string): Promise<void> {
+  await apiClient.delete(`/admin/affiliates/${affiliateId}/invite`);
+}
+
+export async function listAffiliateApplications(params: {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: AffiliateApplicationStatus;
+}): Promise<AffiliateApplicationsPage> {
+  const { data } = await apiClient.get<
+    ApiEnvelope<{ items: AffiliateApplication[]; pendingCount: number }>
+  >('/admin/affiliates/applications', { params });
+  return { ...data.data, meta: data.meta! };
+}
+
+export async function approveAffiliateApplication(
+  applicationId: string,
+  input: ApplicationApprovalInput
+): Promise<ApplicationApprovalResult> {
+  const { data } = await apiClient.post<ApiEnvelope<ApplicationApprovalResult>>(
+    `/admin/affiliates/applications/${applicationId}/approve`,
+    input
+  );
+  return data.data;
+}
+
+export async function rejectAffiliateApplication(
+  applicationId: string,
+  note?: string
+): Promise<void> {
+  await apiClient.post(
+    `/admin/affiliates/applications/${applicationId}/reject`,
+    note ? { note } : {}
+  );
+}
+
+export async function issueAffiliatePasswordReset(
+  affiliateId: string,
+  sendEmail: boolean
+): Promise<PasswordResetLink> {
+  const { data } = await apiClient.post<ApiEnvelope<PasswordResetLink>>(
+    `/admin/affiliates/${affiliateId}/password-reset`,
+    { sendEmail }
+  );
+  return data.data;
 }
