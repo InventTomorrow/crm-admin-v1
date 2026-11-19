@@ -153,3 +153,17 @@ export const approveApplicationFormSchema = z.object({
 });
 
 export type ApproveApplicationFormValues = z.infer<typeof approveApplicationFormSchema>;
+
+/** Mirrors the server's force delete check: the affiliate's name, ignoring case and outer spaces. */
+export function forceDeleteConfirmSchema(affiliateName: string) {
+  return z.object({
+    confirmName: z
+      .string()
+      .refine(
+        typedName => typedName.trim().toLowerCase() === affiliateName.trim().toLowerCase(),
+        'Type the name exactly as shown'
+      ),
+  });
+}
+
+export type ForceDeleteConfirmValues = z.infer<ReturnType<typeof forceDeleteConfirmSchema>>;

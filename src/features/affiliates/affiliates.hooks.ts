@@ -12,6 +12,8 @@ import {
   createReferralCode,
   deleteAffiliate,
   deleteReferralCode,
+  downloadAffiliateStatement,
+  forceDeleteAffiliate,
   getAffiliate,
   getAffiliateAnalytics,
   getProgramOverview,
@@ -40,6 +42,7 @@ import type {
   AffiliateApplicationStatus,
   AffiliateInviteResult,
   AffiliateListFilters,
+  AffiliateStatus,
   ReferralStatus,
 } from './types';
 
@@ -278,6 +281,30 @@ export function useDeleteAffiliate() {
     deleteOutcome.outcome === 'archived'
       ? 'Affiliate archived. Their referral history is kept.'
       : 'Affiliate deleted'
+  );
+}
+
+export function useSetAffiliateStatus(affiliateId: string) {
+  return useAffiliateMutation(
+    (status: AffiliateStatus) => updateAffiliate(affiliateId, { status }),
+    updatedAffiliate =>
+      updatedAffiliate.status === 'PAUSED' ? 'Affiliate suspended' : 'Affiliate reactivated'
+  );
+}
+
+export function useDownloadAffiliateStatement() {
+  return useMutation({
+    mutationFn: downloadAffiliateStatement,
+    onSuccess: () => toast.success('Statement downloaded'),
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
+export function useForceDeleteAffiliate() {
+  return useAffiliateMutation(
+    (input: { affiliateId: string; confirmName: string }) =>
+      forceDeleteAffiliate(input.affiliateId, input.confirmName),
+    'Affiliate and all their records deleted'
   );
 }
 

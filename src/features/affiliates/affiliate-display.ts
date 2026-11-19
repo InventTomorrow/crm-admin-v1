@@ -15,7 +15,7 @@ export const AFFILIATE_STATUS_TONE: Record<AffiliateStatus, BadgeTone> = {
 
 export const AFFILIATE_STATUS_LABEL: Record<AffiliateStatus, string> = {
   ACTIVE: 'Active',
-  PAUSED: 'Paused',
+  PAUSED: 'Suspended',
 };
 
 export const JOIN_METHOD_LABEL: Record<AffiliateJoinMethod, string> = {
