@@ -1,6 +1,10 @@
 import { isUnlimitedLimit, UNLIMITED_LIMIT } from '@/lib/planFormat';
 import type { Plan } from '@/lib/types';
 import { z } from 'zod';
+import {
+  DEFAULT_MESSAGES_PER_LEAD,
+  getMessagesForLeads,
+} from '@/features/lead-pricing/lead-pricing.util';
 import type { PlanInput } from './plans.api';
 
 export const UNIVERSAL = 'UNIVERSAL' as const;
@@ -62,6 +66,11 @@ export const planFormSchema = z
     maxImageMessages: limitInt(),
     maxVoiceMessages: limitInt(),
 
+    // On: the message total is derived from leads × messages per lead.
+    isLeadBased: z.boolean(),
+    maxMonthlyLeads: limitInt(),
+    messagesPerLead: z.number().int('Whole number only').min(1, 'At least 1').max(1000),
+
     features: z.array(z.object({ value: z.string().min(1, 'Required').max(160) })),
     ctaLabel: z.string().max(60, 'Keep it under 60 characters'),
     isFeatured: z.boolean(),
@@ -73,6 +82,13 @@ export const planFormSchema = z
   // Same rules the server enforces — surfaced here so the user sees them on
   // the offending field instead of as a generic 400.
   .superRefine((v, ctx) => {
+    if (v.isLeadBased && v.maxMonthlyLeads === 0) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['maxMonthlyLeads'],
+        message: 'At least 1 lead per month',
+      });
+    }
     // An unlimited monthly total leaves both carve-outs unconstrained; a
     // capped total cannot hold an uncapped one.
     if (!isUnlimitedLimit(v.maxMonthlyMessages)) {
@@ -178,9 +194,12 @@ export const emptyPlanDefaults = (): PlanFormValues => ({
   maxMenuItems: 100,
   maxServices: 100,
   maxClinicalServices: 100,
-  maxMonthlyMessages: 1000,
+  maxMonthlyMessages: 100 * DEFAULT_MESSAGES_PER_LEAD,
   maxImageMessages: 200,
   maxVoiceMessages: 200,
+  isLeadBased: true,
+  maxMonthlyLeads: 100,
+  messagesPerLead: DEFAULT_MESSAGES_PER_LEAD,
   features: [],
   ctaLabel: 'Upgrade Now',
   isFeatured: false,
@@ -212,6 +231,9 @@ export const planToFormValues = (plan: Plan): PlanFormValues => ({
   maxMonthlyMessages: plan.maxMonthlyMessages,
   maxImageMessages: plan.maxImageMessages,
   maxVoiceMessages: plan.maxVoiceMessages,
+  isLeadBased: plan.maxMonthlyLeads != null,
+  maxMonthlyLeads: plan.maxMonthlyLeads ?? 0,
+  messagesPerLead: plan.messagesPerLead ?? DEFAULT_MESSAGES_PER_LEAD,
   features: (plan.features ?? []).map(value => ({ value })),
   ctaLabel: plan.ctaLabel ?? '',
   isFeatured: plan.isFeatured ?? false,
@@ -242,9 +264,13 @@ export const formValuesToPlanInput = (v: PlanFormValues, existingPlan?: Plan): P
       businessVertical === null || businessVertical === 'MARKETING_AGENCY' ? v.maxServices : null,
     maxClinicalServices:
       businessVertical === null || businessVertical === 'HEALTHCARE' ? v.maxClinicalServices : null,
-    maxMonthlyMessages: v.maxMonthlyMessages,
+    maxMonthlyMessages: v.isLeadBased
+      ? getMessagesForLeads(v.maxMonthlyLeads, v.messagesPerLead)
+      : v.maxMonthlyMessages,
     maxImageMessages: v.maxImageMessages,
     maxVoiceMessages: v.maxVoiceMessages,
+    maxMonthlyLeads: v.isLeadBased ? v.maxMonthlyLeads : null,
+    messagesPerLead: v.isLeadBased ? v.messagesPerLead : null,
     duration: v.duration,
     customDurationDays: v.duration === 'CUSTOM_DAYS' ? v.customDurationDays : null,
     isTrial: v.isTrial,
