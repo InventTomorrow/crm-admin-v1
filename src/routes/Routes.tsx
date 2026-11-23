@@ -11,6 +11,8 @@ const TenantDetail = lazy(() => import('@/app/(admin)/tenants/detail'));
 const Plans = lazy(() => import('@/app/(admin)/plans'));
 const PlanCreate = lazy(() => import('@/app/(admin)/plans/new'));
 const PlanEdit = lazy(() => import('@/app/(admin)/plans/edit'));
+const LeadPricing = lazy(() => import('@/app/(admin)/lead-pricing'));
+const CustomPlanRequests = lazy(() => import('@/app/(admin)/custom-plan-requests'));
 const SubscriptionRequests = lazy(() => import('@/app/(admin)/subscription-requests'));
 const CheckoutLinks = lazy(() => import('@/app/(admin)/checkout-links'));
 const Affiliates = lazy(() => import('@/app/(admin)/affiliates'));
@@ -96,6 +98,18 @@ export const appRoutes: AppRoute[] = [
     name: 'PlanEdit',
     element: <PlanEdit />,
     permission: SystemPermissions.PLANS_EDIT,
+  },
+  {
+    path: '/lead-pricing',
+    name: 'LeadPricing',
+    element: <LeadPricing />,
+    permission: SystemPermissions.PLANS_VIEW,
+  },
+  {
+    path: '/custom-plan-requests',
+    name: 'CustomPlanRequests',
+    element: <CustomPlanRequests />,
+    permission: SystemPermissions.SUBSCRIPTION_REQUESTS_VIEW,
   },
   // Billing moved onto the Users page; kept so old links and emails still land somewhere useful.
   { path: '/subscriptions', name: 'Subscriptions', element: <Navigate to="/users" replace /> },

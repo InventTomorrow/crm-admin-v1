@@ -278,6 +278,12 @@ export interface Plan {
   maxImageMessages: number;
   maxVoiceMessages: number;
 
+  // Null on message-priced plans; when set, maxMonthlyMessages = leads × messagesPerLead.
+  maxMonthlyLeads: number | null;
+  messagesPerLead: number | null;
+  // Private plan built from a custom plan request.
+  isCustom: boolean;
+
   duration: PlanDuration;
   customDurationDays: number | null;
   isTrial: boolean;

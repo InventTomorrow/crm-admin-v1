@@ -30,6 +30,10 @@ export interface PlanInput {
   maxImageMessages: number;
   maxVoiceMessages: number;
 
+  // Both null on a message-priced plan; both set on a lead-priced one.
+  maxMonthlyLeads: number | null;
+  messagesPerLead: number | null;
+
   duration: PlanDuration;
   customDurationDays: number | null;
   isTrial: boolean;

@@ -3,6 +3,8 @@ import { SystemPermissions, type PermissionRequirement } from '@/lib/permissions
 import {
   LuBellRing,
   LuBuilding2,
+  LuCalculator,
+  LuClipboardList,
   LuCreditCard,
   LuHandshake,
   LuInbox,
@@ -73,6 +75,20 @@ export const menuItemsData: MenuItemType[] = [
     href: '/plans',
     icon: LuCreditCard,
     permission: SystemPermissions.PLANS_VIEW,
+  },
+  {
+    key: 'lead-pricing',
+    label: 'Lead pricing',
+    href: '/lead-pricing',
+    icon: LuCalculator,
+    permission: SystemPermissions.PLANS_VIEW,
+  },
+  {
+    key: 'custom-plan-requests',
+    label: 'Custom plan requests',
+    href: '/custom-plan-requests',
+    icon: LuClipboardList,
+    permission: SystemPermissions.SUBSCRIPTION_REQUESTS_VIEW,
   },
   {
     key: 'requests',

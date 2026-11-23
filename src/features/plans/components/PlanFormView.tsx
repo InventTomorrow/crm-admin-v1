@@ -23,7 +23,11 @@ import {
   UNIVERSAL,
   type PlanFormValues,
 } from '../plan-form.schema';
+import { LeadPricingCalculatorButton } from '@/features/lead-pricing/components/LeadPricingCalculatorDialog';
+import { useLeadPricingRates } from '@/features/lead-pricing/lead-pricing.hooks';
+import { getMessagesForLeads } from '@/features/lead-pricing/lead-pricing.util';
 import { useSavePlan } from '../plans.hooks';
+import { LeadPriceSuggestion } from './LeadPriceSuggestion';
 import { PlanLivePreview } from './PlanLivePreview';
 
 type NumKey =
@@ -38,8 +42,10 @@ type NumKey =
   | 'maxClinicalServices'
   | 'maxMonthlyMessages'
   | 'maxImageMessages'
-  | 'maxVoiceMessages';
-type BoolKey = 'isTrial' | 'isPublic' | 'isActive' | 'isFeatured' | 'isComingSoon';
+  | 'maxVoiceMessages'
+  | 'maxMonthlyLeads'
+  | 'messagesPerLead';
+type BoolKey = 'isTrial' | 'isPublic' | 'isActive' | 'isFeatured' | 'isComingSoon' | 'isLeadBased';
 
 function NumberField({
   control,
@@ -223,7 +229,27 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
   const price = form.watch('price');
   const originalPrice = form.watch('originalPrice');
   const messagesAreUnlimited = isUnlimitedLimit(form.watch('maxMonthlyMessages'));
+  const isLeadBased = form.watch('isLeadBased');
+  const monthlyLeads = form.watch('maxMonthlyLeads');
+  const derivedMonthlyMessages = getMessagesForLeads(monthlyLeads, form.watch('messagesPerLead'));
   const { errors } = form.formState;
+  const { data: leadPricingRates } = useLeadPricingRates();
+
+  // Lead-based plans never hold a typed message total; it always follows leads × messages per lead.
+  useEffect(() => {
+    if (!isLeadBased || form.getValues('maxMonthlyMessages') === derivedMonthlyMessages) return;
+    form.setValue('maxMonthlyMessages', derivedMonthlyMessages, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  }, [isLeadBased, derivedMonthlyMessages, form]);
+
+  // New plans start from the saved messages-per-lead rate unless the admin already changed it.
+  useEffect(() => {
+    if (existingPlan || !leadPricingRates) return;
+    if (form.getFieldState('messagesPerLead', form.formState).isDirty) return;
+    form.setValue('messagesPerLead', leadPricingRates.messagesPerLead, { shouldValidate: true });
+  }, [existingPlan, leadPricingRates, form]);
 
   const hasOffer = !isTrial && originalPrice != null && originalPrice > price;
   const discountPercentage = hasOffer ? Math.round((1 - price / originalPrice) * 100) : null;
@@ -299,6 +325,12 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
             <p className="mt-0.5 text-sm text-default-500">
               Pricing, limits and how the plan appears on the landing page.
             </p>
+          </div>
+          <div className="ms-auto">
+            <LeadPricingCalculatorButton
+              initialDuration={duration}
+              {...(isLeadBased ? { initialMonthlyLeads: monthlyLeads } : {})}
+            />
           </div>
         </div>
 
@@ -596,17 +628,72 @@ export function PlanFormView({ existingPlan }: PlanFormViewProps) {
           </FormSection>
 
           <FormSection
-            title="Message limits"
-            description="Monthly AI message ceiling; image and voice are carved out of the total."
+            title="Leads & messages"
+            description="Price the plan by leads, or set a raw monthly message ceiling. Image and voice are carved out of the total."
           >
+            <ToggleField
+              control={form.control}
+              name="isLeadBased"
+              label="Price by leads"
+              hint="Monthly messages are worked out as leads × messages per lead."
+            />
+
+            {isLeadBased && (
+              <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <NumberField
+                    control={form.control}
+                    name="maxMonthlyLeads"
+                    label="Leads / month"
+                    placeholder="e.g. 500"
+                    allowUnlimited
+                  />
+                  <NumberField
+                    control={form.control}
+                    name="messagesPerLead"
+                    label="Messages per lead"
+                    hint="Messages expected to close one lead."
+                    placeholder="e.g. 10"
+                  />
+                  <Field label="Total messages / month" hint="Leads × messages per lead">
+                    <Input
+                      readOnly
+                      tabIndex={-1}
+                      value={
+                        isUnlimitedLimit(derivedMonthlyMessages)
+                          ? 'Unlimited'
+                          : derivedMonthlyMessages.toLocaleString('en-PK')
+                      }
+                    />
+                  </Field>
+                </div>
+                {!isTrial && (
+                  <LeadPriceSuggestion
+                    monthlyLeads={monthlyLeads}
+                    duration={duration}
+                    currency={currency}
+                    currentPrice={price}
+                    onApplyPrice={suggestedPrice =>
+                      form.setValue('price', suggestedPrice, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                )}
+              </>
+            )}
+
             <div className="grid gap-4 sm:grid-cols-3">
-              <NumberField
-                control={form.control}
-                name="maxMonthlyMessages"
-                label="Total / month"
-                placeholder="e.g. 2000"
-                allowUnlimited
-              />
+              {!isLeadBased && (
+                <NumberField
+                  control={form.control}
+                  name="maxMonthlyMessages"
+                  label="Total / month"
+                  placeholder="e.g. 2000"
+                  allowUnlimited
+                />
+              )}
               <NumberField
                 control={form.control}
                 name="maxImageMessages"
