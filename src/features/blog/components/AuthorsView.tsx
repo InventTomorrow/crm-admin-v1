@@ -254,7 +254,7 @@ export function AuthorsView() {
         title={`Delete "${authorPendingDeletion?.name ?? ''}"?`}
         description={
           (authorPendingDeletion?.postCount ?? 0) > 0
-            ? `${authorPendingDeletion?.postCount} post(s) still use this author — reassign them first or the delete will be rejected.`
+            ? `${authorPendingDeletion?.postCount} post(s) still use this author. Reassign them first or the delete will be rejected.`
             : 'This cannot be undone.'
         }
         isLoading={deleteMutation.isPending}

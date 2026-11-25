@@ -73,7 +73,7 @@ export function ArticlePreview({ post }: { post: ArticlePreviewData }) {
         <div className="article-preview" dangerouslySetInnerHTML={{ __html: post.bodyHtml }} />
       ) : (
         <p className="py-12 text-center text-sm text-default-400">
-          Nothing written yet — the article body is empty.
+          Nothing written yet. The article body is empty.
         </p>
       )}
 

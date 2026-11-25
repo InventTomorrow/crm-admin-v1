@@ -1,6 +1,6 @@
 import { AccessDeniedState, FullPageSpinner } from '@/components/states';
 import { usePermissions } from '@/features/auth/auth.hooks';
-import type { SystemPermission } from '@/lib/permissions';
+import type { PermissionRequirement } from '@/lib/permissions';
 import type { ReactNode } from 'react';
 
 /**
@@ -14,14 +14,14 @@ export function RouteGuard({
   permission,
   children,
 }: {
-  permission?: SystemPermission;
+  permission?: PermissionRequirement;
   children: ReactNode;
 }) {
-  const { can, isLoading } = usePermissions();
+  const { canAccess, isLoading } = usePermissions();
 
   if (!permission) return <>{children}</>;
   // Never decide before the session resolves, or the page flashes "no access".
   if (isLoading) return <FullPageSpinner />;
 
-  return <>{can(permission) ? children : <AccessDeniedState />}</>;
+  return <>{canAccess(permission) ? children : <AccessDeniedState />}</>;
 }

@@ -31,7 +31,7 @@ export function RolePermissionsView({ tenantId }: { tenantId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 rounded-md border border-default-200 bg-default-50 px-3 py-2 text-xs text-default-500">
-        <LuLock className="size-3.5" /> Read-only — workspace roles &amp; permissions are managed by
+        <LuLock className="size-3.5" /> Read-only. Workspace roles &amp; permissions are managed by
         the workspace owner.
       </div>
 

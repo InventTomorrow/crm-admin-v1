@@ -15,6 +15,7 @@ import {
   LuCircleCheck,
   LuCircleX,
   LuCreditCard,
+  LuFlaskConical,
   LuMessageCircle,
   LuTriangleAlert,
   LuUserX,
@@ -139,7 +140,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
           <p className="mt-1.5 text-sm text-default-600">
             Deleted {formatRelative(user.deletedAt)}.{' '}
             {user.permanentlyDeletedAt
-              ? `Closed for good on ${formatDate(user.permanentlyDeletedAt)} — it can no longer be restored. The email address was released, so ${user.originalEmail ?? user.email} can be used to sign up again as a new account.`
+              ? `Closed for good on ${formatDate(user.permanentlyDeletedAt)}. It can no longer be restored. The email address was released, so ${user.originalEmail ?? user.email} can be used to sign up again as a new account.`
               : `Restorable until ${formatDate(user.scheduledPurgeAt)}${
                   deletionTenantCount > 0
                     ? `, along with ${deletionTenantCount} suspended workspace(s)`
@@ -150,7 +151,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             <p className="mt-1.5 text-sm text-default-600">
               {user.workspaceDataWipedAt
                 ? `Its workspaces and all of their data were erased on ${formatDate(user.workspaceDataWipedAt)}.`
-                : 'Its workspaces still hold all of their data — erase them from the users list if they are no longer needed.'}
+                : 'Its workspaces still hold all of their data. Erase them from the users list if they are no longer needed.'}
             </p>
           )}
         </section>
@@ -192,6 +193,11 @@ export function UserDetailPanel({ userId }: { userId: string }) {
               <Badge tone="neutral">
                 {membershipCount} workspace{membershipCount === 1 ? '' : 's'}
               </Badge>
+              {user.isTester && (
+                <Badge tone="info" icon={LuFlaskConical}>
+                  Test user
+                </Badge>
+              )}
               {ownedTenantCount > 0 && <Badge tone="info">Owns {ownedTenantCount}</Badge>}
               {ownedTenantCount > 0 && (
                 <Badge tone="success">{formatMoneyPKR(user.ownedRevenue)} revenue</Badge>
@@ -256,7 +262,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
             }
           />
           {user.isTester && (
-            <ProfileRow label="Tester" value={<Badge tone="warning">Exempt from limits</Badge>} />
+            <ProfileRow label="Tester" value={<Badge tone="warning">Can seed test data</Badge>} />
           )}
         </dl>
       </section>
@@ -315,7 +321,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
           </div>
         ) : (
           <p className="rounded-lg border border-dashed border-default-200 px-4 py-6 text-center text-sm text-default-500">
-            No active plan — this account has never subscribed or its plan has lapsed.
+            No active plan. This account has never subscribed or its plan has lapsed.
           </p>
         )}
 
@@ -441,19 +447,19 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                       </span>
                     </td>
                     {/* Revenue is only aggregated for workspaces this user
-                        owns — a plain membership carries no figure here. */}
+                        owns. A plain membership carries no figure here. */}
                     <td className="px-3.5 py-2.5 tabular-nums">
                       {row.owned ? (
                         formatMoneyPKR(row.owned.revenue)
                       ) : (
-                        <span className="text-default-400">—</span>
+                        <span className="text-default-400">N/A</span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5 tabular-nums">
                       {row.owned ? (
                         `$${row.owned.aiUsageCostUsd.toFixed(2)}`
                       ) : (
-                        <span className="text-default-400">—</span>
+                        <span className="text-default-400">N/A</span>
                       )}
                     </td>
                     <td className="px-3.5 py-2.5">
@@ -473,7 +479,7 @@ export function UserDetailPanel({ userId }: { userId: string }) {
                       </span>
                     </td>
                     <td className="px-3.5 py-2.5 text-default-500">
-                      {row.joinedAt ? formatRelative(row.joinedAt) : '—'}
+                      {row.joinedAt ? formatRelative(row.joinedAt) : 'N/A'}
                     </td>
                   </tr>
                 ))}

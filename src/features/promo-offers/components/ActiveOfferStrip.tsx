@@ -22,7 +22,7 @@ export function ActiveOfferStrip() {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-b border-warning/20 bg-warning/10 px-6 py-2 text-sm text-default-700">
         <LuBadgePercent className="size-4 shrink-0 text-warning" />
         <span>
-          <strong className="font-semibold">{offer.title}</strong> — every plan is{' '}
+          <strong className="font-semibold">{offer.title}</strong>: every plan is{' '}
           <strong className="font-semibold">{offer.discountPercent}% off</strong> until midnight on{' '}
           {formatOfferEndDate(offer.endsAt)}
         </span>

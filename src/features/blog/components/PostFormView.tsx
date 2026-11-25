@@ -326,7 +326,7 @@ function PostForm({
     return {
       title: values.title.trim() || 'Untitled post',
       excerpt: values.excerpt.trim() || bodySummary(values.bodyHtml),
-      categoryName: categories.find(category => category.id === values.categoryId)?.name ?? '—',
+      categoryName: categories.find(category => category.id === values.categoryId)?.name ?? 'N/A',
     };
   };
 
@@ -418,7 +418,7 @@ function PostForm({
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3">
           <p className="text-sm text-default-700">
             <span className="font-semibold">Unsaved work restored</span> from this device
-            {restoredDraft ? ` — last edited at ${formatClockTime(restoredDraft.savedAt)}` : ''}.
+            {restoredDraft ? `. Last edited at ${formatClockTime(restoredDraft.savedAt)}` : ''}.
             Nothing has been saved to the server yet.
           </p>
           <Button
@@ -548,7 +548,7 @@ function PostForm({
 
             <p className="text-xs text-default-400">
               {lastSavedAt
-                ? `Kept on this device at ${formatClockTime(lastSavedAt)} — use Save as draft or Publish to store it on the server.`
+                ? `Kept on this device at ${formatClockTime(lastSavedAt)}. Use Save as draft or Publish to store it on the server.`
                 : 'Changes are kept on this device as you type.'}
             </p>
 

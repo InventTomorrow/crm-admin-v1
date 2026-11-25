@@ -16,6 +16,7 @@ import {
   sendPasswordReset,
   setEmailVerification,
   setSuspension,
+  setTester,
   setSystemRole,
   updateUser,
   wipeUserWorkspaces,
@@ -88,7 +89,7 @@ export function useBulkDeleteUsers() {
       // Self-delete and already-closed guards reject individual rows; surface
       // the first reason rather than silently dropping them from the count.
       if (result.failed > 0) {
-        toast.error(`${result.failed} skipped — ${result.failures[0]?.reason ?? 'not deletable'}`);
+        toast.error(`${result.failed} skipped: ${result.failures[0]?.reason ?? 'not deletable'}`);
       }
     },
     onError: error => toast.error(apiMessage(error)),
@@ -165,6 +166,18 @@ export function useSetSuspension() {
   });
 }
 
+export function useSetTester() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isTester }: { id: string; isTester: boolean }) => setTester(id, isTester),
+    onSuccess: (_result, { isTester }) => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success(isTester ? 'Test user enabled' : 'Test user disabled');
+    },
+    onError: error => toast.error(apiMessage(error)),
+  });
+}
+
 export function useSendPasswordReset() {
   return useMutation({
     mutationFn: (id: string) => sendPasswordReset(id),
@@ -195,7 +208,7 @@ export function useDeleteUser() {
       qc.invalidateQueries({ queryKey: ['tenants'] });
       const suspended = result.suspendedWorkspaces.length;
       toast.success(
-        suspended > 0 ? `Account closed — ${suspended} workspace(s) suspended` : 'Account closed'
+        suspended > 0 ? `Account closed: ${suspended} workspace(s) suspended` : 'Account closed'
       );
     },
     onError: error => toast.error(apiMessage(error)),

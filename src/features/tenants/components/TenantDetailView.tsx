@@ -64,7 +64,7 @@ export function TenantDetailView() {
                 <Badge tone={TENANT_STATUS_TONE[tenant.status]}>{tenant.status}</Badge>
               </div>
               <p className="mt-1 text-sm text-default-500">
-                Owner: {tenant.owner?.email ?? '—'} · {tenant._count?.leads ?? 0} leads ·{' '}
+                Owner: {tenant.owner?.email ?? 'N/A'} · {tenant._count?.leads ?? 0} leads ·{' '}
                 {tenant._count?.products ?? 0} products
               </p>
               <p className="mt-2 text-sm text-default-600">
@@ -157,7 +157,7 @@ export function TenantDetailView() {
                     <tbody className="divide-y divide-default-200">
                       {subscriptions?.map(subscription => (
                         <tr key={subscription.id} className="text-sm text-default-800">
-                          <td className="px-3.5 py-3">{subscription.plan?.name ?? '—'}</td>
+                          <td className="px-3.5 py-3">{subscription.plan?.name ?? 'N/A'}</td>
                           <td className="px-3.5 py-3">
                             <Badge tone={SUBSCRIPTION_STATUS_TONE[subscription.status]}>
                               {subscription.status}

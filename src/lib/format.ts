@@ -5,7 +5,7 @@ export function formatFullName(
   firstName: string | null | undefined,
   lastName: string | null | undefined
 ): string {
-  return [firstName, lastName].filter(Boolean).join(' ') || '—';
+  return [firstName, lastName].filter(Boolean).join(' ') || 'N/A';
 }
 
 /**
@@ -15,24 +15,24 @@ export function formatFullName(
  * revenue failed to load.
  */
 export function formatMoneyPKR(amount: number | null | undefined): string {
-  if (amount === null || amount === undefined) return '—';
+  if (amount === null || amount === undefined) return 'N/A';
   return `Rs. ${amount.toLocaleString('en-PK')}`;
 }
 
 /** "Jan 5, 2026" — table date cells. */
 export function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return 'N/A';
   return format(new Date(iso), 'MMM d, yyyy');
 }
 
 /** "Jan 5, 2026, 4:30 PM" — detail panes. */
 export function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return 'N/A';
   return format(new Date(iso), 'MMM d, yyyy, h:mm a');
 }
 
 /** "3d ago" — activity/relative cells. */
 export function formatRelative(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return 'N/A';
   return `${formatDistanceToNowStrict(new Date(iso))} ago`;
 }

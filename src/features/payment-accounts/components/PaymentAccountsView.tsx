@@ -78,12 +78,12 @@ export function PaymentAccountsView() {
     <>
       <PageHeader
         title="Payment accounts"
-        subtitle="Subscriptions"
+        subtitle="User payments"
         description="Bank and wallet details the customer transfers into before uploading their receipt."
         action={
           <div className="flex items-center gap-2">
             <Link
-              to="/subscriptions"
+              to="/subscription-requests"
               className={buttonVariants({ variant: 'outline', size: 'sm' })}
             >
               <LuArrowLeft className="size-4" />
@@ -166,13 +166,13 @@ export function PaymentAccountsView() {
 
       {canReorder && (
         <p className="mb-3 text-xs text-default-500">
-          Customers see the accounts in this order — use the arrows to change it.
+          Customers see the accounts in this order. Use the arrows to change it.
         </p>
       )}
 
       {canEditSettings && isFiltered && accounts.length > 1 && (
         <p className="mb-3 text-xs text-default-500">
-          Reordering is unavailable while the list is filtered — clear the filters to change the
+          Reordering is unavailable while the list is filtered. Clear the filters to change the
           order customers see.
         </p>
       )}

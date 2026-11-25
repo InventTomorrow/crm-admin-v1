@@ -14,6 +14,7 @@ import { formatDate } from '@/lib/format';
 import type { CheckoutLinkSortField } from '@/lib/types';
 import { useListQueryState } from '@/lib/useListQueryState';
 import { useServerSorting } from '@/lib/useServerSorting';
+import { useMarkSectionSeen } from '@/lib/useSectionSeenAt';
 import { PlanFilterSelect } from '@/features/plans/components/PlanFilterSelect';
 import { CreateCheckoutLinkDialog } from './CreateCheckoutLinkDialog';
 import type { CheckoutLink, CheckoutLinkSource, CheckoutLinkStatus } from '../links.api';
@@ -41,6 +42,7 @@ const LINK_SORTABLE_COLUMNS: CheckoutLinkSortField[] = [
 ];
 
 export function LinksView() {
+  useMarkSectionSeen('checkout-links');
   // `source` lives here too so the tab selection survives a refresh with
   // everything else.
   const listQuery = useListQueryState({
@@ -84,7 +86,7 @@ export function LinksView() {
         header: 'Sent to',
         cell: ({ row }) => (
           <div className="min-w-0">
-            <div className="truncate font-medium">{row.original.customerName ?? '—'}</div>
+            <div className="truncate font-medium">{row.original.customerName ?? 'N/A'}</div>
             <div className="truncate text-xs text-default-500">
               {row.original.customerEmail ?? 'no email'}
             </div>
@@ -102,7 +104,7 @@ export function LinksView() {
         id: 'plan',
         accessorFn: link => link.plan?.name ?? '',
         header: 'Plan',
-        cell: ({ row }) => row.original.plan?.name ?? '—',
+        cell: ({ row }) => row.original.plan?.name ?? 'N/A',
       },
       {
         id: 'expires',

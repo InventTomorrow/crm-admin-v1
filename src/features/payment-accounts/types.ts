@@ -74,7 +74,7 @@ export const accountDisplayName = (account: PaymentAccount): string =>
   account.bankName ?? PAYMENT_METHOD_LABELS[account.method] ?? account.method;
 
 const ACCOUNT_NUMBER_MESSAGE: Record<PaymentMethod, string> = {
-  BANK_TRANSFER: 'Account number must be 6–24 digits — spaces and hyphens allowed, letters are not',
+  BANK_TRANSFER: 'Account number must be 6 to 24 digits. Spaces and hyphens allowed, letters are not',
   EASYPAISA: 'Enter the wallet mobile number, e.g. 03001234567',
   JAZZCASH: 'Enter the wallet mobile number, e.g. 03001234567',
   CASH: 'Use letters, digits and @ . - _ / only',
@@ -124,7 +124,7 @@ export const paymentAccountSchema = z
       .trim()
       .refine(
         value => value === '' || BRANCH_CODE_PATTERN.test(value),
-        'Branch code must be 2–10 digits'
+        'Branch code must be 2 to 10 digits'
       ),
     instructions: z
       .string()
@@ -146,7 +146,7 @@ export const paymentAccountSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['bankName'],
-        message: `${BANK_NAME_FIELD_LABEL[values.method]} is required — the customer needs it to make the transfer`,
+        message: `${BANK_NAME_FIELD_LABEL[values.method]} is required. The customer needs it to make the transfer`,
       });
     }
   });

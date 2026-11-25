@@ -103,7 +103,7 @@ export function isUnlimitedLimit(limit: number | null | undefined): boolean {
 
 /** A limit as an admin reads it. Null (field not applicable to the plan) reads as a dash. */
 export function formatPlanLimit(limit: number | null, unlimitedLabel = 'Unlimited'): string {
-  if (limit === null) return '—';
+  if (limit === null) return 'N/A';
   return isUnlimitedLimit(limit) ? unlimitedLabel : limit.toLocaleString('en-PK');
 }
 

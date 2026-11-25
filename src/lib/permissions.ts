@@ -21,6 +21,7 @@ export const SystemPermissions = {
   USERS_WIPE_WORKSPACES: 'users:wipe_workspaces',
   USERS_VERIFY: 'users:verify',
   USERS_SUSPEND: 'users:suspend',
+  USERS_SET_TESTER: 'users:set_tester',
   USERS_RESET_PASSWORD: 'users:reset_password',
   USERS_REVOKE_SESSIONS: 'users:revoke_sessions',
   // Name/email search behind the billing owner pickers. Separate from
@@ -49,6 +50,10 @@ export const SystemPermissions = {
   CHECKOUT_LINKS_VIEW: 'checkout_links:view',
   CHECKOUT_LINKS_CREATE: 'checkout_links:create',
   CHECKOUT_LINKS_REVOKE: 'checkout_links:revoke',
+
+  AFFILIATES_VIEW: 'affiliates:view',
+  AFFILIATES_MANAGE: 'affiliates:manage',
+  AFFILIATES_PAYOUT: 'affiliates:payout',
 
   BLOG_VIEW: 'blog:view',
   BLOG_CREATE: 'blog:create',
@@ -109,6 +114,9 @@ const SYSTEM_MANAGER_PERMISSIONS: SystemPermission[] = [
   SystemPermissions.CHECKOUT_LINKS_VIEW,
   SystemPermissions.CHECKOUT_LINKS_CREATE,
   SystemPermissions.CHECKOUT_LINKS_REVOKE,
+  SystemPermissions.AFFILIATES_VIEW,
+  SystemPermissions.AFFILIATES_MANAGE,
+  SystemPermissions.AFFILIATES_PAYOUT,
   SystemPermissions.BLOG_VIEW,
   SystemPermissions.BLOG_CREATE,
   SystemPermissions.BLOG_EDIT,
@@ -143,6 +151,9 @@ export const SYSTEM_ROLE_LABELS: Record<SystemRole, string> = {
   SYSTEM_ADMIN: 'System Admin',
   SYSTEM_MANAGER: 'System Manager',
 };
+
+/** One permission, or a list where holding any one of them is enough. */
+export type PermissionRequirement = SystemPermission | readonly SystemPermission[];
 
 /** Resolves a role to its permission set. Unknown roles get nothing. */
 export function permissionsForRole(role: SystemRole | undefined): Set<SystemPermission> {

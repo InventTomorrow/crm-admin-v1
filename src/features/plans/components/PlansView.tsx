@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { LuArrowRightLeft, LuPlus, LuSquarePen, LuTrash2 } from 'react-icons/lu';
+import { LeadPricingCalculatorButton } from '@/features/lead-pricing/components/LeadPricingCalculatorDialog';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { RowPendingIndicator } from '@/components/ui/row-pending-indicator';
 import { DataTable } from '@/components/ui/data-table';
@@ -28,7 +29,7 @@ function deletionWarning(plan: Plan | null): string {
     return 'This cannot be undone. Workspaces on this plan may be affected.';
   return `This plan has ${totalSubscriberCount} subscription record${
     totalSubscriberCount === 1 ? '' : 's'
-  } tied to it, including past ones. Deleting will be rejected — deactivate the plan instead.`;
+  } tied to it, including past ones. Deleting will be rejected. Deactivate the plan instead.`;
 }
 
 const PLAN_SORTABLE_COLUMNS: PlanSortField[] = [
@@ -75,7 +76,21 @@ export function PlansView() {
         id: 'name',
         accessorFn: plan => plan.name.toLowerCase(),
         header: 'Name',
-        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <span className="font-medium">{row.original.name}</span>
+            {row.original.isCustom && (
+              <Badge tone="info" className="ms-2">
+                Custom
+              </Badge>
+            )}
+            {row.original.maxMonthlyLeads != null && (
+              <div className="text-xs text-default-500">
+                {formatPlanLimit(row.original.maxMonthlyLeads)} leads / month
+              </div>
+            )}
+          </div>
+        ),
       },
       {
         id: 'tier',
@@ -207,14 +222,17 @@ export function PlansView() {
   return (
     <>
       <PageHeader
-        title="Plans"
-        description="Subscription plans & limits"
+        title="Pricing plans"
+        description="What customers can buy, with prices and limits"
         action={
-          <PermissionGuard permission={SystemPermissions.PLANS_CREATE}>
-            <Link to="/plans/new" className={buttonVariants({ size: 'sm' })}>
-              <LuPlus className="size-4 me-1" /> New plan
-            </Link>
-          </PermissionGuard>
+          <div className="flex items-center gap-2">
+            <LeadPricingCalculatorButton />
+            <PermissionGuard permission={SystemPermissions.PLANS_CREATE}>
+              <Link to="/plans/new" className={buttonVariants({ size: 'sm' })}>
+                <LuPlus className="size-4 me-1" /> New plan
+              </Link>
+            </PermissionGuard>
+          </div>
         }
       />
 

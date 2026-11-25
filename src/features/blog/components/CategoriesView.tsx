@@ -209,7 +209,7 @@ export function CategoriesView() {
         title={`Delete "${categoryPendingDeletion?.name ?? ''}"?`}
         description={
           (categoryPendingDeletion?.postCount ?? 0) > 0
-            ? `${categoryPendingDeletion?.postCount} post(s) still use this category — move them first or the delete will be rejected.`
+            ? `${categoryPendingDeletion?.postCount} post(s) still use this category. Move them first or the delete will be rejected.`
             : 'This cannot be undone.'
         }
         isLoading={deleteMutation.isPending}

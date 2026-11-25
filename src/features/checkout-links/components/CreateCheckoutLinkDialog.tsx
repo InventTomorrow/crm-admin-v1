@@ -108,7 +108,7 @@ export function CreateCheckoutLinkDialog() {
               </Button>
             </div>
             <p className="text-xs text-default-400">
-              Single-use — it stops working once the customer submits.
+              Single-use. It stops working once the customer submits.
             </p>
             <Button className="w-full" onClick={() => closeAndReset(false)}>
               Done
@@ -148,7 +148,7 @@ export function CreateCheckoutLinkDialog() {
                   <option value="">Select a plan</option>
                   {plans.map(plan => (
                     <option key={plan.id} value={plan.id}>
-                      {plan.name} — {formatPlanPrice(plan.price, plan.currency)}/
+                      {plan.name}: {formatPlanPrice(plan.price, plan.currency)}/
                       {formatPlanPeriod(plan.duration, plan.customDurationDays)}
                     </option>
                   ))}
@@ -195,7 +195,7 @@ export function CreateCheckoutLinkDialog() {
                   <Field
                     label="Link expires in (days)"
                     error={fieldState.error?.message}
-                    hint="How long the customer has to open this link — not the subscription length."
+                    hint="How long the customer has to open this link. Not the subscription length."
                   >
                     <Input
                       type="number"

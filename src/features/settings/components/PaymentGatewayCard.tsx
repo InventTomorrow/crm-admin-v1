@@ -7,7 +7,7 @@ export function PaymentGatewayCard() {
     <SettingsCard
       icon={LuCreditCard}
       title="Payment gateway"
-      description="No live gateway is connected yet. Checkout uses a stub provider behind a swappable interface — wiring a real provider won't require UI changes."
+      description="No live gateway is connected yet. Checkout uses a stub provider behind a swappable interface. Wiring a real provider won't require UI changes."
     >
       <Badge tone="warning">Provider: noop (stub)</Badge>
     </SettingsCard>

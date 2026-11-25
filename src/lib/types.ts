@@ -56,6 +56,8 @@ export interface UserListItem {
   onboardingStatus: string;
   emailVerifiedAt: string | null;
   lastLoginAt: string | null;
+  /** Test users can seed sample records into their workspaces. */
+  isTester: boolean;
   createdAt: string;
   /** Set by an admin — the user cannot sign in until it is cleared. */
   suspendedAt: string | null;
@@ -91,7 +93,6 @@ export type UserSortField =
 
 export interface UserDetail extends Omit<UserListItem, 'systemMembership'> {
   systemMembership: { role: SystemRole; createdAt: string } | null;
-  isTester: boolean;
   updatedAt: string;
   /** Deadline for restoring a deleted account. */
   scheduledPurgeAt: string | null;
@@ -277,6 +278,12 @@ export interface Plan {
   maxImageMessages: number;
   maxVoiceMessages: number;
 
+  // Null on message-priced plans; when set, maxMonthlyMessages = leads × messagesPerLead.
+  maxMonthlyLeads: number | null;
+  messagesPerLead: number | null;
+  // Private plan built from a custom plan request.
+  isCustom: boolean;
+
   duration: PlanDuration;
   customDurationDays: number | null;
   isTrial: boolean;
@@ -364,6 +371,69 @@ export interface Subscription {
  */
 export interface SubscriptionListItem extends Subscription {
   billing: SubscriptionBilling;
+}
+
+export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
+
+/** Mirrors InvoicesService.toInvoiceListItem in server/src/modules/admin/invoices. */
+export interface InvoiceListItem {
+  id: string;
+  number: string;
+  status: InvoiceStatus;
+  amount: number;
+  /** Pre-discount total; above `amount` only when the invoice was discounted. */
+  listAmount: number | null;
+  discountReason: string | null;
+  currency: string;
+  provider: 'MANUAL' | 'SAFEPAY';
+  planName: string | null;
+  /** Plan periods sold; null on renewals, which always bill one. */
+  periodCount: number | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  issuedAt: string;
+  dueAt: string | null;
+  payment: {
+    methodLabel: string;
+    reference: string | null;
+    discountReason: string | null;
+    paidAt: string | null;
+  } | null;
+}
+
+/** A customer-submitted payment still waiting for an admin to approve it. */
+export interface PendingPaymentItem {
+  id: string;
+  planName: string | null;
+  amount: number;
+  currency: string;
+  methodLabel: string;
+  reference: string | null;
+  periodCount: number;
+  submittedAt: string;
+}
+
+/** Mirrors InvoiceOutcome in server/src/modules/admin/invoices/invoice-lifecycle.service.ts. */
+export interface InvoiceOutcome {
+  invoiceId: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  subscriptionId: string | null;
+}
+
+export interface BillingSummary {
+  account: {
+    id: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    phone: string | null;
+    avatarUrl: string | null;
+    businessName: string | null;
+  };
+  paid: { amount: number; count: number };
+  unpaid: { amount: number; count: number };
+  pendingPayments: PendingPaymentItem[];
 }
 
 /** Columns the subscriptions list can be ordered by — all server-side. */

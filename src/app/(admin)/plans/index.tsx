@@ -4,7 +4,7 @@ import { PlansView } from '@/features/plans/components/PlansView';
 const PlansPage = () => {
   return (
     <>
-      <PageMeta title="Plans" />
+      <PageMeta title="Pricing plans" />
       <main>
         <PlansView />
       </main>

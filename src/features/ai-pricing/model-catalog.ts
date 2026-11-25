@@ -62,5 +62,5 @@ export function priceHint(
     rate.cachedInputPricePerMillionTokens === null
       ? ''
       : ` · $${rate.cachedInputPricePerMillionTokens.toFixed(2)} cached`;
-  return `$${rate.inputPricePerMillionTokens.toFixed(2)} in${cached} · $${rate.outputPricePerMillionTokens.toFixed(2)} out — per 1M tokens`;
+  return `$${rate.inputPricePerMillionTokens.toFixed(2)} in${cached} · $${rate.outputPricePerMillionTokens.toFixed(2)} out. Per 1M tokens`;
 }
